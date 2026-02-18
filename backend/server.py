@@ -85,17 +85,39 @@ class VehicleMileageUpdate(BaseModel):
 class TripCreate(BaseModel):
     origin: str
     destination: str
-    patient_name: str
+    patient_name: str = ""
     patient_unit: str = ""
     priority: str = "normal"
     notes: str = ""
+    trip_type: str = "no_clinico"
+    clinical_team: str = ""
+    contact_person: str = ""
+    scheduled_date: str = ""
 
 class TripStatusUpdate(BaseModel):
     status: str
+    mileage: Optional[float] = None
+    vehicle_id: Optional[str] = None
 
 class TripGroupUpdate(BaseModel):
     group_id: str
     order_in_group: int = 0
+
+class TripUpdate(BaseModel):
+    origin: Optional[str] = None
+    destination: Optional[str] = None
+    patient_name: Optional[str] = None
+    patient_unit: Optional[str] = None
+    priority: Optional[str] = None
+    notes: Optional[str] = None
+    trip_type: Optional[str] = None
+    clinical_team: Optional[str] = None
+    contact_person: Optional[str] = None
+    scheduled_date: Optional[str] = None
+
+class ManagerAssign(BaseModel):
+    driver_id: str
+    vehicle_id: Optional[str] = None
 
 class DestinationCreate(BaseModel):
     name: str
@@ -449,6 +471,13 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
         "group_id": None,
         "order_in_group": 0,
         "notes": data.notes,
+        "trip_type": data.trip_type,
+        "clinical_team": data.clinical_team,
+        "contact_person": data.contact_person,
+        "scheduled_date": data.scheduled_date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "vehicle_id": None,
+        "start_mileage": None,
+        "end_mileage": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None
@@ -477,6 +506,56 @@ async def active_trips(user=Depends(require_roles("jefe_turno", "admin"))):
     trips = await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return trips
 
+@api_router.get("/trips/calendar")
+async def trips_calendar(start_date: str = None, end_date: str = None, user=Depends(require_roles("jefe_turno", "admin"))):
+    query = {"status": {"$ne": "cancelado"}}
+    if start_date and end_date:
+        query["scheduled_date"] = {"$gte": start_date, "$lte": end_date}
+    trips = await db.trips.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(1000)
+    return trips
+
+@api_router.get("/trips/{trip_id}")
+async def get_trip_detail(trip_id: str, user=Depends(get_current_user)):
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    return trip
+
+@api_router.put("/trips/{trip_id}")
+async def edit_trip(trip_id: str, data: TripUpdate, user=Depends(get_current_user)):
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    if trip["status"] not in ["pendiente"] and user["role"] == "solicitante":
+        raise HTTPException(status_code=400, detail="Solo se pueden editar viajes pendientes")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Sin datos para actualizar")
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    return {"message": "Viaje actualizado"}
+
+@api_router.put("/trips/{trip_id}/manager-assign")
+async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(require_roles("jefe_turno", "admin"))):
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    driver = await db.users.find_one({"id": data.driver_id, "role": "conductor"}, {"_id": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Conductor no encontrado")
+    update_data = {
+        "driver_id": data.driver_id,
+        "driver_name": driver["name"],
+        "status": "asignado" if trip["status"] == "pendiente" else trip["status"],
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if data.vehicle_id:
+        vehicle = await db.vehicles.find_one({"id": data.vehicle_id}, {"_id": 0})
+        if vehicle:
+            update_data["vehicle_id"] = data.vehicle_id
+    await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    return {"message": f"Viaje asignado a {driver['name']}"}
+
 @api_router.put("/trips/{trip_id}/assign")
 async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
     trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
@@ -498,6 +577,12 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
     update_data = {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}
     if data.status == "completado":
         update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+    if data.status == "en_curso" and data.mileage is not None:
+        update_data["start_mileage"] = data.mileage
+    if data.status == "completado" and data.mileage is not None:
+        update_data["end_mileage"] = data.mileage
+    if data.vehicle_id:
+        update_data["vehicle_id"] = data.vehicle_id
     result = await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
