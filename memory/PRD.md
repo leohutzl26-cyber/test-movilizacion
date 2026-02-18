@@ -29,6 +29,19 @@ PWA para gestión de traslados hospitalarios con RBAC (4 roles), gestión de con
 - [x] Disponibilidad extra para conductores diurnos
 - [x] Validación de licencia de conducir vencida
 
+## Lo Implementado (Fase 2 - Feb 2026)
+- [x] Tipo de traslado: Clínico / No Clínico con campos condicionales
+- [x] Campos clínicos: paciente, equipo clínico, persona de contacto
+- [x] Campo "Otro (especificar)" funcional para origen/destino
+- [x] Fecha de traslado con default fecha actual
+- [x] Detalle de traslado con modal (solicitante + conductor)
+- [x] Editar y cancelar traslados pendientes (solicitante)
+- [x] Diálogo de kilometraje al iniciar/completar viaje (conductor)
+- [x] Stats clickeables en consola de despacho (jefe de turno)
+- [x] Asignación y reasignación de conductores a viajes (jefe de turno)
+- [x] Asignación de vehículo a viaje (jefe de turno)
+- [x] Calendario semanal con traslados programados (jefe de turno)
+
 ## Backlog (Priorizado)
 ### P0 (Crítico)
 - Nada pendiente de la Fase 1
