@@ -1,0 +1,314 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import Sidebar from "@/components/Sidebar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { HandMetal, Play, CheckCircle, Camera, Truck, MapPin, ArrowRight, Clock, Upload, AlertTriangle, Zap } from "lucide-react";
+import api from "@/lib/api";
+
+export default function DriverDashboard() {
+  const [section, setSection] = useState("pool");
+  return (
+    <div className="min-h-screen bg-slate-50" data-testid="driver-dashboard">
+      <Sidebar activeSection={section} onSectionChange={setSection} />
+      <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
+        <div className="p-4 md:p-6">
+          {section === "pool" && <PoolSection />}
+          {section === "trips" && <MyTripsSection />}
+          {section === "vehicle" && <VehicleSection />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function PoolSection() {
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchPool = useCallback(async () => { try { const r = await api.get("/trips/pool"); setTrips(r.data); } catch {} finally { setLoading(false); } }, []);
+  useEffect(() => { fetchPool(); const i = setInterval(fetchPool, 10000); return () => clearInterval(i); }, [fetchPool]);
+
+  const handleAssign = async (tripId) => {
+    try { await api.put(`/trips/${tripId}/assign`); toast.success("Viaje asignado. Revise 'Mis Viajes'."); fetchPool(); }
+    catch (e) { toast.error(e.response?.data?.detail || "Error al asignar"); }
+  };
+
+  const priorityColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
+
+  return (
+    <div className="max-w-lg mx-auto">
+      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="pool-title">Viajes Disponibles</h1>
+      <div className="space-y-4">
+        {trips.map((t, i) => (
+          <Card key={t.id} className="card-hover animate-slide-up shadow-md" style={{ animationDelay: `${i * 80}ms` }} data-testid={`pool-trip-${t.id}`}>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${priorityColors[t.priority] || priorityColors.normal}`}>{t.priority}</span>
+                <span className="text-xs text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(t.created_at).toLocaleTimeString()}</span>
+              </div>
+              <p className="font-semibold text-lg text-slate-900 mb-1">{t.patient_name}</p>
+              {t.patient_unit && <p className="text-sm text-slate-500 mb-2">Unidad: {t.patient_unit}</p>}
+              <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                <MapPin className="w-4 h-4 text-teal-500 flex-shrink-0" />
+                <span>{t.origin}</span>
+                <ArrowRight className="w-3 h-3 flex-shrink-0" />
+                <span>{t.destination}</span>
+              </div>
+              {t.notes && <p className="text-xs text-slate-400 mb-3 bg-slate-50 p-2 rounded">{t.notes}</p>}
+              <Button onClick={() => handleAssign(t.id)} className="w-full bg-teal-600 hover:bg-teal-700 text-white h-12 text-base touch-target active:scale-95 transition-transform" data-testid={`assign-trip-${t.id}`}>
+                <HandMetal className="w-5 h-5 mr-2" />Tomar Viaje
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+        {trips.length === 0 && !loading && (
+          <div className="text-center py-16">
+            <Clock className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-400 text-lg">Sin viajes disponibles</p>
+            <p className="text-slate-300 text-sm mt-1">Los nuevos viajes apareceran aqui</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MyTripsSection() {
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchTrips = useCallback(async () => { try { const r = await api.get("/trips"); setTrips(r.data); } catch {} finally { setLoading(false); } }, []);
+  useEffect(() => { fetchTrips(); }, [fetchTrips]);
+
+  const handleStatusChange = async (tripId, status) => {
+    try { await api.put(`/trips/${tripId}/status`, { status }); toast.success("Estado actualizado"); fetchTrips(); }
+    catch (e) { toast.error("Error al actualizar"); }
+  };
+
+  const statusColors = {
+    asignado: "bg-teal-100 text-teal-800 border-teal-200",
+    en_curso: "bg-blue-100 text-blue-800 border-blue-200",
+    completado: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    cancelado: "bg-red-100 text-red-800 border-red-200",
+  };
+
+  const activeTrips = trips.filter(t => ["asignado", "en_curso"].includes(t.status));
+  const pastTrips = trips.filter(t => ["completado", "cancelado"].includes(t.status));
+
+  return (
+    <div className="max-w-lg mx-auto">
+      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="my-trips-title">Mis Viajes</h1>
+
+      {activeTrips.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-base font-semibold text-slate-700 mb-3">Activos</h2>
+          <div className="space-y-4">
+            {activeTrips.map(t => (
+              <Card key={t.id} className="shadow-md border-l-4 border-l-teal-500" data-testid={`active-trip-${t.id}`}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                  </div>
+                  <p className="font-semibold text-lg text-slate-900">{t.patient_name}</p>
+                  <div className="flex items-center gap-2 text-sm text-slate-600 mt-1 mb-4">
+                    <MapPin className="w-4 h-4 text-teal-500" />{t.origin} <ArrowRight className="w-3 h-3" /> {t.destination}
+                  </div>
+                  <div className="flex gap-2">
+                    {t.status === "asignado" && (
+                      <Button onClick={() => handleStatusChange(t.id, "en_curso")} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 touch-target active:scale-95" data-testid={`start-trip-${t.id}`}>
+                        <Play className="w-5 h-5 mr-2" />Iniciar
+                      </Button>
+                    )}
+                    {t.status === "en_curso" && (
+                      <Button onClick={() => handleStatusChange(t.id, "completado")} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-12 touch-target active:scale-95" data-testid={`complete-trip-${t.id}`}>
+                        <CheckCircle className="w-5 h-5 mr-2" />Completar
+                      </Button>
+                    )}
+                    {["asignado", "en_curso"].includes(t.status) && (
+                      <Button onClick={() => handleStatusChange(t.id, "cancelado")} variant="outline" className="h-12 text-red-500 border-red-200 hover:bg-red-50 touch-target" data-testid={`cancel-trip-${t.id}`}>
+                        Cancelar
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pastTrips.length > 0 && (
+        <div>
+          <h2 className="text-base font-semibold text-slate-700 mb-3">Historial</h2>
+          <div className="space-y-3">
+            {pastTrips.slice(0, 10).map(t => (
+              <Card key={t.id} className="opacity-80" data-testid={`past-trip-${t.id}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-slate-700">{t.patient_name}</p>
+                      <p className="text-sm text-slate-500">{t.origin} → {t.destination}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[t.status]}`}>{t.status}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {trips.length === 0 && !loading && <p className="text-center py-16 text-slate-400">Sin viajes asignados</p>}
+    </div>
+  );
+}
+
+function VehicleSection() {
+  const { user } = useAuth();
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [showOcr, setShowOcr] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [manualMileage, setManualMileage] = useState("");
+  const fileInputRef = useRef(null);
+
+  useEffect(() => { api.get("/vehicles").then(r => setVehicles(r.data)).catch(() => {}); }, []);
+
+  const handleToggleAvailability = async () => {
+    try {
+      const res = await api.put(`/drivers/${user.id}/extra-availability`);
+      toast.success(res.data.extra_available ? "Disponibilidad extra activada" : "Disponibilidad extra desactivada");
+    } catch (e) { toast.error("Error"); }
+  };
+
+  const handleOcrUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedVehicle) return;
+    setOcrLoading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await api.post(`/vehicles/${selectedVehicle.id}/ocr`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+      if (res.data.mileage) {
+        toast.success(`Kilometraje detectado: ${res.data.mileage.toLocaleString()} km`);
+        setShowOcr(false);
+        const r = await api.get("/vehicles"); setVehicles(r.data);
+      } else {
+        toast.error("No se pudo leer el odometro. Ingrese manualmente.");
+      }
+    } catch (e) { toast.error("Error en OCR"); }
+    finally { setOcrLoading(false); }
+  };
+
+  const handleManualMileage = async () => {
+    if (!selectedVehicle || !manualMileage) return;
+    try {
+      await api.put(`/vehicles/${selectedVehicle.id}/mileage`, { mileage: parseFloat(manualMileage) });
+      toast.success("Kilometraje actualizado");
+      setShowOcr(false);
+      setManualMileage("");
+      const r = await api.get("/vehicles"); setVehicles(r.data);
+    } catch (e) { toast.error(e.response?.data?.detail || "Error"); }
+  };
+
+  const handleStatusChange = async (vehicleId, status) => {
+    try { await api.put(`/vehicles/${vehicleId}/status`, { status }); toast.success("Estado actualizado"); const r = await api.get("/vehicles"); setVehicles(r.data); }
+    catch (e) { toast.error("Error"); }
+  };
+
+  return (
+    <div className="max-w-lg mx-auto">
+      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="vehicle-title">Mi Vehiculo</h1>
+
+      <Card className="mb-6 bg-teal-50 border-teal-200">
+        <CardContent className="p-5 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-teal-900">Disponibilidad Extra</p>
+            <p className="text-sm text-teal-700">Activar fuera de horario</p>
+          </div>
+          <Button onClick={handleToggleAvailability} variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-100 touch-target" data-testid="toggle-availability-btn">
+            <Zap className="w-4 h-4 mr-2" />Alternar
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        {vehicles.map(v => (
+          <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "border-red-300 border-2 bg-red-50" : v.maintenance_alert === "amarillo" ? "border-amber-300 border-2 bg-amber-50" : ""}`} data-testid={`vehicle-card-${v.id}`}>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-teal-600" />
+                  <span className="font-bold text-lg text-slate-900">{v.plate}</span>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-semibold status-${v.status}`}>{v.status.replace(/_/g, " ")}</span>
+              </div>
+              <p className="text-sm text-slate-600 mb-2">{v.brand} {v.model} ({v.year})</p>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <p className="text-xs text-slate-500">Kilometraje</p>
+                  <p className="font-bold text-slate-900">{(v.mileage || 0).toLocaleString()} km</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <p className="text-xs text-slate-500">Prox. Mant.</p>
+                  <p className="font-bold text-slate-900">{(v.next_maintenance_km || 0).toLocaleString()} km</p>
+                </div>
+              </div>
+              {v.maintenance_alert && (
+                <div className={`flex items-center gap-2 p-2 rounded-lg mb-3 ${v.maintenance_alert === "rojo" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}`}>
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="text-xs font-medium">{v.maintenance_alert === "rojo" ? "Mantencion excedida!" : "Prox. a mantencion (< 1000 km)"}</span>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button onClick={() => { setSelectedVehicle(v); setShowOcr(true); }} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white h-11 touch-target active:scale-95" data-testid={`ocr-btn-${v.id}`}>
+                  <Camera className="w-5 h-5 mr-2" />Registrar KM
+                </Button>
+                <Select value={v.status} onValueChange={val => handleStatusChange(v.id, val)}>
+                  <SelectTrigger className="w-auto h-11 touch-target" data-testid={`driver-vehicle-status-${v.id}`}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="disponible">Disponible</SelectItem>
+                    <SelectItem value="en_servicio">En Servicio</SelectItem>
+                    <SelectItem value="en_limpieza">En Limpieza</SelectItem>
+                    <SelectItem value="en_taller">En Taller</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {vehicles.length === 0 && <p className="text-center py-12 text-slate-400">Sin vehiculos en el sistema</p>}
+      </div>
+
+      <Dialog open={showOcr} onOpenChange={setShowOcr}>
+        <DialogContent className="max-w-sm" data-testid="ocr-dialog">
+          <DialogHeader><DialogTitle>Registrar Kilometraje</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">Vehiculo: <strong>{selectedVehicle?.plate}</strong></p>
+            <div className="border-2 border-dashed border-teal-200 rounded-xl p-8 text-center hover:border-teal-400 transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleOcrUpload} className="hidden" data-testid="ocr-file-input" />
+              {ocrLoading ? (
+                <div className="flex flex-col items-center gap-2"><div className="animate-spin w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full" /><p className="text-sm text-teal-600">Procesando imagen...</p></div>
+              ) : (
+                <div className="flex flex-col items-center gap-2"><Camera className="w-10 h-10 text-teal-400" /><p className="text-sm text-slate-600 font-medium">Tomar foto del odometro</p><p className="text-xs text-slate-400">La IA extraera el kilometraje</p></div>
+              )}
+            </div>
+            <div className="border-t border-slate-200 pt-4">
+              <p className="text-xs text-slate-500 mb-2">O ingrese manualmente:</p>
+              <div className="flex gap-2">
+                <Input type="number" placeholder="Ej: 45230" value={manualMileage} onChange={e => setManualMileage(e.target.value)} data-testid="manual-mileage-input" className="flex-1" />
+                <Button onClick={handleManualMileage} className="bg-teal-600 hover:bg-teal-700 touch-target" data-testid="manual-mileage-btn">Guardar</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

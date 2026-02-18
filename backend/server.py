@@ -1,72 +1,603 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+import asyncio
 import uuid
-from datetime import datetime, timezone
-
+import base64
+from pathlib import Path
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional
+from datetime import datetime, timezone, timedelta
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+import resend
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
+# MongoDB
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
+# JWT Config
+SECRET_KEY = os.environ.get('JWT_SECRET', str(uuid.uuid4()))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE = 24
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Resend config
+resend_api_key = os.environ.get('RESEND_API_KEY')
+if resend_api_key:
+    resend.api_key = resend_api_key
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+
+# LLM Key for OCR
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+
+# FastAPI
 app = FastAPI()
-
-# Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
+security = HTTPBearer()
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+# ============ PYDANTIC MODELS ============
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    role: str = "solicitante"
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+class ForgotPassword(BaseModel):
+    email: EmailStr
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+class ResetPassword(BaseModel):
+    token: str
+    new_password: str
 
-# Include the router in the main app
+class VehicleCreate(BaseModel):
+    plate: str
+    brand: str
+    model: str
+    year: int = 2024
+    mileage: float = 0
+    next_maintenance_km: float = 10000
+
+class VehicleStatusUpdate(BaseModel):
+    status: str
+
+class VehicleMileageUpdate(BaseModel):
+    mileage: float
+
+class TripCreate(BaseModel):
+    origin: str
+    destination: str
+    patient_name: str
+    patient_unit: str = ""
+    priority: str = "normal"
+    notes: str = ""
+
+class TripStatusUpdate(BaseModel):
+    status: str
+
+class TripGroupUpdate(BaseModel):
+    group_id: str
+    order_in_group: int = 0
+
+class DestinationCreate(BaseModel):
+    name: str
+    address: str = ""
+    category: str = "general"
+
+class DestinationUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    category: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+class DriverShiftUpdate(BaseModel):
+    shift_type: str
+
+class DriverLicenseUpdate(BaseModel):
+    license_expiry: str
+
+# ============ AUTH UTILITIES ============
+
+def create_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(hours=ACCESS_TOKEN_EXPIRE))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token invalido")
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=401, detail="Usuario no encontrado")
+        if user.get("status") != "aprobado":
+            raise HTTPException(status_code=403, detail="Usuario pendiente de aprobacion")
+        if user.get("role") == "conductor" and user.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(user["license_expiry"])
+                if expiry.tzinfo is None:
+                    expiry = expiry.replace(tzinfo=timezone.utc)
+                if expiry < datetime.now(timezone.utc):
+                    raise HTTPException(status_code=403, detail="Licencia de conducir vencida")
+            except (ValueError, TypeError):
+                pass
+        return user
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token invalido o expirado")
+
+def require_roles(*roles):
+    async def role_checker(user=Depends(get_current_user)):
+        if user["role"] not in roles:
+            raise HTTPException(status_code=403, detail="No tiene permisos para esta accion")
+        return user
+    return role_checker
+
+# ============ AUTH ENDPOINTS ============
+
+@api_router.post("/auth/register")
+async def register(data: UserRegister):
+    existing = await db.users.find_one({"email": data.email}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="El correo ya esta registrado")
+    user = {
+        "id": str(uuid.uuid4()),
+        "email": data.email,
+        "password_hash": pwd_context.hash(data.password),
+        "name": data.name,
+        "role": data.role,
+        "status": "pendiente",
+        "shift_type": "diurno" if data.role == "conductor" else None,
+        "extra_available": False,
+        "license_expiry": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+    return {"message": "Registro exitoso. Pendiente de aprobacion por administrador.", "user_id": user["id"]}
+
+@api_router.post("/auth/login")
+async def login(data: UserLogin):
+    user = await db.users.find_one({"email": data.email}, {"_id": 0})
+    if not user or not pwd_context.verify(data.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+    if user["status"] != "aprobado":
+        raise HTTPException(status_code=403, detail="Cuenta pendiente de aprobacion")
+    if user.get("role") == "conductor" and user.get("license_expiry"):
+        try:
+            expiry = datetime.fromisoformat(user["license_expiry"])
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry < datetime.now(timezone.utc):
+                raise HTTPException(status_code=403, detail="Licencia de conducir vencida. Contacte al administrador.")
+        except (ValueError, TypeError):
+            pass
+    token = create_token({"sub": user["id"], "role": user["role"]})
+    return {
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user["name"],
+            "role": user["role"],
+            "shift_type": user.get("shift_type"),
+            "extra_available": user.get("extra_available", False)
+        }
+    }
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: ForgotPassword):
+    user = await db.users.find_one({"email": data.email}, {"_id": 0})
+    if not user:
+        return {"message": "Si el correo existe, recibira instrucciones de recuperacion."}
+    reset_token = create_token({"sub": user["id"], "type": "reset"}, timedelta(hours=1))
+    await db.users.update_one({"id": user["id"]}, {"$set": {"reset_token": reset_token}})
+    if resend_api_key:
+        try:
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #0F766E;">Recuperacion de Contrasena</h2>
+                <p>Hola {user['name']},</p>
+                <p>Recibimos una solicitud para restablecer tu contrasena. Usa el siguiente codigo:</p>
+                <div style="background: #F1F5F9; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                    <code style="font-size: 24px; font-weight: bold; color: #0F766E;">{reset_token[:20]}</code>
+                </div>
+                <p style="color: #64748B; font-size: 12px;">Este codigo expira en 1 hora.</p>
+            </div>
+            """
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [data.email],
+                "subject": "Recuperacion de Contrasena - Traslados Hospital",
+                "html": html_content
+            }
+            await asyncio.to_thread(resend.Emails.send, params)
+        except Exception as e:
+            logger.error(f"Error enviando email: {e}")
+    return {"message": "Si el correo existe, recibira instrucciones de recuperacion.", "reset_token": reset_token}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: ResetPassword):
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id or payload.get("type") != "reset":
+            raise HTTPException(status_code=400, detail="Token invalido")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token invalido o expirado")
+    new_hash = pwd_context.hash(data.new_password)
+    result = await db.users.update_one({"id": user_id}, {"$set": {"password_hash": new_hash, "reset_token": None}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": "Contrasena actualizada correctamente"}
+
+@api_router.get("/auth/me")
+async def get_me(user=Depends(get_current_user)):
+    return {k: v for k, v in user.items() if k != "password_hash"}
+
+# ============ USER MANAGEMENT ============
+
+@api_router.get("/users")
+async def list_users(user=Depends(require_roles("admin"))):
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0, "reset_token": 0}).to_list(1000)
+    return users
+
+@api_router.put("/users/{user_id}/approve")
+async def approve_user(user_id: str, user=Depends(require_roles("admin"))):
+    result = await db.users.update_one({"id": user_id}, {"$set": {"status": "aprobado"}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": "Usuario aprobado"}
+
+@api_router.put("/users/{user_id}/reject")
+async def reject_user(user_id: str, user=Depends(require_roles("admin"))):
+    result = await db.users.update_one({"id": user_id}, {"$set": {"status": "rechazado"}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": "Usuario rechazado"}
+
+@api_router.put("/users/{user_id}/role")
+async def update_role(user_id: str, data: UserRoleUpdate, user=Depends(require_roles("admin"))):
+    valid_roles = ["admin", "jefe_turno", "solicitante", "conductor"]
+    if data.role not in valid_roles:
+        raise HTTPException(status_code=400, detail="Rol invalido")
+    result = await db.users.update_one({"id": user_id}, {"$set": {"role": data.role}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": "Rol actualizado"}
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, user=Depends(require_roles("admin"))):
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": "Usuario eliminado"}
+
+# ============ DRIVER MANAGEMENT ============
+
+@api_router.get("/drivers")
+async def list_drivers(user=Depends(require_roles("admin", "jefe_turno"))):
+    drivers = await db.users.find({"role": "conductor"}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    return drivers
+
+@api_router.put("/drivers/{driver_id}/shift")
+async def update_driver_shift(driver_id: str, data: DriverShiftUpdate, user=Depends(require_roles("admin", "jefe_turno"))):
+    valid_shifts = ["diurno", "4to_turno"]
+    if data.shift_type not in valid_shifts:
+        raise HTTPException(status_code=400, detail="Tipo de turno invalido")
+    result = await db.users.update_one({"id": driver_id, "role": "conductor"}, {"$set": {"shift_type": data.shift_type}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Conductor no encontrado")
+    return {"message": "Turno actualizado"}
+
+@api_router.put("/drivers/{driver_id}/extra-availability")
+async def toggle_extra_availability(driver_id: str, user=Depends(get_current_user)):
+    if user["id"] != driver_id and user["role"] not in ["admin", "jefe_turno"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    driver = await db.users.find_one({"id": driver_id, "role": "conductor"}, {"_id": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Conductor no encontrado")
+    new_val = not driver.get("extra_available", False)
+    await db.users.update_one({"id": driver_id}, {"$set": {"extra_available": new_val}})
+    return {"message": "Disponibilidad actualizada", "extra_available": new_val}
+
+@api_router.put("/drivers/{driver_id}/license")
+async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends(require_roles("admin", "jefe_turno"))):
+    result = await db.users.update_one({"id": driver_id, "role": "conductor"}, {"$set": {"license_expiry": data.license_expiry}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Conductor no encontrado")
+    return {"message": "Licencia actualizada"}
+
+# ============ VEHICLE MANAGEMENT ============
+
+@api_router.get("/vehicles")
+async def list_vehicles(user=Depends(get_current_user)):
+    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(1000)
+    return vehicles
+
+@api_router.post("/vehicles")
+async def create_vehicle(data: VehicleCreate, user=Depends(require_roles("admin"))):
+    vehicle = {
+        "id": str(uuid.uuid4()),
+        "plate": data.plate,
+        "brand": data.brand,
+        "model": data.model,
+        "year": data.year,
+        "mileage": data.mileage,
+        "next_maintenance_km": data.next_maintenance_km,
+        "status": "disponible",
+        "maintenance_alert": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.vehicles.insert_one(vehicle)
+    vehicle.pop("_id", None)
+    return vehicle
+
+@api_router.put("/vehicles/{vehicle_id}")
+async def update_vehicle(vehicle_id: str, data: VehicleCreate, user=Depends(require_roles("admin"))):
+    update_data = data.model_dump()
+    result = await db.vehicles.update_one({"id": vehicle_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    return {"message": "Vehiculo actualizado"}
+
+@api_router.put("/vehicles/{vehicle_id}/status")
+async def update_vehicle_status(vehicle_id: str, data: VehicleStatusUpdate, user=Depends(require_roles("admin", "jefe_turno", "conductor"))):
+    valid_statuses = ["disponible", "en_servicio", "en_limpieza", "en_taller", "fuera_de_servicio"]
+    if data.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Estado invalido")
+    result = await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"status": data.status}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    return {"message": "Estado actualizado"}
+
+@api_router.put("/vehicles/{vehicle_id}/mileage")
+async def update_vehicle_mileage(vehicle_id: str, data: VehicleMileageUpdate, user=Depends(require_roles("admin", "conductor"))):
+    vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    if data.mileage < vehicle.get("mileage", 0):
+        raise HTTPException(status_code=400, detail="El kilometraje no puede ser menor al actual")
+    next_maint = vehicle.get("next_maintenance_km", 10000)
+    diff = next_maint - data.mileage
+    alert = None
+    if diff <= 0:
+        alert = "rojo"
+    elif diff <= 1000:
+        alert = "amarillo"
+    await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": data.mileage, "maintenance_alert": alert}})
+    return {"message": "Kilometraje actualizado", "mileage": data.mileage, "maintenance_alert": alert}
+
+@api_router.post("/vehicles/{vehicle_id}/ocr")
+async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depends(require_roles("conductor"))):
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="OCR no configurado")
+    vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    contents = await file.read()
+    img_base64 = base64.b64encode(contents).decode("utf-8")
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"ocr-{uuid.uuid4()}",
+            system_message="You are an OCR assistant specialized in reading vehicle odometers. Extract ONLY the odometer/mileage number from the dashboard image. Return ONLY the numeric value with no other text. If you cannot read it clearly, return ERROR."
+        ).with_model("openai", "gpt-5.2")
+        image_content = ImageContent(image_base64=img_base64)
+        user_msg = UserMessage(
+            text="Read the odometer number from this vehicle dashboard photo. Return only the number.",
+            file_contents=[image_content]
+        )
+        response = await chat.send_message(user_msg)
+        cleaned = response.strip().replace(",", "").replace(".", "").replace(" ", "").replace("km", "").replace("KM", "")
+        mileage_val = float(cleaned)
+        if mileage_val >= vehicle.get("mileage", 0):
+            next_maint = vehicle.get("next_maintenance_km", 10000)
+            diff = next_maint - mileage_val
+            alert = None
+            if diff <= 0:
+                alert = "rojo"
+            elif diff <= 1000:
+                alert = "amarillo"
+            await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": mileage_val, "maintenance_alert": alert}})
+        return {"mileage": mileage_val, "raw_response": response.strip(), "maintenance_alert": alert}
+    except (ValueError, TypeError):
+        return {"mileage": None, "raw_response": response.strip() if 'response' in dir() else "Error", "error": "No se pudo extraer el kilometraje"}
+    except Exception as e:
+        logger.error(f"OCR error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error en OCR: {str(e)}")
+
+# ============ TRIP MANAGEMENT ============
+
+@api_router.post("/trips")
+async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "jefe_turno", "admin"))):
+    trip = {
+        "id": str(uuid.uuid4()),
+        "requester_id": user["id"],
+        "requester_name": user["name"],
+        "driver_id": None,
+        "driver_name": None,
+        "origin": data.origin,
+        "destination": data.destination,
+        "patient_name": data.patient_name,
+        "patient_unit": data.patient_unit,
+        "priority": data.priority,
+        "status": "pendiente",
+        "group_id": None,
+        "order_in_group": 0,
+        "notes": data.notes,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None
+    }
+    await db.trips.insert_one(trip)
+    trip.pop("_id", None)
+    return trip
+
+@api_router.get("/trips")
+async def list_trips(user=Depends(get_current_user)):
+    query = {}
+    if user["role"] == "solicitante":
+        query["requester_id"] = user["id"]
+    elif user["role"] == "conductor":
+        query["driver_id"] = user["id"]
+    trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return trips
+
+@api_router.get("/trips/pool")
+async def trip_pool(user=Depends(require_roles("conductor", "jefe_turno"))):
+    trips = await db.trips.find({"status": "pendiente", "driver_id": None}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return trips
+
+@api_router.get("/trips/active")
+async def active_trips(user=Depends(require_roles("jefe_turno", "admin"))):
+    trips = await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return trips
+
+@api_router.put("/trips/{trip_id}/assign")
+async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    if trip["status"] != "pendiente" or trip["driver_id"] is not None:
+        raise HTTPException(status_code=400, detail="El viaje ya fue asignado")
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {"driver_id": user["id"], "driver_name": user["name"], "status": "asignado", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Viaje asignado exitosamente"}
+
+@api_router.put("/trips/{trip_id}/status")
+async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(get_current_user)):
+    valid_statuses = ["pendiente", "asignado", "en_curso", "completado", "cancelado"]
+    if data.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Estado invalido")
+    update_data = {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.status == "completado":
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    return {"message": "Estado actualizado"}
+
+@api_router.put("/trips/{trip_id}/group")
+async def group_trip(trip_id: str, data: TripGroupUpdate, user=Depends(require_roles("conductor"))):
+    result = await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {"group_id": data.group_id, "order_in_group": data.order_in_group, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    return {"message": "Grupo actualizado"}
+
+# ============ DESTINATION MANAGEMENT ============
+
+@api_router.get("/destinations")
+async def list_destinations(user=Depends(get_current_user)):
+    destinations = await db.destinations.find({}, {"_id": 0}).to_list(1000)
+    return destinations
+
+@api_router.post("/destinations")
+async def create_destination(data: DestinationCreate, user=Depends(require_roles("admin", "jefe_turno"))):
+    dest = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "address": data.address,
+        "category": data.category,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.destinations.insert_one(dest)
+    dest.pop("_id", None)
+    return dest
+
+@api_router.put("/destinations/{dest_id}")
+async def update_destination(dest_id: str, data: DestinationUpdate, user=Depends(require_roles("admin", "jefe_turno"))):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Sin datos para actualizar")
+    result = await db.destinations.update_one({"id": dest_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Destino no encontrado")
+    return {"message": "Destino actualizado"}
+
+@api_router.delete("/destinations/{dest_id}")
+async def delete_destination(dest_id: str, user=Depends(require_roles("admin"))):
+    result = await db.destinations.delete_one({"id": dest_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Destino no encontrado")
+    return {"message": "Destino eliminado"}
+
+# ============ STATS ============
+
+@api_router.get("/stats")
+async def get_stats(user=Depends(require_roles("admin", "jefe_turno"))):
+    total_trips = await db.trips.count_documents({})
+    pending = await db.trips.count_documents({"status": "pendiente"})
+    active = await db.trips.count_documents({"status": {"$in": ["asignado", "en_curso"]}})
+    completed = await db.trips.count_documents({"status": "completado"})
+    total_vehicles = await db.vehicles.count_documents({})
+    vehicles_available = await db.vehicles.count_documents({"status": "disponible"})
+    total_drivers = await db.users.count_documents({"role": "conductor", "status": "aprobado"})
+    pending_users = await db.users.count_documents({"status": "pendiente"})
+    return {
+        "total_trips": total_trips,
+        "pending_trips": pending,
+        "active_trips": active,
+        "completed_trips": completed,
+        "total_vehicles": total_vehicles,
+        "vehicles_available": vehicles_available,
+        "total_drivers": total_drivers,
+        "pending_users": pending_users
+    }
+
+# ============ SEED ADMIN ============
+
+@api_router.post("/seed-admin")
+async def seed_admin():
+    existing = await db.users.find_one({"role": "admin"}, {"_id": 0})
+    if existing:
+        return {"message": "Admin ya existe", "email": existing["email"]}
+    admin_user = {
+        "id": str(uuid.uuid4()),
+        "email": "admin@hospital.cl",
+        "password_hash": pwd_context.hash("admin123"),
+        "name": "Administrador",
+        "role": "admin",
+        "status": "aprobado",
+        "shift_type": None,
+        "extra_available": False,
+        "license_expiry": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(admin_user)
+    return {"message": "Admin creado", "email": "admin@hospital.cl", "password": "admin123"}
+
+# ============ APP SETUP ============
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -76,13 +607,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

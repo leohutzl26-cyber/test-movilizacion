@@ -1,34 +1,97 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Hospital Transfer Management - Custom Styles */
+
+/* Status badges */
+.status-pendiente {
+  @apply bg-amber-100 text-amber-800 border-amber-200;
+}
+.status-aprobado, .status-asignado {
+  @apply bg-teal-100 text-teal-800 border-teal-200;
+}
+.status-rechazado, .status-cancelado {
+  @apply bg-red-100 text-red-800 border-red-200;
+}
+.status-en_curso, .status-en_servicio {
+  @apply bg-blue-100 text-blue-800 border-blue-200;
+}
+.status-completado {
+  @apply bg-emerald-100 text-emerald-800 border-emerald-200;
+}
+.status-disponible {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+.status-en_limpieza {
+  @apply bg-violet-100 text-violet-800 border-violet-200;
+}
+.status-en_taller {
+  @apply bg-orange-100 text-orange-800 border-orange-200;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Maintenance alerts */
+.alert-amarillo {
+  @apply bg-amber-50 border-amber-300 text-amber-900;
+}
+.alert-rojo {
+  @apply bg-red-50 border-red-300 text-red-900;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+/* Priority badges */
+.priority-urgente {
+  @apply bg-red-100 text-red-800;
+}
+.priority-alta {
+  @apply bg-orange-100 text-orange-800;
+}
+.priority-normal {
+  @apply bg-slate-100 text-slate-800;
 }
 
-.App-link {
-    color: #61dafb;
+/* Sidebar */
+.sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-600 hover:bg-teal-50 hover:text-teal-700;
+}
+.sidebar-link.active {
+  @apply bg-teal-600 text-white shadow-md;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Card animations */
+.card-hover {
+  @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg;
+}
+
+/* Stat card */
+.stat-card {
+  @apply bg-white rounded-xl p-6 border border-slate-100 shadow-sm;
+}
+
+/* Touch targets for mobile */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded-full;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
 }
