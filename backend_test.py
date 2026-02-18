@@ -1,53 +1,62 @@
+#!/usr/bin/env python3
+
 import requests
 import json
 import sys
+import time
 from datetime import datetime
 
-class HospitalTransferTester:
+class HospitalTransferSystemTester:
     def __init__(self, base_url="https://healthcare-logistics-1.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
-        self.test_user_token = None
-        self.test_user_id = None
+        self.solicitante_token = None
+        self.conductor_token = None
+        self.jefe_turno_token = None
+        self.test_users = {}
         self.tests_run = 0
         self.tests_passed = 0
-        self.errors = []
+        self.failures = []
 
-    def log_result(self, test_name, success, error_msg=None):
-        """Log test result"""
+    def log_result(self, test_name, success, message="", response_data=None):
+        """Log test result with details"""
         self.tests_run += 1
         if success:
             self.tests_passed += 1
-            print(f"✅ {test_name}")
+            print(f"✅ {test_name}: {message}")
         else:
-            print(f"❌ {test_name}: {error_msg}")
-            self.errors.append(f"{test_name}: {error_msg}")
+            self.failures.append(f"{test_name}: {message}")
+            print(f"❌ {test_name}: {message}")
+            if response_data:
+                print(f"   Response: {response_data}")
 
-    def make_request(self, method, endpoint, data=None, token=None, files=None):
-        """Make HTTP request with proper headers"""
+    def api_request(self, method, endpoint, data=None, token=None, files=None):
+        """Make API request with error handling"""
         url = f"{self.base_url}/api{endpoint}"
         headers = {'Content-Type': 'application/json'}
-        
         if token:
             headers['Authorization'] = f'Bearer {token}'
-        
         if files:
-            headers.pop('Content-Type', None)  # Remove for file uploads
-            
+            headers.pop('Content-Type', None)  # Let requests handle multipart
+        
         try:
             if method == 'GET':
                 response = requests.get(url, headers=headers)
             elif method == 'POST':
                 if files:
-                    response = requests.post(url, headers=headers, files=files)
+                    response = requests.post(url, files=files, headers=headers)
                 else:
-                    response = requests.post(url, headers=headers, json=data)
+                    response = requests.post(url, json=data, headers=headers)
             elif method == 'PUT':
-                response = requests.put(url, headers=headers, json=data)
+                response = requests.put(url, json=data, headers=headers)
             elif method == 'DELETE':
                 response = requests.delete(url, headers=headers)
             
-            return response
+            return response.status_code, response.json() if response.content else {}
+        except requests.exceptions.RequestException as e:
+            return 0, {"error": str(e)}
+        except json.JSONDecodeError:
+            return response.status_code if 'response' in locals() else 0, {"error": "Invalid JSON response"}
         except Exception as e:
             return None, str(e)
 
