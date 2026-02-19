@@ -326,11 +326,6 @@ function DriversSection() {
   const fetchDrivers = useCallback(async () => { try { const r = await api.get("/drivers"); setDrivers(r.data); } catch {} finally { setLoading(false); } }, []);
   useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
 
-  const handleShiftChange = async (id, shift_type) => {
-    try { await api.put(`/drivers/${id}/shift`, { shift_type }); toast.success("Turno actualizado"); fetchDrivers(); }
-    catch (e) { toast.error("Error"); }
-  };
-
   const handleLicenseUpdate = async (id, date) => {
     try { await api.put(`/drivers/${id}/license`, { license_expiry: date }); toast.success("Licencia actualizada"); fetchDrivers(); }
     catch (e) { toast.error("Error"); }
@@ -362,16 +357,6 @@ function DriversSection() {
                 </div>
               )}
               <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Turno</p>
-                  <Select value={d.shift_type || "diurno"} onValueChange={(val) => handleShiftChange(d.id, val)}>
-                    <SelectTrigger className="h-9 text-sm" data-testid={`shift-select-${d.id}`}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="diurno">Diurno</SelectItem>
-                      <SelectItem value="4to_turno">4to Turno (L-N-L-L)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Venc. Licencia</p>
                   <input
