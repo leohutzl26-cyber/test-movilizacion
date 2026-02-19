@@ -131,9 +131,6 @@ class DestinationUpdate(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: str
 
-class DriverShiftUpdate(BaseModel):
-    shift_type: str
-
 class DriverLicenseUpdate(BaseModel):
     license_expiry: str
 
@@ -190,7 +187,7 @@ async def register(data: UserRegister):
         "name": data.name,
         "role": data.role,
         "status": "pendiente",
-        "shift_type": "diurno" if data.role == "conductor" else None,
+        "shift_type": None,
         "extra_available": False,
         "license_expiry": None,
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -321,16 +318,6 @@ async def delete_user(user_id: str, user=Depends(require_roles("admin"))):
 async def list_drivers(user=Depends(require_roles("admin", "coordinador"))):
     drivers = await db.users.find({"role": "conductor"}, {"_id": 0, "password_hash": 0}).to_list(1000)
     return drivers
-
-@api_router.put("/drivers/{driver_id}/shift")
-async def update_driver_shift(driver_id: str, data: DriverShiftUpdate, user=Depends(require_roles("admin", "coordinador"))):
-    valid_shifts = ["diurno", "4to_turno"]
-    if data.shift_type not in valid_shifts:
-        raise HTTPException(status_code=400, detail="Tipo de turno invalido")
-    result = await db.users.update_one({"id": driver_id, "role": "conductor"}, {"$set": {"shift_type": data.shift_type}})
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Conductor no encontrado")
-    return {"message": "Turno actualizado"}
 
 @api_router.put("/drivers/{driver_id}/extra-availability")
 async def toggle_extra_availability(driver_id: str, user=Depends(get_current_user)):
