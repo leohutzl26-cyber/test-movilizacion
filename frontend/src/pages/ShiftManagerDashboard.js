@@ -134,6 +134,11 @@ function VehiclesSection() {
   const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data); } catch {} finally { setLoading(false); } }, []);
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
+  const handleStatusChange = async (vehicleId, status) => {
+    try { await api.put(`/vehicles/${vehicleId}/status`, { status }); toast.success("Estado actualizado"); fetchVehicles(); }
+    catch (e) { toast.error("Error al cambiar estado"); }
+  };
+
   const statusColors = {
     disponible: "bg-green-100 text-green-800",
     en_servicio: "bg-blue-100 text-blue-800",
@@ -141,6 +146,7 @@ function VehiclesSection() {
     en_taller: "bg-orange-100 text-orange-800",
     fuera_de_servicio: "bg-red-100 text-red-800"
   };
+  const statusOptions = ["disponible", "en_servicio", "en_limpieza", "en_taller", "fuera_de_servicio"];
 
   const alertIcon = (alert) => {
     if (alert === "rojo") return <AlertTriangle className="w-4 h-4 text-red-500" />;
@@ -151,8 +157,8 @@ function VehiclesSection() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900 mb-6" data-testid="vehicles-section-title">Flota de Vehiculos</h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {["disponible", "en_servicio", "en_limpieza", "en_taller"].map(s => (
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        {statusOptions.map(s => (
           <div key={s} className="stat-card text-center">
             <p className="text-2xl font-bold text-slate-900">{vehicles.filter(v => v.status === s).length}</p>
             <p className="text-xs text-slate-500 capitalize">{s.replace(/_/g, " ")}</p>
@@ -183,6 +189,10 @@ function VehiclesSection() {
                   {v.maintenance_alert === "rojo" ? "Mantencion excedida" : "Proxima a mantencion"}
                 </div>
               )}
+              <Select value={v.status} onValueChange={val => handleStatusChange(v.id, val)}>
+                <SelectTrigger className="mt-3 h-9 text-xs" data-testid={`coord-vehicle-status-${v.id}`}><SelectValue /></SelectTrigger>
+                <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+              </Select>
             </CardContent>
           </Card>
         ))}
