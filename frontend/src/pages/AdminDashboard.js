@@ -272,3 +272,112 @@ function DestinationsSection() {
     </div>
   );
 }
+
+function AuditSection() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterAction, setFilterAction] = useState("");
+  const [filterEntity, setFilterEntity] = useState("");
+
+  useEffect(() => { api.get("/audit-logs").then(r => { setLogs(r.data); setLoading(false); }).catch(() => setLoading(false)); }, []);
+
+  const actionLabels = {
+    registro: "Registro", aprobar_usuario: "Aprobar Usuario", rechazar_usuario: "Rechazar Usuario",
+    cambiar_rol: "Cambiar Rol", eliminar_usuario: "Eliminar Usuario",
+    crear_vehiculo: "Crear Vehiculo", cambiar_estado_vehiculo: "Cambiar Estado Vehiculo", eliminar_vehiculo: "Eliminar Vehiculo",
+    crear_traslado: "Crear Traslado", asignar_traslado: "Asignar Traslado", tomar_traslado: "Tomar Traslado",
+    cambiar_estado_traslado: "Cambiar Estado Traslado"
+  };
+  const entityLabels = { usuario: "Usuario", vehiculo: "Vehiculo", traslado: "Traslado" };
+  const actionColors = {
+    registro: "bg-blue-100 text-blue-700", aprobar_usuario: "bg-emerald-100 text-emerald-700",
+    rechazar_usuario: "bg-red-100 text-red-700", cambiar_rol: "bg-violet-100 text-violet-700",
+    eliminar_usuario: "bg-red-100 text-red-700", crear_vehiculo: "bg-teal-100 text-teal-700",
+    cambiar_estado_vehiculo: "bg-amber-100 text-amber-700", eliminar_vehiculo: "bg-red-100 text-red-700",
+    crear_traslado: "bg-teal-100 text-teal-700", asignar_traslado: "bg-blue-100 text-blue-700",
+    tomar_traslado: "bg-blue-100 text-blue-700", cambiar_estado_traslado: "bg-amber-100 text-amber-700"
+  };
+  const roleLabels = { admin: "Admin", coordinador: "Coordinador", solicitante: "Solicitante", conductor: "Conductor" };
+
+  const filtered = logs.filter(l => {
+    if (filterAction && l.action !== filterAction) return false;
+    if (filterEntity && l.entity_type !== filterEntity) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const fields = [l.user_name, l.action, l.entity_type, l.details].filter(Boolean);
+      if (!fields.some(f => f.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  const formatTs = (iso) => {
+    if (!iso) return "-";
+    try { const d = new Date(iso); return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+    catch { return iso; }
+  };
+
+  const uniqueActions = [...new Set(logs.map(l => l.action))];
+  const uniqueEntities = [...new Set(logs.map(l => l.entity_type))];
+
+  if (loading) return <div className="text-center py-12 text-slate-500">Cargando registro...</div>;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="audit-title">Registro de Actividad</h1>
+
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input placeholder="Buscar por usuario, accion, detalle..." className="pl-10 h-10" value={search} onChange={e => setSearch(e.target.value)} data-testid="audit-search" />
+        </div>
+        <Select value={filterAction} onValueChange={v => setFilterAction(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[180px] h-10" data-testid="audit-filter-action"><SelectValue placeholder="Todas las acciones" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las acciones</SelectItem>
+            {uniqueActions.map(a => <SelectItem key={a} value={a}>{actionLabels[a] || a}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterEntity} onValueChange={v => setFilterEntity(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[160px] h-10" data-testid="audit-filter-entity"><SelectValue placeholder="Todas las entidades" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {uniqueEntities.map(e => <SelectItem key={e} value={e}>{entityLabels[e] || e}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <p className="text-sm text-slate-500 mb-3">{filtered.length} registros</p>
+
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="text-xs font-semibold">Fecha/Hora</TableHead>
+                <TableHead className="text-xs font-semibold">Usuario</TableHead>
+                <TableHead className="text-xs font-semibold">Rol</TableHead>
+                <TableHead className="text-xs font-semibold">Accion</TableHead>
+                <TableHead className="text-xs font-semibold">Entidad</TableHead>
+                <TableHead className="text-xs font-semibold">Detalle</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.slice(0, 200).map(l => (
+                <TableRow key={l.id} data-testid={`audit-row-${l.id}`}>
+                  <TableCell className="text-xs whitespace-nowrap text-slate-500">{formatTs(l.timestamp)}</TableCell>
+                  <TableCell className="text-xs font-medium">{l.user_name}</TableCell>
+                  <TableCell><span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">{roleLabels[l.user_role] || l.user_role}</span></TableCell>
+                  <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${actionColors[l.action] || "bg-slate-100 text-slate-700"}`}>{actionLabels[l.action] || l.action}</span></TableCell>
+                  <TableCell className="text-xs capitalize">{entityLabels[l.entity_type] || l.entity_type}</TableCell>
+                  <TableCell className="text-xs text-slate-600 max-w-[250px] truncate">{l.details}</TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-12 text-slate-400">Sin registros de actividad</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
