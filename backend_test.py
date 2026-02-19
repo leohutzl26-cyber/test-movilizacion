@@ -564,8 +564,18 @@ class HospitalTransferSystemTester:
             "Weekly calendar with date ranges"
         ]
         
-        print(f"\n🆕 PHASE 2 FEATURES TESTED:")
-        for feature in phase2_features_tested:
+        # Phase 3 specific summary
+        phase3_features_tested = [
+            "Role renamed from 'jefe_turno' to 'coordinador'",
+            "Destinations created without category field",
+            "Admin can edit vehicles",
+            "Admin can delete vehicles",
+            "Coordinador role has proper endpoint access",
+            "System uses 'coordinador' not 'jefe_turno'"
+        ]
+        
+        print(f"\n🆕 PHASE 3 FEATURES TESTED:")
+        for feature in phase3_features_tested:
             print(f"   ✓ {feature}")
         
         return {
