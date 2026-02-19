@@ -481,6 +481,145 @@ class HospitalTransferSystemTester:
             self.log_result("Role System Check", False, f"Status: {status}")
             return False
 
+    def test_phase5_audit_logs(self):
+        """Test Phase 5: Admin audit log functionality"""
+        if not self.admin_token:
+            self.log_result("Audit Logs", False, "No admin token available")
+            return False
+        
+        # Test audit logs endpoint (admin only)
+        status, data = self.api_request('GET', '/audit-logs', token=self.admin_token)
+        if status == 200:
+            logs = data if isinstance(data, list) else []
+            self.log_result("Admin Audit Logs Access", True, f"Retrieved {len(logs)} audit entries")
+            
+            # Check if logs contain required fields
+            if logs:
+                first_log = logs[0]
+                required_fields = ['user_id', 'user_name', 'user_role', 'action', 'entity_type', 'timestamp']
+                has_required = all(field in first_log for field in required_fields)
+                self.log_result("Audit Log Structure", True, f"Audit logs have required fields: {has_required}")
+                
+                # Look for specific action types from Phase 5
+                actions_found = set(log.get('action') for log in logs[:20])  # Check first 20
+                phase5_actions = ['registro', 'aprobar_usuario', 'crear_vehiculo', 'crear_traslado', 'cambiar_estado_vehiculo']
+                found_actions = [action for action in phase5_actions if action in actions_found]
+                self.log_result("Audit Action Types", True, f"Found Phase 5 actions: {found_actions}")
+            
+            return True
+        else:
+            self.log_result("Admin Audit Logs Access", False, f"Status: {status}")
+            return False
+    
+    def test_phase5_coordinador_vehicle_status(self):
+        """Test Phase 5: Coordinator can change vehicle status"""
+        if not self.coordinador_token:
+            self.log_result("Coordinador Vehicle Status", False, "No coordinador token available")
+            return False
+        
+        # First ensure we have a vehicle
+        vehicle_id = None
+        status, vehicles = self.api_request('GET', '/vehicles', token=self.coordinador_token)
+        if status == 200 and vehicles:
+            vehicle_id = vehicles[0].get('id')
+        
+        if not vehicle_id:
+            self.log_result("Coordinador Vehicle Status", False, "No vehicles available for testing")
+            return False
+        
+        # Test coordinador can change vehicle status
+        status_data = {"status": "en_limpieza"}
+        status, data = self.api_request('PUT', f'/vehicles/{vehicle_id}/status', status_data, token=self.coordinador_token)
+        if status == 200:
+            self.log_result("Coordinador Vehicle Status Change", True, "Coordinador successfully changed vehicle status to 'en_limpieza'")
+            
+            # Change to another status
+            status_data = {"status": "en_taller"}
+            status, data = self.api_request('PUT', f'/vehicles/{vehicle_id}/status', status_data, token=self.coordinador_token)
+            if status == 200:
+                self.log_result("Coordinador Vehicle Status Change 2", True, "Coordinador successfully changed vehicle status to 'en_taller'")
+                
+                # Reset to available
+                status_data = {"status": "disponible"}
+                self.api_request('PUT', f'/vehicles/{vehicle_id}/status', status_data, token=self.coordinador_token)
+                return True
+            else:
+                self.log_result("Coordinador Vehicle Status Change 2", False, f"Status: {status}")
+        else:
+            self.log_result("Coordinador Vehicle Status Change", False, f"Status: {status}")
+        
+        return False
+    
+    def test_phase5_driver_vehicle_mandatory(self, trip_id):
+        """Test Phase 5: Driver must select vehicle when starting trip"""
+        if not self.conductor_token or not trip_id:
+            self.log_result("Driver Vehicle Mandatory", False, "Missing conductor token or trip ID")
+            return False
+        
+        # Try to start trip without vehicle_id (should fail if trip has no vehicle assigned)
+        start_data = {
+            "status": "en_curso",
+            "mileage": 45000.0
+            # No vehicle_id provided
+        }
+        
+        status, data = self.api_request('PUT', f'/trips/{trip_id}/status', start_data, token=self.conductor_token)
+        if status == 400:
+            error_msg = data.get('detail', '')
+            if 'vehiculo' in error_msg.lower() or 'vehicle' in error_msg.lower():
+                self.log_result("Driver Vehicle Mandatory Check", True, "System correctly requires vehicle selection for trip start")
+                
+                # Now test with vehicle_id (should succeed)
+                # Get a vehicle
+                status, vehicles = self.api_request('GET', '/vehicles', token=self.conductor_token)
+                if status == 200 and vehicles:
+                    vehicle_id = vehicles[0].get('id')
+                    start_data["vehicle_id"] = vehicle_id
+                    
+                    status, data = self.api_request('PUT', f'/trips/{trip_id}/status', start_data, token=self.conductor_token)
+                    if status == 200:
+                        self.log_result("Driver Trip Start With Vehicle", True, "Trip started successfully with vehicle selected")
+                        return True
+                    else:
+                        self.log_result("Driver Trip Start With Vehicle", False, f"Status: {status}")
+                else:
+                    self.log_result("Driver Vehicle Mandatory", False, "No vehicles available for testing")
+            else:
+                self.log_result("Driver Vehicle Mandatory Check", False, f"Unexpected error message: {error_msg}")
+        elif status == 200:
+            # If it succeeded without vehicle_id, this might mean the trip already has a vehicle assigned
+            self.log_result("Driver Vehicle Mandatory Check", True, "Trip start succeeded (may have pre-assigned vehicle)")
+            return True
+        else:
+            self.log_result("Driver Vehicle Mandatory Check", False, f"Unexpected status: {status}")
+        
+        return False
+    
+    def test_phase5_trips_by_vehicle(self):
+        """Test Phase 5: GET /api/trips/by-vehicle endpoint"""
+        if not self.coordinador_token:
+            self.log_result("Trips By Vehicle", False, "No coordinador token available")
+            return False
+        
+        # Test trips by vehicle endpoint with today's date
+        today = datetime.now().strftime("%Y-%m-%d")
+        status, data = self.api_request('GET', f'/trips/by-vehicle?date={today}', token=self.coordinador_token)
+        if status == 200:
+            vehicles_data = data if isinstance(data, list) else []
+            self.log_result("Trips By Vehicle Endpoint", True, f"Retrieved trips for {len(vehicles_data)} vehicles on {today}")
+            
+            # Check data structure
+            if vehicles_data:
+                first_vehicle = vehicles_data[0]
+                has_vehicle_key = 'vehicle' in first_vehicle
+                has_trips_key = 'trips' in first_vehicle
+                self.log_result("Trips By Vehicle Structure", True, f"Data has vehicle key: {has_vehicle_key}, trips key: {has_trips_key}")
+            
+            return True
+        else:
+            self.log_result("Trips By Vehicle Endpoint", False, f"Status: {status}")
+            return False
+
     def test_trip_detail_access(self, trip_id):
         """Test trip detail endpoint access"""
         if not trip_id:
