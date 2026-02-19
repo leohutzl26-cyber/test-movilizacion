@@ -249,11 +249,25 @@ function MyTripsSection() {
       </Dialog>
 
       {/* Mileage Dialog */}
-      <Dialog open={!!mileageDialog} onOpenChange={() => { setMileageDialog(null); setMileageValue(""); }}>
+      <Dialog open={!!mileageDialog} onOpenChange={() => { setMileageDialog(null); setMileageValue(""); setSelectedVehicleId(""); }}>
         <DialogContent className="max-w-sm" data-testid="mileage-dialog">
-          <DialogHeader><DialogTitle>{mileageDialog?.action === "start" ? "Registrar KM de Inicio" : "Registrar KM Final"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{mileageDialog?.action === "start" ? "Iniciar Viaje" : "Completar Viaje"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-slate-500">Ingrese el kilometraje actual del vehiculo para {mileageDialog?.action === "start" ? "iniciar" : "completar"} el viaje.</p>
+            {mileageDialog?.action === "start" && (
+              <div className="space-y-2">
+                <Label className="font-semibold">Vehiculo a utilizar *</Label>
+                <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                  <SelectTrigger data-testid="trip-vehicle-select"><SelectValue placeholder="Seleccione vehiculo" /></SelectTrigger>
+                  <SelectContent>
+                    {vehicles.filter(v => v.status === "disponible" || v.status === "en_servicio").map(v => (
+                      <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!selectedVehicleId && <p className="text-xs text-red-500">Debe seleccionar un vehiculo para iniciar</p>}
+              </div>
+            )}
+            <p className="text-sm text-slate-500">Registre el kilometraje actual del vehiculo.</p>
             <div className="border-2 border-dashed border-teal-200 rounded-xl p-6 text-center hover:border-teal-400 transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
               <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleOcrForMileage} className="hidden" data-testid="mileage-ocr-input" />
               {mileageLoading ? (
@@ -268,7 +282,8 @@ function MyTripsSection() {
                 <Input type="number" placeholder="Ej: 45230" value={mileageValue} onChange={e => setMileageValue(e.target.value)} data-testid="mileage-manual-input" className="flex-1" />
               </div>
             </div>
-            <Button onClick={handleConfirmMileage} className="w-full bg-teal-600 hover:bg-teal-700 h-11" disabled={!mileageValue} data-testid="confirm-mileage-btn">
+            <Button onClick={handleConfirmMileage} className="w-full bg-teal-600 hover:bg-teal-700 h-11"
+              disabled={!mileageValue || (mileageDialog?.action === "start" && !selectedVehicleId)} data-testid="confirm-mileage-btn">
               {mileageDialog?.action === "start" ? "Iniciar Viaje" : "Completar Viaje"}
             </Button>
           </div>
