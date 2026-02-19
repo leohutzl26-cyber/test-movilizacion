@@ -20,6 +20,7 @@ export default function ShiftManagerDashboard() {
         <div className="p-4 md:p-8">
           {section === "dispatch" && <DispatchSection onNavigate={setSection} />}
           {section === "drivers" && <DriversSection />}
+          {section === "vehicles" && <VehiclesSection />}
           {section === "assign" && <AssignSection />}
           {section === "calendar" && <CalendarSection />}
         </div>
@@ -62,7 +63,7 @@ function DispatchSection({ onNavigate }) {
             { label: "Pendientes", value: stats.pending_trips, icon: Clock, color: "text-amber-600 bg-amber-50", nav: "assign" },
             { label: "Activos", value: stats.active_trips, icon: Truck, color: "text-blue-600 bg-blue-50", nav: "assign" },
             { label: "Conductores", value: stats.total_drivers, icon: Users, color: "text-teal-600 bg-teal-50", nav: "drivers" },
-            { label: "Vehiculos Disp.", value: stats.vehicles_available, icon: Truck, color: "text-emerald-600 bg-emerald-50", nav: null },
+            { label: "Vehiculos Disp.", value: stats.vehicles_available, icon: Truck, color: "text-emerald-600 bg-emerald-50", nav: "vehicles" },
           ].map(c => (
             <div key={c.label}
               className={`stat-card animate-slide-up ${c.nav ? "cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all" : ""}`}

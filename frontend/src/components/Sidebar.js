@@ -14,6 +14,7 @@ const navItems = {
   coordinador: [
     { label: "Despacho", icon: LayoutDashboard, path: "/manager", section: "dispatch" },
     { label: "Conductores", icon: Users, path: "/manager", section: "drivers" },
+    { label: "Vehiculos", icon: Truck, path: "/manager", section: "vehicles" },
     { label: "Asignacion", icon: ClipboardList, path: "/manager", section: "assign" },
     { label: "Calendario", icon: CalendarDays, path: "/manager", section: "calendar" },
   ],
