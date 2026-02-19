@@ -11,7 +11,7 @@ const navItems = {
     { label: "Vehiculos", icon: Truck, path: "/admin", section: "vehicles" },
     { label: "Destinos", icon: MapPin, path: "/admin", section: "destinations" },
   ],
-  jefe_turno: [
+  coordinador: [
     { label: "Despacho", icon: LayoutDashboard, path: "/manager", section: "dispatch" },
     { label: "Conductores", icon: Users, path: "/manager", section: "drivers" },
     { label: "Asignacion", icon: ClipboardList, path: "/manager", section: "assign" },
@@ -42,7 +42,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
 
   const roleLabels = {
     admin: "Administrador",
-    jefe_turno: "Jefe de Turno",
+    coordinador: "Jefe de Turno",
     solicitante: "Solicitante",
     conductor: "Conductor",
   };

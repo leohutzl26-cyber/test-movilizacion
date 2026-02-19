@@ -302,7 +302,7 @@ async def reject_user(user_id: str, user=Depends(require_roles("admin"))):
 
 @api_router.put("/users/{user_id}/role")
 async def update_role(user_id: str, data: UserRoleUpdate, user=Depends(require_roles("admin"))):
-    valid_roles = ["admin", "jefe_turno", "solicitante", "conductor"]
+    valid_roles = ["admin", "coordinador", "solicitante", "conductor"]
     if data.role not in valid_roles:
         raise HTTPException(status_code=400, detail="Rol invalido")
     result = await db.users.update_one({"id": user_id}, {"$set": {"role": data.role}})
@@ -320,12 +320,12 @@ async def delete_user(user_id: str, user=Depends(require_roles("admin"))):
 # ============ DRIVER MANAGEMENT ============
 
 @api_router.get("/drivers")
-async def list_drivers(user=Depends(require_roles("admin", "jefe_turno"))):
+async def list_drivers(user=Depends(require_roles("admin", "coordinador"))):
     drivers = await db.users.find({"role": "conductor"}, {"_id": 0, "password_hash": 0}).to_list(1000)
     return drivers
 
 @api_router.put("/drivers/{driver_id}/shift")
-async def update_driver_shift(driver_id: str, data: DriverShiftUpdate, user=Depends(require_roles("admin", "jefe_turno"))):
+async def update_driver_shift(driver_id: str, data: DriverShiftUpdate, user=Depends(require_roles("admin", "coordinador"))):
     valid_shifts = ["diurno", "4to_turno"]
     if data.shift_type not in valid_shifts:
         raise HTTPException(status_code=400, detail="Tipo de turno invalido")
@@ -336,7 +336,7 @@ async def update_driver_shift(driver_id: str, data: DriverShiftUpdate, user=Depe
 
 @api_router.put("/drivers/{driver_id}/extra-availability")
 async def toggle_extra_availability(driver_id: str, user=Depends(get_current_user)):
-    if user["id"] != driver_id and user["role"] not in ["admin", "jefe_turno"]:
+    if user["id"] != driver_id and user["role"] not in ["admin", "coordinador"]:
         raise HTTPException(status_code=403, detail="Sin permisos")
     driver = await db.users.find_one({"id": driver_id, "role": "conductor"}, {"_id": 0})
     if not driver:
@@ -346,7 +346,7 @@ async def toggle_extra_availability(driver_id: str, user=Depends(get_current_use
     return {"message": "Disponibilidad actualizada", "extra_available": new_val}
 
 @api_router.put("/drivers/{driver_id}/license")
-async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends(require_roles("admin", "jefe_turno"))):
+async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends(require_roles("admin", "coordinador"))):
     result = await db.users.update_one({"id": driver_id, "role": "conductor"}, {"$set": {"license_expiry": data.license_expiry}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Conductor no encontrado")
@@ -386,7 +386,7 @@ async def update_vehicle(vehicle_id: str, data: VehicleCreate, user=Depends(requ
     return {"message": "Vehiculo actualizado"}
 
 @api_router.put("/vehicles/{vehicle_id}/status")
-async def update_vehicle_status(vehicle_id: str, data: VehicleStatusUpdate, user=Depends(require_roles("admin", "jefe_turno", "conductor"))):
+async def update_vehicle_status(vehicle_id: str, data: VehicleStatusUpdate, user=Depends(require_roles("admin", "coordinador", "conductor"))):
     valid_statuses = ["disponible", "en_servicio", "en_limpieza", "en_taller", "fuera_de_servicio"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail="Estado invalido")
@@ -455,7 +455,7 @@ async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depen
 # ============ TRIP MANAGEMENT ============
 
 @api_router.post("/trips")
-async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "jefe_turno", "admin"))):
+async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "coordinador", "admin"))):
     trip = {
         "id": str(uuid.uuid4()),
         "requester_id": user["id"],
@@ -497,17 +497,17 @@ async def list_trips(user=Depends(get_current_user)):
     return trips
 
 @api_router.get("/trips/pool")
-async def trip_pool(user=Depends(require_roles("conductor", "jefe_turno"))):
+async def trip_pool(user=Depends(require_roles("conductor", "coordinador"))):
     trips = await db.trips.find({"status": "pendiente", "driver_id": None}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return trips
 
 @api_router.get("/trips/active")
-async def active_trips(user=Depends(require_roles("jefe_turno", "admin"))):
+async def active_trips(user=Depends(require_roles("coordinador", "admin"))):
     trips = await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return trips
 
 @api_router.get("/trips/calendar")
-async def trips_calendar(start_date: str = None, end_date: str = None, user=Depends(require_roles("jefe_turno", "admin"))):
+async def trips_calendar(start_date: str = None, end_date: str = None, user=Depends(require_roles("coordinador", "admin"))):
     query = {"status": {"$ne": "cancelado"}}
     if start_date and end_date:
         query["scheduled_date"] = {"$gte": start_date, "$lte": end_date}
@@ -536,7 +536,7 @@ async def edit_trip(trip_id: str, data: TripUpdate, user=Depends(get_current_use
     return {"message": "Viaje actualizado"}
 
 @api_router.put("/trips/{trip_id}/manager-assign")
-async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(require_roles("jefe_turno", "admin"))):
+async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(require_roles("coordinador", "admin"))):
     trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
     if not trip:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
@@ -606,7 +606,7 @@ async def list_destinations(user=Depends(get_current_user)):
     return destinations
 
 @api_router.post("/destinations")
-async def create_destination(data: DestinationCreate, user=Depends(require_roles("admin", "jefe_turno"))):
+async def create_destination(data: DestinationCreate, user=Depends(require_roles("admin", "coordinador"))):
     dest = {
         "id": str(uuid.uuid4()),
         "name": data.name,
@@ -620,7 +620,7 @@ async def create_destination(data: DestinationCreate, user=Depends(require_roles
     return dest
 
 @api_router.put("/destinations/{dest_id}")
-async def update_destination(dest_id: str, data: DestinationUpdate, user=Depends(require_roles("admin", "jefe_turno"))):
+async def update_destination(dest_id: str, data: DestinationUpdate, user=Depends(require_roles("admin", "coordinador"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="Sin datos para actualizar")
@@ -639,7 +639,7 @@ async def delete_destination(dest_id: str, user=Depends(require_roles("admin")))
 # ============ STATS ============
 
 @api_router.get("/stats")
-async def get_stats(user=Depends(require_roles("admin", "jefe_turno"))):
+async def get_stats(user=Depends(require_roles("admin", "coordinador"))):
     total_trips = await db.trips.count_documents({})
     pending = await db.trips.count_documents({"status": "pendiente"})
     active = await db.trips.count_documents({"status": {"$in": ["asignado", "en_curso"]}})

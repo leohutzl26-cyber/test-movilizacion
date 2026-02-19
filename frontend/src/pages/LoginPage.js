@@ -65,7 +65,7 @@ function LoginForm() {
     try {
       const user = await login(email, password);
       toast.success(`Bienvenido, ${user.name}`);
-      const routes = { admin: "/admin", jefe_turno: "/manager", solicitante: "/requester", conductor: "/driver" };
+      const routes = { admin: "/admin", coordinador: "/manager", solicitante: "/requester", conductor: "/driver" };
       navigate(routes[user.role] || "/");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al iniciar sesion");
@@ -133,7 +133,7 @@ function RegisterForm({ onSuccess }) {
           <SelectContent>
             <SelectItem value="solicitante">Solicitante</SelectItem>
             <SelectItem value="conductor">Conductor</SelectItem>
-            <SelectItem value="jefe_turno">Jefe de Turno</SelectItem>
+            <SelectItem value="coordinador">Jefe de Turno</SelectItem>
           </SelectContent>
         </Select>
       </div>
