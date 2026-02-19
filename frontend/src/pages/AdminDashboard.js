@@ -196,18 +196,16 @@ function VehiclesSection() {
 function DestinationsSection() {
   const [destinations, setDestinations] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
-  const [form, setForm] = useState({ name: "", address: "", category: "general" });
+  const [form, setForm] = useState({ name: "", address: "" });
   const [loading, setLoading] = useState(true);
   const fetchDest = useCallback(async () => { try { const r = await api.get("/destinations"); setDestinations(r.data); } catch {} finally { setLoading(false); } }, []);
   useEffect(() => { fetchDest(); }, [fetchDest]);
 
   const handleCreate = async () => {
-    try { await api.post("/destinations", form); toast.success("Destino creado"); setShowDialog(false); setForm({ name: "", address: "", category: "general" }); fetchDest(); }
+    try { await api.post("/destinations", form); toast.success("Destino creado"); setShowDialog(false); setForm({ name: "", address: "" }); fetchDest(); }
     catch (e) { toast.error("Error"); }
   };
   const handleDelete = async (id) => { try { await api.delete(`/destinations/${id}`); toast.success("Destino eliminado"); fetchDest(); } catch { toast.error("Error"); } };
-
-  const categoryColors = { urgencias: "bg-red-100 text-red-700", dialisis: "bg-violet-100 text-violet-700", consultas: "bg-blue-100 text-blue-700", general: "bg-slate-100 text-slate-700" };
 
   return (
     <div>
@@ -222,7 +220,6 @@ function DestinationsSection() {
               <div>
                 <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-600" /><p className="font-semibold text-slate-900">{d.name}</p></div>
                 {d.address && <p className="text-sm text-slate-500 mt-1 ml-6">{d.address}</p>}
-                <span className={`inline-block mt-2 ml-6 px-2 py-0.5 rounded-full text-xs font-medium ${categoryColors[d.category] || categoryColors.general}`}>{d.category}</span>
               </div>
               <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => handleDelete(d.id)} data-testid={`delete-dest-${d.id}`}><Trash2 className="w-4 h-4" /></Button>
             </CardContent>
@@ -236,18 +233,6 @@ function DestinationsSection() {
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nombre</Label><Input data-testid="dest-name-input" placeholder="Ej: Urgencias" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
             <div className="space-y-2"><Label>Direccion</Label><Input data-testid="dest-address-input" placeholder="Ej: Piso 1, Ala Norte" value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></div>
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select value={form.category} onValueChange={val => setForm({...form, category: val})}>
-                <SelectTrigger data-testid="dest-category-select"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">General</SelectItem>
-                  <SelectItem value="urgencias">Urgencias</SelectItem>
-                  <SelectItem value="dialisis">Dialisis</SelectItem>
-                  <SelectItem value="consultas">Consultas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
