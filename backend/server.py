@@ -546,6 +546,21 @@ async def trips_calendar(start_date: str = None, end_date: str = None, user=Depe
     trips = await db.trips.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(1000)
     return trips
 
+@api_router.get("/trips/by-vehicle")
+async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordinador", "admin"))):
+    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(500)
+    trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).to_list(5000)
+    result = []
+    for v in vehicles:
+        v_trips = [t for t in trips if t.get("vehicle_id") == v["id"]]
+        result.append({"vehicle": v, "trips": v_trips})
+    # Also include unassigned trips (no vehicle)
+    unassigned = [t for t in trips if not t.get("vehicle_id")]
+    if unassigned:
+        result.append({"vehicle": {"id": "unassigned", "plate": "Sin Vehiculo", "brand": "", "model": "", "status": ""}, "trips": unassigned})
+    return result
+
 @api_router.get("/trips/{trip_id}")
 async def get_trip_detail(trip_id: str, user=Depends(get_current_user)):
     trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
