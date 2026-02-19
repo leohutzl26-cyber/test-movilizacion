@@ -107,8 +107,8 @@ class HospitalTransferSystemTester:
                             self.solicitante_token = login_data['token']
                         elif user_data['role'] == 'conductor':
                             self.conductor_token = login_data['token']
-                        elif user_data['role'] == 'jefe_turno':
-                            self.jefe_turno_token = login_data['token']
+                        elif user_data['role'] == 'coordinador':
+                            self.coordinador_token = login_data['token']
                         
                         self.log_result(f"Login {user_data['role']}", True, f"User {user_data['name']} logged in successfully")
                     else:
