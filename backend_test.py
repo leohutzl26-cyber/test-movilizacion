@@ -278,7 +278,7 @@ class HospitalTransferSystemTester:
             return False
             
         # Test stats endpoint for clickable cards
-        status, data = self.api_request('GET', '/stats', token=self.jefe_turno_token)
+        status, data = self.api_request('GET', '/stats', token=self.coordinador_token)
         if status == 200:
             required_stats = ['total_trips', 'pending_trips', 'active_trips', 'completed_trips', 'total_drivers', 'vehicles_available']
             has_all_stats = all(key in data for key in required_stats)
