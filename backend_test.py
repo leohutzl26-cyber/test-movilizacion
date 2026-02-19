@@ -497,7 +497,7 @@ class HospitalTransferSystemTester:
 
     def run_all_tests(self):
         """Run complete test suite for Phase 2 features"""
-        print("🏥 Starting Hospital Transfer Management System Backend Tests (Phase 2)")
+        print("🏥 Starting Hospital Transfer Management System Backend Tests (Phase 3)")
         print(f"📡 Testing against: {self.base_url}")
         print("=" * 80)
         
