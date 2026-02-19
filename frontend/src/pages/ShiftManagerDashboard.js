@@ -202,6 +202,91 @@ function VehiclesSection() {
   );
 }
 
+
+function ByVehicleSection() {
+  const [data, setData] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.get(`/trips/by-vehicle?date=${selectedDate}`); setData(r.data); }
+    catch {} finally { setLoading(false); }
+  }, [selectedDate]);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800" };
+  const vehicleStatusColors = {
+    disponible: "bg-green-100 text-green-700", en_servicio: "bg-blue-100 text-blue-700",
+    en_limpieza: "bg-violet-100 text-violet-700", en_taller: "bg-orange-100 text-orange-700"
+  };
+
+  const totalTrips = data.reduce((acc, d) => acc + d.trips.length, 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h1 className="text-2xl font-bold text-slate-900" data-testid="byvehicle-title">Traslados por Vehiculo</h1>
+        <div className="flex items-center gap-3">
+          <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto h-10" data-testid="byvehicle-date" />
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])} data-testid="byvehicle-today">Hoy</Button>
+        </div>
+      </div>
+
+      <p className="text-sm text-slate-500 mb-4">{totalTrips} traslados programados para el {selectedDate}</p>
+
+      {loading ? <div className="text-center py-12 text-slate-500">Cargando...</div> : (
+        <div className="space-y-4">
+          {data.map(item => (
+            <Card key={item.vehicle.id} className={`${item.trips.length > 0 ? "" : "opacity-60"}`} data-testid={`byvehicle-${item.vehicle.id}`}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
+                      <Truck className="w-5 h-5 text-teal-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{item.vehicle.plate}</CardTitle>
+                      {item.vehicle.brand && <p className="text-sm text-slate-500">{item.vehicle.brand} {item.vehicle.model}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="text-xs" variant="outline">{item.trips.length} viaje{item.trips.length !== 1 ? "s" : ""}</Badge>
+                    {item.vehicle.status && <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${vehicleStatusColors[item.vehicle.status] || "bg-slate-100"}`}>{item.vehicle.status.replace(/_/g, " ")}</span>}
+                  </div>
+                </div>
+              </CardHeader>
+              {item.trips.length > 0 && (
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    {item.trips.map(t => (
+                      <div key={t.id} className="p-3 bg-slate-50 rounded-lg flex items-center justify-between gap-3" data-testid={`byvehicle-trip-${t.id}`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.priority === "urgente" ? "bg-red-100 text-red-700" : t.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-200 text-slate-600"}`}>{t.priority}</span>
+                          </div>
+                          <p className="font-medium text-sm text-slate-900 truncate">{t.patient_name || "Sin nombre"}</p>
+                          <p className="text-xs text-slate-500 truncate">{t.origin} → {t.destination}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {t.driver_name && <p className="text-xs text-teal-600 font-medium">{t.driver_name}</p>}
+                          {!t.driver_name && <p className="text-xs text-slate-400">Sin conductor</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))}
+          {data.length === 0 && <p className="text-center py-12 text-slate-400">Sin datos para esta fecha</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AssignSection() {
   const [trips, setTrips] = useState([]);
   const [drivers, setDrivers] = useState([]);
