@@ -12,7 +12,7 @@ class HospitalTransferSystemTester:
         self.admin_token = None
         self.solicitante_token = None
         self.conductor_token = None
-        self.jefe_turno_token = None
+        self.coordinador_token = None
         self.test_users = {}
         self.tests_run = 0
         self.tests_passed = 0
