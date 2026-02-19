@@ -290,7 +290,7 @@ class HospitalTransferSystemTester:
         start_date = datetime.now().strftime("%Y-%m-%d")
         end_date = datetime.now().strftime("%Y-%m-%d")
         
-        status, data = self.api_request('GET', f'/trips/calendar?start_date={start_date}&end_date={end_date}', token=self.jefe_turno_token)
+        status, data = self.api_request('GET', f'/trips/calendar?start_date={start_date}&end_date={end_date}', token=self.coordinador_token)
         if status == 200:
             calendar_trips = data if isinstance(data, list) else []
             self.log_result("Calendar Endpoint", True, f"Calendar retrieved with {len(calendar_trips)} trips for date range")
