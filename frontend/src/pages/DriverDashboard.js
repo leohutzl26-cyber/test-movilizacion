@@ -87,14 +87,18 @@ function MyTripsSection() {
   const [mileageDialog, setMileageDialog] = useState(null); // { tripId, action: "start"|"complete" }
   const [mileageValue, setMileageValue] = useState("");
   const [mileageLoading, setMileageLoading] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const fileInputRef = useRef(null);
 
   const fetchTrips = useCallback(async () => { try { const r = await api.get("/trips"); setTrips(r.data); } catch {} finally { setLoading(false); } }, []);
-  useEffect(() => { fetchTrips(); }, [fetchTrips]);
+  useEffect(() => { fetchTrips(); api.get("/vehicles").then(r => setVehicles(r.data)).catch(() => {}); }, [fetchTrips]);
 
   const handleMileageAction = (tripId, action) => {
+    const trip = trips.find(t => t.id === tripId);
     setMileageDialog({ tripId, action });
     setMileageValue("");
+    setSelectedVehicleId(trip?.vehicle_id || "");
   };
 
   const handleOcrForMileage = async (e) => {
@@ -104,11 +108,9 @@ function MyTripsSection() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      // Find a vehicle to use for OCR - use first available
-      const vehiclesRes = await api.get("/vehicles");
-      const vehicles = vehiclesRes.data;
-      if (vehicles.length === 0) { toast.error("No hay vehiculos registrados"); setMileageLoading(false); return; }
-      const res = await api.post(`/vehicles/${vehicles[0].id}/ocr`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+      const targetVehicleId = selectedVehicleId || (vehicles.length > 0 ? vehicles[0].id : null);
+      if (!targetVehicleId) { toast.error("No hay vehiculos registrados"); setMileageLoading(false); return; }
+      const res = await api.post(`/vehicles/${targetVehicleId}/ocr`, formData, { headers: { "Content-Type": "multipart/form-data" } });
       if (res.data.mileage) {
         setMileageValue(String(res.data.mileage));
         toast.success(`Kilometraje detectado: ${res.data.mileage.toLocaleString()} km`);
@@ -119,12 +121,17 @@ function MyTripsSection() {
 
   const handleConfirmMileage = async () => {
     if (!mileageDialog || !mileageValue) { toast.error("Ingrese el kilometraje"); return; }
+    if (mileageDialog.action === "start" && !selectedVehicleId) { toast.error("Debe seleccionar un vehiculo"); return; }
     const status = mileageDialog.action === "start" ? "en_curso" : "completado";
     try {
-      await api.put(`/trips/${mileageDialog.tripId}/status`, { status, mileage: parseFloat(mileageValue) });
+      await api.put(`/trips/${mileageDialog.tripId}/status`, {
+        status,
+        mileage: parseFloat(mileageValue),
+        vehicle_id: mileageDialog.action === "start" ? selectedVehicleId : undefined
+      });
       toast.success(status === "en_curso" ? "Viaje iniciado" : "Viaje completado");
-      setMileageDialog(null); setMileageValue(""); fetchTrips();
-    } catch (e) { toast.error("Error al actualizar"); }
+      setMileageDialog(null); setMileageValue(""); setSelectedVehicleId(""); fetchTrips();
+    } catch (e) { toast.error(e.response?.data?.detail || "Error al actualizar"); }
   };
 
   const handleCancel = async (tripId) => {
