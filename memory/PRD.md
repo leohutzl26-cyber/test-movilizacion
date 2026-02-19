@@ -42,7 +42,12 @@ PWA para gestión de traslados hospitalarios con RBAC (4 roles), gestión de con
 - [x] Asignación de vehículo a viaje (jefe de turno)
 - [x] Calendario semanal con traslados programados (jefe de turno)
 
-## Backlog (Priorizado)
+## Lo Implementado (Fase 3 - Feb 2026)
+- [x] Rol "jefe_turno" renombrado a "coordinador" en todo el sistema
+- [x] Eliminado campo categoría de destinos frecuentes
+- [x] Eliminado campo turno de conductores
+- [x] Admin puede eliminar y editar vehículos
+- [x] Stat de vehículos clickeable en despacho -> muestra flota completa con estado
 ### P0 (Crítico)
 - Nada pendiente de la Fase 1
 
