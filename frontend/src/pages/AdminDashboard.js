@@ -23,6 +23,7 @@ export default function AdminDashboard() {
           {section === "users" && <UsersSection />}
           {section === "vehicles" && <VehiclesSection />}
           {section === "destinations" && <DestinationsSection />}
+          {section === "audit" && <AuditSection />}
         </div>
       </main>
     </div>
