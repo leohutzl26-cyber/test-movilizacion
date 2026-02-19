@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Ambulance, LayoutDashboard, Users, Truck, MapPin, ClipboardList, LogOut, Menu, X, CalendarDays } from "lucide-react";
+import { Ambulance, LayoutDashboard, Users, Truck, MapPin, ClipboardList, LogOut, Menu, X, CalendarDays, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = {
@@ -17,6 +17,7 @@ const navItems = {
     { label: "Vehiculos", icon: Truck, path: "/manager", section: "vehicles" },
     { label: "Asignacion", icon: ClipboardList, path: "/manager", section: "assign" },
     { label: "Calendario", icon: CalendarDays, path: "/manager", section: "calendar" },
+    { label: "Historial", icon: History, path: "/manager", section: "history" },
   ],
   solicitante: [
     { label: "Nuevo Traslado", icon: ClipboardList, path: "/requester", section: "new" },
