@@ -397,6 +397,14 @@ async def update_vehicle_mileage(vehicle_id: str, data: VehicleMileageUpdate, us
     await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": data.mileage, "maintenance_alert": alert}})
     return {"message": "Kilometraje actualizado", "mileage": data.mileage, "maintenance_alert": alert}
 
+
+@api_router.delete("/vehicles/{vehicle_id}")
+async def delete_vehicle(vehicle_id: str, user=Depends(require_roles("admin"))):
+    result = await db.vehicles.delete_one({"id": vehicle_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    return {"message": "Vehiculo eliminado"}
+
 @api_router.post("/vehicles/{vehicle_id}/ocr")
 async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depends(require_roles("conductor"))):
     if not EMERGENT_LLM_KEY:
