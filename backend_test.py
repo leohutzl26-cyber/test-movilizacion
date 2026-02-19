@@ -273,7 +273,7 @@ class HospitalTransferSystemTester:
 
     def test_stats_and_calendar(self):
         """Test manager stats and calendar endpoints (Phase 2 features)"""
-        if not self.jefe_turno_token:
+        if not self.coordinador_token:
             self.log_result("Stats Access", False, "No manager token available")
             return False
             
