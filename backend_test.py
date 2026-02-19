@@ -480,6 +480,8 @@ class HospitalTransferSystemTester:
         else:
             self.log_result("Role System Check", False, f"Status: {status}")
             return False
+
+    def test_trip_detail_access(self, trip_id):
         """Test trip detail endpoint access"""
         if not trip_id:
             return False
