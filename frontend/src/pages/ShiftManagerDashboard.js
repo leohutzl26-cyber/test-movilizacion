@@ -124,6 +124,70 @@ function DispatchSection({ onNavigate }) {
   );
 }
 
+function VehiclesSection() {
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data); } catch {} finally { setLoading(false); } }, []);
+  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+
+  const statusColors = {
+    disponible: "bg-green-100 text-green-800",
+    en_servicio: "bg-blue-100 text-blue-800",
+    en_limpieza: "bg-violet-100 text-violet-800",
+    en_taller: "bg-orange-100 text-orange-800",
+    fuera_de_servicio: "bg-red-100 text-red-800"
+  };
+
+  const alertIcon = (alert) => {
+    if (alert === "rojo") return <AlertTriangle className="w-4 h-4 text-red-500" />;
+    if (alert === "amarillo") return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+    return null;
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6" data-testid="vehicles-section-title">Flota de Vehiculos</h1>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {["disponible", "en_servicio", "en_limpieza", "en_taller"].map(s => (
+          <div key={s} className="stat-card text-center">
+            <p className="text-2xl font-bold text-slate-900">{vehicles.filter(v => v.status === s).length}</p>
+            <p className="text-xs text-slate-500 capitalize">{s.replace(/_/g, " ")}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {vehicles.map(v => (
+          <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "border-red-300 border-2" : v.maintenance_alert === "amarillo" ? "border-amber-300 border-2" : ""}`} data-testid={`fleet-vehicle-${v.id}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-teal-600" />
+                  <span className="font-bold text-slate-900">{v.plate}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {alertIcon(v.maintenance_alert)}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[v.status] || "bg-slate-100"}`}>{v.status.replace(/_/g, " ")}</span>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">{v.brand} {v.model} ({v.year})</p>
+              <div className="flex items-center justify-between mt-2 text-sm">
+                <span className="text-slate-500">{(v.mileage || 0).toLocaleString()} km</span>
+                <span className="text-slate-400 text-xs">Mant: {(v.next_maintenance_km || 0).toLocaleString()} km</span>
+              </div>
+              {v.maintenance_alert && (
+                <div className={`mt-2 p-1.5 rounded text-xs font-medium ${v.maintenance_alert === "rojo" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                  {v.maintenance_alert === "rojo" ? "Mantencion excedida" : "Proxima a mantencion"}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+        {vehicles.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin vehiculos registrados</p>}
+      </div>
+    </div>
+  );
+}
+
 function AssignSection() {
   const [trips, setTrips] = useState([]);
   const [drivers, setDrivers] = useState([]);
