@@ -16,6 +16,7 @@ const navItems = {
     { label: "Despacho", icon: LayoutDashboard, path: "/manager", section: "dispatch" },
     { label: "Conductores", icon: Users, path: "/manager", section: "drivers" },
     { label: "Vehiculos", icon: Truck, path: "/manager", section: "vehicles" },
+    { label: "Por Vehiculo", icon: Truck, path: "/manager", section: "byvehicle" },
     { label: "Asignacion", icon: ClipboardList, path: "/manager", section: "assign" },
     { label: "Calendario", icon: CalendarDays, path: "/manager", section: "calendar" },
     { label: "Historial", icon: History, path: "/manager", section: "history" },
