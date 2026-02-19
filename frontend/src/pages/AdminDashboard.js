@@ -120,19 +120,43 @@ function UsersSection() {
 function VehiclesSection() {
   const [vehicles, setVehicles] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 });
   const [loading, setLoading] = useState(true);
   const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data); } catch {} finally { setLoading(false); } }, []);
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const handleCreate = async () => {
-    try { await api.post("/vehicles", form); toast.success("Vehiculo creado"); setShowDialog(false); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); fetchVehicles(); }
-    catch (e) { toast.error("Error al crear vehiculo"); }
+    await handleSave();
   };
 
   const handleStatusChange = async (id, status) => {
     try { await api.put(`/vehicles/${id}/status`, { status }); toast.success("Estado actualizado"); fetchVehicles(); }
     catch (e) { toast.error("Error"); }
+  };
+
+  const handleDelete = async (id) => {
+    try { await api.delete(`/vehicles/${id}`); toast.success("Vehiculo eliminado"); fetchVehicles(); }
+    catch (e) { toast.error("Error al eliminar"); }
+  };
+
+  const handleEdit = (v) => {
+    setForm({ plate: v.plate, brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, next_maintenance_km: v.next_maintenance_km });
+    setEditId(v.id);
+    setShowDialog(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editId) {
+        await api.put(`/vehicles/${editId}`, form);
+        toast.success("Vehiculo actualizado");
+      } else {
+        await api.post("/vehicles", form);
+        toast.success("Vehiculo creado");
+      }
+      setShowDialog(false); setEditId(null); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); fetchVehicles();
+    } catch (e) { toast.error("Error"); }
   };
 
   const statusOptions = ["disponible", "en_servicio", "en_limpieza", "en_taller", "fuera_de_servicio"];
@@ -146,7 +170,7 @@ function VehiclesSection() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900" data-testid="vehicles-title">Gestion de Flota</h1>
-        <Button onClick={() => setShowDialog(true)} className="bg-teal-600 hover:bg-teal-700" data-testid="add-vehicle-btn"><Plus className="w-4 h-4 mr-2" />Agregar Vehiculo</Button>
+        <Button onClick={() => { setEditId(null); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); setShowDialog(true); }} className="bg-teal-600 hover:bg-teal-700" data-testid="add-vehicle-btn"><Plus className="w-4 h-4 mr-2" />Agregar Vehiculo</Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {vehicles.map((v) => (
@@ -167,6 +191,10 @@ function VehiclesSection() {
                 <SelectTrigger className="mt-3 h-9 text-xs" data-testid={`vehicle-status-${v.id}`}><SelectValue /></SelectTrigger>
                 <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
               </Select>
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => handleEdit(v)} data-testid={`edit-vehicle-${v.id}`}><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-xs" onClick={() => handleDelete(v.id)} data-testid={`delete-vehicle-${v.id}`}><Trash2 className="w-3 h-3 mr-1" />Eliminar</Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -174,7 +202,7 @@ function VehiclesSection() {
       </div>
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent data-testid="add-vehicle-dialog">
-          <DialogHeader><DialogTitle>Agregar Vehiculo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editId ? "Editar Vehiculo" : "Agregar Vehiculo"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Patente</Label><Input data-testid="vehicle-plate-input" value={form.plate} onChange={e => setForm({...form, plate: e.target.value})} /></div>
             <div className="space-y-2"><Label>Marca</Label><Input data-testid="vehicle-brand-input" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} /></div>
@@ -185,7 +213,7 @@ function VehiclesSection() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)} data-testid="cancel-vehicle-btn">Cancelar</Button>
-            <Button onClick={handleCreate} className="bg-teal-600 hover:bg-teal-700" data-testid="save-vehicle-btn">Guardar</Button>
+            <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700" data-testid="save-vehicle-btn">{editId ? "Actualizar" : "Guardar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
