@@ -646,8 +646,8 @@ class HospitalTransferSystemTester:
                 self.log_result("Trip Detail Access", False, f"Status: {status}")
 
     def run_all_tests(self):
-        """Run complete test suite for Phase 2 features"""
-        print("🏥 Starting Hospital Transfer Management System Backend Tests (Phase 3)")
+        """Run complete test suite for Phase 5 features"""
+        print("🏥 Starting Hospital Transfer Management System Backend Tests (Phase 5)")
         print(f"📡 Testing against: {self.base_url}")
         print("=" * 80)
         
@@ -671,6 +671,8 @@ class HospitalTransferSystemTester:
             self.test_driver_pool_and_assignment(clinico_trip_id)
             if vehicle_id:
                 self.test_manager_assignment_with_vehicle(clinico_trip_id, vehicle_id)
+            # Test Phase 5 vehicle requirement
+            self.test_phase5_driver_vehicle_mandatory(clinico_trip_id)
             self.test_trip_mileage_workflow(clinico_trip_id)
             
         # Phase 2 management functions
@@ -682,6 +684,11 @@ class HospitalTransferSystemTester:
         self.test_destinations_without_category()
         self.test_coordinador_role_endpoints()
         self.test_role_labels_in_system()
+        
+        # Phase 5 specific tests
+        self.test_phase5_audit_logs()
+        self.test_phase5_coordinador_vehicle_status()
+        self.test_phase5_trips_by_vehicle()
         
         return self.generate_summary()
 
