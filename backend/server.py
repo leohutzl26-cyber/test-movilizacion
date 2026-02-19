@@ -122,12 +122,10 @@ class ManagerAssign(BaseModel):
 class DestinationCreate(BaseModel):
     name: str
     address: str = ""
-    category: str = "general"
 
 class DestinationUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
-    category: Optional[str] = None
     is_active: Optional[bool] = None
 
 class UserRoleUpdate(BaseModel):
@@ -611,7 +609,6 @@ async def create_destination(data: DestinationCreate, user=Depends(require_roles
         "id": str(uuid.uuid4()),
         "name": data.name,
         "address": data.address,
-        "category": data.category,
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     }

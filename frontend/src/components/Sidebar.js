@@ -42,7 +42,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
 
   const roleLabels = {
     admin: "Administrador",
-    coordinador: "Jefe de Turno",
+    coordinador: "Coordinador",
     solicitante: "Solicitante",
     conductor: "Conductor",
   };

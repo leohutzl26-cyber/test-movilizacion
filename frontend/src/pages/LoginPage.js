@@ -133,7 +133,7 @@ function RegisterForm({ onSuccess }) {
           <SelectContent>
             <SelectItem value="solicitante">Solicitante</SelectItem>
             <SelectItem value="conductor">Conductor</SelectItem>
-            <SelectItem value="coordinador">Jefe de Turno</SelectItem>
+            <SelectItem value="coordinador">Coordinador</SelectItem>
           </SelectContent>
         </Select>
       </div>

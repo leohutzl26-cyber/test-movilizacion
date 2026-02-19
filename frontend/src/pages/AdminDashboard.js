@@ -68,7 +68,7 @@ function UsersSection() {
   const handleDelete = async (id) => { try { await api.delete(`/users/${id}`); toast.success("Usuario eliminado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
   const handleRoleChange = async (id, role) => { try { await api.put(`/users/${id}/role`, { role }); toast.success("Rol actualizado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
 
-  const roleLabels = { admin: "Admin", coordinador: "Jefe Turno", solicitante: "Solicitante", conductor: "Conductor" };
+  const roleLabels = { admin: "Admin", coordinador: "Coordinador", solicitante: "Solicitante", conductor: "Conductor" };
   const statusColors = { pendiente: "bg-amber-100 text-amber-800", aprobado: "bg-emerald-100 text-emerald-800", rechazado: "bg-red-100 text-red-800" };
 
   if (loading) return <div className="text-center py-12 text-slate-500">Cargando usuarios...</div>;
