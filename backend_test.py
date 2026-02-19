@@ -218,7 +218,7 @@ class HospitalTransferSystemTester:
 
     def test_manager_assignment_with_vehicle(self, trip_id, vehicle_id):
         """Test manager can assign/reassign drivers with vehicle selection"""
-        if not self.jefe_turno_token or not trip_id:
+        if not self.coordinador_token or not trip_id:
             self.log_result("Manager Assignment", False, "Missing manager token or trip ID")
             return False
             
