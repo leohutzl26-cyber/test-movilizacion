@@ -527,6 +527,12 @@ class HospitalTransferSystemTester:
         self.test_stats_and_calendar()
         self.test_destinations_management()
         
+        # Phase 3 specific tests
+        self.test_vehicle_edit_delete()
+        self.test_destinations_without_category()
+        self.test_coordinador_role_endpoints()
+        self.test_role_labels_in_system()
+        
         return self.generate_summary()
 
     def generate_summary(self):
