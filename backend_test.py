@@ -538,7 +538,7 @@ class HospitalTransferSystemTester:
     def generate_summary(self):
         """Generate comprehensive test summary"""
         print("\n" + "=" * 80)
-        print("📊 PHASE 2 TEST SUMMARY")
+        print("📊 PHASE 3 TEST SUMMARY")
         print("=" * 80)
         print(f"✅ Tests Passed: {self.tests_passed}/{self.tests_run}")
         print(f"❌ Tests Failed: {len(self.failures)}")
