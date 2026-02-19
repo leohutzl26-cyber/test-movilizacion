@@ -173,6 +173,22 @@ def require_roles(*roles):
         return user
     return role_checker
 
+# ============ AUDIT LOG HELPER ============
+
+async def log_action(user_id: str, user_name: str, user_role: str, action: str, entity_type: str, entity_id: str = "", details: str = ""):
+    entry = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "user_name": user_name,
+        "user_role": user_role,
+        "action": action,
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "details": details,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.audit_logs.insert_one(entry)
+
 # ============ AUTH ENDPOINTS ============
 
 @api_router.post("/auth/register")
@@ -193,6 +209,7 @@ async def register(data: UserRegister):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
+    await log_action(user["id"], data.name, data.role, "registro", "usuario", user["id"], f"Nuevo usuario registrado: {data.email}")
     return {"message": "Registro exitoso. Pendiente de aprobacion por administrador.", "user_id": user["id"]}
 
 @api_router.post("/auth/login")
@@ -286,6 +303,8 @@ async def approve_user(user_id: str, user=Depends(require_roles("admin"))):
     result = await db.users.update_one({"id": user_id}, {"$set": {"status": "aprobado"}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    target = await db.users.find_one({"id": user_id}, {"_id": 0})
+    await log_action(user["id"], user["name"], user["role"], "aprobar_usuario", "usuario", user_id, f"Aprobado: {target['name'] if target else user_id}")
     return {"message": "Usuario aprobado"}
 
 @api_router.put("/users/{user_id}/reject")
@@ -293,6 +312,7 @@ async def reject_user(user_id: str, user=Depends(require_roles("admin"))):
     result = await db.users.update_one({"id": user_id}, {"$set": {"status": "rechazado"}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await log_action(user["id"], user["name"], user["role"], "rechazar_usuario", "usuario", user_id, "")
     return {"message": "Usuario rechazado"}
 
 @api_router.put("/users/{user_id}/role")
@@ -303,6 +323,7 @@ async def update_role(user_id: str, data: UserRoleUpdate, user=Depends(require_r
     result = await db.users.update_one({"id": user_id}, {"$set": {"role": data.role}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await log_action(user["id"], user["name"], user["role"], "cambiar_rol", "usuario", user_id, f"Nuevo rol: {data.role}")
     return {"message": "Rol actualizado"}
 
 @api_router.delete("/users/{user_id}")
@@ -310,6 +331,7 @@ async def delete_user(user_id: str, user=Depends(require_roles("admin"))):
     result = await db.users.delete_one({"id": user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await log_action(user["id"], user["name"], user["role"], "eliminar_usuario", "usuario", user_id, "")
     return {"message": "Usuario eliminado"}
 
 # ============ DRIVER MANAGEMENT ============
