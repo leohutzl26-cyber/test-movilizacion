@@ -586,7 +586,7 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
         if vehicle:
             update_data["vehicle_id"] = data.vehicle_id
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
-    await log_action(user["id"], user["name"], user["role"], f"asignar_traslado", "traslado", trip_id, f"Asignado a {driver['name']}")
+    await log_action(user["id"], user["name"], user["role"], "asignar_traslado", "traslado", trip_id, f"Asignado a {driver['name']}")
     return {"message": f"Viaje asignado a {driver['name']}"}
 
 @api_router.put("/trips/{trip_id}/assign")
@@ -625,7 +625,7 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
     result = await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
-    await log_action(user["id"], user["name"], user["role"], f"cambiar_estado_traslado", "traslado", trip_id, f"Estado: {data.status}")
+    await log_action(user["id"], user["name"], user["role"], "cambiar_estado_traslado", "traslado", trip_id, f"Estado: {data.status}")
     return {"message": "Estado actualizado"}
 
 @api_router.put("/trips/{trip_id}/group")
