@@ -349,8 +349,7 @@ class HospitalTransferSystemTester:
         # Create destination
         dest_data = {
             "name": f"Test Destination {int(time.time())}",
-            "address": "Test Address 123",
-            "category": "hospital"
+            "address": "Test Address 123"
         }
         
         status, data = self.api_request('POST', '/destinations', dest_data, token=self.admin_token)
