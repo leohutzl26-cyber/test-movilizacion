@@ -720,23 +720,6 @@ async def get_audit_logs(user=Depends(require_roles("admin"))):
     logs = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(5000)
     return logs
 
-# ============ TRIPS BY VEHICLE ============
-
-@api_router.get("/trips/by-vehicle")
-async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordinador", "admin"))):
-    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(500)
-    trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).to_list(5000)
-    result = []
-    for v in vehicles:
-        v_trips = [t for t in trips if t.get("vehicle_id") == v["id"]]
-        result.append({"vehicle": v, "trips": v_trips})
-    # Also include unassigned trips (no vehicle)
-    unassigned = [t for t in trips if not t.get("vehicle_id")]
-    if unassigned:
-        result.append({"vehicle": {"id": "unassigned", "plate": "Sin Vehiculo", "brand": "", "model": "", "status": ""}, "trips": unassigned})
-    return result
-
 # ============ SEED ADMIN ============
 
 @api_router.post("/seed-admin")
