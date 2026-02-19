@@ -240,15 +240,24 @@ class HospitalTransferSystemTester:
             return False
 
     def test_trip_mileage_workflow(self, trip_id):
-        """Test trip start/complete with mileage (Phase 2 feature)"""
+        """Test trip start/complete with mileage (Phase 2 feature, updated for Phase 5 vehicle requirement)"""
         if not self.conductor_token or not trip_id:
             self.log_result("Trip Mileage Workflow", False, "Missing conductor token or trip ID")
             return False
-            
-        # Start trip with mileage
+        
+        # Get a vehicle for the trip (Phase 5 requirement)
+        status, vehicles = self.api_request('GET', '/vehicles', token=self.conductor_token)
+        if status != 200 or not vehicles:
+            self.log_result("Trip Mileage Workflow", False, "No vehicles available")
+            return False
+        
+        vehicle_id = vehicles[0].get('id')
+        
+        # Start trip with mileage AND vehicle_id (Phase 5 requirement)
         start_data = {
             "status": "en_curso",
-            "mileage": 45000.0
+            "mileage": 45000.0,
+            "vehicle_id": vehicle_id
         }
         
         status, data = self.api_request('PUT', f'/trips/{trip_id}/status', start_data, token=self.conductor_token)
