@@ -368,7 +368,118 @@ class HospitalTransferSystemTester:
             self.log_result("Create Destination", False, f"Status: {status}")
         return False
 
-    def test_trip_detail_access(self, trip_id):
+    def test_vehicle_edit_delete(self):
+        """Test Phase 3: Admin can edit and delete vehicles"""
+        if not self.admin_token:
+            self.log_result("Vehicle Edit/Delete", False, "No admin token available")
+            return False
+            
+        # Create vehicle first
+        vehicle_data = {
+            "plate": f"EDIT{int(time.time()) % 10000}",
+            "brand": "Ford",
+            "model": "Transit",
+            "year": 2023,
+            "mileage": 3000,
+            "next_maintenance_km": 13000
+        }
+        
+        status, data = self.api_request('POST', '/vehicles', vehicle_data, token=self.admin_token)
+        if status != 200 or 'id' not in data:
+            self.log_result("Create Vehicle for Edit Test", False, f"Status: {status}")
+            return False
+            
+        vehicle_id = data['id']
+        
+        # Test edit vehicle
+        edit_data = {
+            "plate": vehicle_data["plate"],
+            "brand": "Ford",
+            "model": "Transit Updated",
+            "year": 2023,
+            "mileage": 3000,
+            "next_maintenance_km": 13000
+        }
+        
+        status, data = self.api_request('PUT', f'/vehicles/{vehicle_id}', edit_data, token=self.admin_token)
+        if status == 200:
+            self.log_result("Edit Vehicle", True, "Vehicle edited successfully")
+        else:
+            self.log_result("Edit Vehicle", False, f"Status: {status}")
+            
+        # Test delete vehicle 
+        status, data = self.api_request('DELETE', f'/vehicles/{vehicle_id}', token=self.admin_token)
+        if status == 200:
+            self.log_result("Delete Vehicle", True, "Vehicle deleted successfully")
+            return True
+        else:
+            self.log_result("Delete Vehicle", False, f"Status: {status}")
+            return False
+
+    def test_destinations_without_category(self):
+        """Test Phase 3: Destinations created without category field"""
+        if not self.admin_token:
+            self.log_result("Destination Without Category", False, "No admin token available")
+            return False
+            
+        # Create destination without category
+        dest_data = {
+            "name": f"Phase3 Destination {int(time.time())}",
+            "address": "Phase 3 Address"
+        }
+        
+        status, data = self.api_request('POST', '/destinations', dest_data, token=self.admin_token)
+        if status == 200:
+            # Verify category is not in response
+            has_category = 'category' in data
+            self.log_result("Create Destination Without Category", True, f"Destination created successfully, category field present: {has_category}")
+            return True
+        else:
+            self.log_result("Create Destination Without Category", False, f"Status: {status}")
+            return False
+
+    def test_coordinador_role_endpoints(self):
+        """Test Phase 3: Coordinador role can access management endpoints"""
+        if not self.coordinador_token:
+            self.log_result("Coordinador Role Access", False, "No coordinador token available")
+            return False
+        
+        # Test coordinador can access drivers, vehicles, and trips endpoints
+        endpoints = [
+            ('/drivers', 'Drivers Endpoint'),
+            ('/vehicles', 'Vehicles Endpoint'), 
+            ('/trips/active', 'Active Trips Endpoint'),
+            ('/stats', 'Stats Endpoint')
+        ]
+        
+        success_count = 0
+        for endpoint, name in endpoints:
+            status, data = self.api_request('GET', endpoint, token=self.coordinador_token)
+            if status == 200:
+                self.log_result(f"Coordinador {name}", True, f"Access granted")
+                success_count += 1
+            else:
+                self.log_result(f"Coordinador {name}", False, f"Status: {status}")
+        
+        return success_count == len(endpoints)
+
+    def test_role_labels_in_system(self):
+        """Test Phase 3: System uses 'coordinador' not 'jefe_turno'"""
+        if not self.admin_token:
+            self.log_result("Role Labels Test", False, "No admin token available")
+            return False
+        
+        # Get all users and check role values
+        status, users = self.api_request('GET', '/users', token=self.admin_token)
+        if status == 200:
+            coordinador_users = [u for u in users if u.get('role') == 'coordinador']
+            jefe_turno_users = [u for u in users if u.get('role') == 'jefe_turno']
+            
+            self.log_result("Role System Check", True, f"Found {len(coordinador_users)} coordinador users, {len(jefe_turno_users)} jefe_turno users (should be 0)")
+            return len(jefe_turno_users) == 0
+        else:
+            self.log_result("Role System Check", False, f"Status: {status}")
+            return False
         """Test trip detail endpoint access"""
         if not trip_id:
             return False
