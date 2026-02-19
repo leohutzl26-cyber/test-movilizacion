@@ -231,7 +231,7 @@ class HospitalTransferSystemTester:
             "vehicle_id": vehicle_id  # Test Phase 2 vehicle assignment
         }
         
-        status, data = self.api_request('PUT', f'/trips/{trip_id}/manager-assign', assign_data, token=self.jefe_turno_token)
+        status, data = self.api_request('PUT', f'/trips/{trip_id}/manager-assign', assign_data, token=self.coordinador_token)
         if status == 200:
             self.log_result("Manager Assignment with Vehicle", True, "Manager successfully assigned driver and vehicle to trip")
             return True
