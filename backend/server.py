@@ -382,6 +382,7 @@ async def create_vehicle(data: VehicleCreate, user=Depends(require_roles("admin"
     }
     await db.vehicles.insert_one(vehicle)
     vehicle.pop("_id", None)
+    await log_action(user["id"], user["name"], user["role"], "crear_vehiculo", "vehiculo", vehicle["id"], f"Patente: {data.plate}")
     return vehicle
 
 @api_router.put("/vehicles/{vehicle_id}")
@@ -400,6 +401,7 @@ async def update_vehicle_status(vehicle_id: str, data: VehicleStatusUpdate, user
     result = await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"status": data.status}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    await log_action(user["id"], user["name"], user["role"], "cambiar_estado_vehiculo", "vehiculo", vehicle_id, f"Estado: {data.status}")
     return {"message": "Estado actualizado"}
 
 @api_router.put("/vehicles/{vehicle_id}/mileage")
@@ -425,6 +427,7 @@ async def delete_vehicle(vehicle_id: str, user=Depends(require_roles("admin"))):
     result = await db.vehicles.delete_one({"id": vehicle_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    await log_action(user["id"], user["name"], user["role"], "eliminar_vehiculo", "vehiculo", vehicle_id, "")
     return {"message": "Vehiculo eliminado"}
 
 @api_router.post("/vehicles/{vehicle_id}/ocr")
@@ -499,6 +502,7 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
     }
     await db.trips.insert_one(trip)
     trip.pop("_id", None)
+    await log_action(user["id"], user["name"], user["role"], "crear_traslado", "traslado", trip["id"], f"{data.origin} -> {data.destination}")
     return trip
 
 @api_router.get("/trips")
@@ -582,6 +586,7 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
         if vehicle:
             update_data["vehicle_id"] = data.vehicle_id
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    await log_action(user["id"], user["name"], user["role"], f"asignar_traslado", "traslado", trip_id, f"Asignado a {driver['name']}")
     return {"message": f"Viaje asignado a {driver['name']}"}
 
 @api_router.put("/trips/{trip_id}/assign")
@@ -595,6 +600,7 @@ async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
         {"id": trip_id},
         {"$set": {"driver_id": user["id"], "driver_name": user["name"], "status": "asignado", "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
+    await log_action(user["id"], user["name"], user["role"], "tomar_traslado", "traslado", trip_id, "Auto-asignacion")
     return {"message": "Viaje asignado exitosamente"}
 
 @api_router.put("/trips/{trip_id}/status")
@@ -602,6 +608,11 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
     valid_statuses = ["pendiente", "asignado", "en_curso", "completado", "cancelado"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail="Estado invalido")
+    # Conductor must provide vehicle_id when starting a trip
+    if data.status == "en_curso" and user["role"] == "conductor" and not data.vehicle_id:
+        trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+        if trip and not trip.get("vehicle_id"):
+            raise HTTPException(status_code=400, detail="Debe seleccionar un vehiculo para iniciar el viaje")
     update_data = {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}
     if data.status == "completado":
         update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
@@ -614,6 +625,7 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
     result = await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    await log_action(user["id"], user["name"], user["role"], f"cambiar_estado_traslado", "traslado", trip_id, f"Estado: {data.status}")
     return {"message": "Estado actualizado"}
 
 @api_router.put("/trips/{trip_id}/group")
