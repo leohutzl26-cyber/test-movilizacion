@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Users, Truck, MapPin, ClipboardList, Plus, Check, X, Trash2, Edit, AlertTriangle, Shield } from "lucide-react";
+import { Users, Truck, MapPin, ClipboardList, Plus, Check, X, Trash2, Edit, AlertTriangle, Shield, ScrollText, Search } from "lucide-react";
 import api from "@/lib/api";
 
 export default function AdminDashboard() {
