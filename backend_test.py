@@ -80,7 +80,7 @@ class HospitalTransferSystemTester:
         test_users = [
             {"role": "solicitante", "name": f"Test Solicitante {timestamp}", "email": f"solicitante{timestamp}@test.com", "password": "testpass123"},
             {"role": "conductor", "name": f"Test Conductor {timestamp}", "email": f"conductor{timestamp}@test.com", "password": "testpass123"}, 
-            {"role": "jefe_turno", "name": f"Test Jefe Turno {timestamp}", "email": f"jefe{timestamp}@test.com", "password": "testpass123"}
+            {"role": "coordinador", "name": f"Test Coordinador {timestamp}", "email": f"coordinador{timestamp}@test.com", "password": "testpass123"}
         ]
         
         for user_data in test_users:
