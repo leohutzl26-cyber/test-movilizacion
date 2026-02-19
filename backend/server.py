@@ -499,6 +499,19 @@ async def active_trips(user=Depends(require_roles("coordinador", "admin"))):
     trips = await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return trips
 
+@api_router.get("/trips/history")
+async def trips_history(user=Depends(require_roles("coordinador", "admin"))):
+    trips = await db.trips.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    # Enrich with vehicle plate
+    vehicle_ids = list(set(t.get("vehicle_id") for t in trips if t.get("vehicle_id")))
+    vehicles_map = {}
+    if vehicle_ids:
+        vehicles = await db.vehicles.find({"id": {"$in": vehicle_ids}}, {"_id": 0, "id": 1, "plate": 1}).to_list(500)
+        vehicles_map = {v["id"]: v["plate"] for v in vehicles}
+    for t in trips:
+        t["vehicle_plate"] = vehicles_map.get(t.get("vehicle_id"), "")
+    return trips
+
 @api_router.get("/trips/calendar")
 async def trips_calendar(start_date: str = None, end_date: str = None, user=Depends(require_roles("coordinador", "admin"))):
     query = {"status": {"$ne": "cancelado"}}
