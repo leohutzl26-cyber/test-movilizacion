@@ -23,6 +23,7 @@ export default function ShiftManagerDashboard() {
           {section === "dispatch" && <DispatchSection onNavigate={setSection} />}
           {section === "drivers" && <DriversSection />}
           {section === "vehicles" && <VehiclesSection />}
+          {section === "byvehicle" && <ByVehicleSection />}
           {section === "assign" && <AssignSection />}
           {section === "calendar" && <CalendarSection />}
           {section === "history" && <HistorySection />}
