@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ClipboardList, Users, Truck, Clock, AlertTriangle, RefreshCw, User, MapPin, ArrowRight, ArrowLeftRight, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardList, Users, Truck, Clock, AlertTriangle, RefreshCw, User, MapPin, ArrowRight, ArrowLeftRight, CalendarDays, ChevronLeft, ChevronRight, Search, Download, X as XIcon, FileText, Filter } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import * as XLSX from "xlsx";
 import api from "@/lib/api";
 
 export default function ShiftManagerDashboard() {
@@ -23,6 +25,7 @@ export default function ShiftManagerDashboard() {
           {section === "vehicles" && <VehiclesSection />}
           {section === "assign" && <AssignSection />}
           {section === "calendar" && <CalendarSection />}
+          {section === "history" && <HistorySection />}
         </div>
       </main>
     </div>
