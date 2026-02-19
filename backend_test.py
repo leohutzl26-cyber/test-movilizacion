@@ -731,6 +731,20 @@ class HospitalTransferSystemTester:
             "System uses 'coordinador' not 'jefe_turno'"
         ]
         
+        # Phase 5 specific summary
+        phase5_features_tested = [
+            "Admin audit log showing all user actions (GET /api/audit-logs)",
+            "Audit log contains user registration, approval, vehicle creation, trip actions",
+            "Coordinator can change vehicle status (en_limpieza, en_taller)",
+            "Driver MUST select vehicle when starting trip (mandatory vehicle_id)",
+            "Coordinator 'Por Vehiculo' section (GET /api/trips/by-vehicle)",
+            "Trips by vehicle endpoint returns vehicles with assigned trips per day"
+        ]
+        
+        print(f"\n🆕 PHASE 5 FEATURES TESTED:")
+        for feature in phase5_features_tested:
+            print(f"   ✓ {feature}")
+            
         print(f"\n🆕 PHASE 3 FEATURES TESTED:")
         for feature in phase3_features_tested:
             print(f"   ✓ {feature}")
