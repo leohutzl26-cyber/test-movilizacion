@@ -443,3 +443,303 @@ function DriversSection() {
     </div>
   );
 }
+
+function HistorySection() {
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    status: "", driver_name: "", origin: "", destination: "",
+    trip_type: "", priority: "", date_from: "", date_to: "", search: ""
+  });
+
+  const fetchHistory = useCallback(async () => {
+    try { const r = await api.get("/trips/history"); setTrips(r.data); }
+    catch {} finally { setLoading(false); }
+  }, []);
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  const statusLabels = { pendiente: "Pendiente", asignado: "Asignado", en_curso: "En Curso", completado: "Completado", cancelado: "Cancelado" };
+  const typeLabels = { clinico: "Clinico", no_clinico: "No Clinico" };
+  const priorityLabels = { normal: "Normal", alta: "Alta", urgente: "Urgente" };
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+
+  const filtered = trips.filter(t => {
+    if (filters.status && t.status !== filters.status) return false;
+    if (filters.trip_type && t.trip_type !== filters.trip_type) return false;
+    if (filters.priority && t.priority !== filters.priority) return false;
+    if (filters.driver_name && !(t.driver_name || "").toLowerCase().includes(filters.driver_name.toLowerCase())) return false;
+    if (filters.origin && !(t.origin || "").toLowerCase().includes(filters.origin.toLowerCase())) return false;
+    if (filters.destination && !(t.destination || "").toLowerCase().includes(filters.destination.toLowerCase())) return false;
+    if (filters.date_from && (t.scheduled_date || "") < filters.date_from) return false;
+    if (filters.date_to && (t.scheduled_date || "") > filters.date_to) return false;
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      const fields = [t.patient_name, t.origin, t.destination, t.driver_name, t.requester_name, t.notes, t.clinical_team, t.contact_person].filter(Boolean);
+      if (!fields.some(f => f.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  const clearFilters = () => setFilters({ status: "", driver_name: "", origin: "", destination: "", trip_type: "", priority: "", date_from: "", date_to: "", search: "" });
+
+  const activeFilterCount = Object.values(filters).filter(v => v).length;
+
+  const formatDateTime = (iso) => {
+    if (!iso) return "-";
+    try { const d = new Date(iso); return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+    catch { return iso; }
+  };
+
+  const exportToExcel = () => {
+    const data = filtered.map(t => ({
+      "Estado": statusLabels[t.status] || t.status,
+      "Tipo": typeLabels[t.trip_type] || t.trip_type || "General",
+      "Prioridad": priorityLabels[t.priority] || t.priority,
+      "Paciente/Descripcion": t.patient_name || "",
+      "Origen": t.origin,
+      "Destino": t.destination,
+      "Fecha Programada": t.scheduled_date || "",
+      "Conductor": t.driver_name || "Sin asignar",
+      "Vehiculo": t.vehicle_plate || "",
+      "Solicitante": t.requester_name || "",
+      "Equipo Clinico": t.clinical_team || "",
+      "Persona Contacto": t.contact_person || "",
+      "KM Inicio": t.start_mileage != null ? t.start_mileage : "",
+      "KM Final": t.end_mileage != null ? t.end_mileage : "",
+      "KM Recorridos": (t.start_mileage != null && t.end_mileage != null) ? t.end_mileage - t.start_mileage : "",
+      "Notas": t.notes || "",
+      "Fecha Creacion": formatDateTime(t.created_at),
+      "Fecha Completado": formatDateTime(t.completed_at),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const colWidths = Object.keys(data[0] || {}).map(k => ({ wch: Math.max(k.length + 2, 15) }));
+    ws["!cols"] = colWidths;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Historial Traslados");
+    XLSX.writeFile(wb, `historial_traslados_${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast.success("Archivo Excel descargado");
+  };
+
+  if (loading) return <div className="text-center py-12 text-slate-500">Cargando historial...</div>;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h1 className="text-2xl font-bold text-slate-900" data-testid="history-section-title">Historial de Traslados</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowFilters(!showFilters)} data-testid="toggle-filters-btn">
+            <Filter className="w-4 h-4 mr-2" />Filtros {activeFilterCount > 0 && <span className="ml-1 bg-teal-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">{activeFilterCount}</span>}
+          </Button>
+          <Button onClick={exportToExcel} className="bg-teal-600 hover:bg-teal-700" disabled={filtered.length === 0} data-testid="export-excel-btn">
+            <Download className="w-4 h-4 mr-2" />Exportar Excel
+          </Button>
+        </div>
+      </div>
+
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Input placeholder="Buscar por paciente, conductor, origen, destino, notas..." className="pl-10 h-11"
+          value={filters.search} onChange={e => setFilters({ ...filters, search: e.target.value })} data-testid="history-search-input" />
+      </div>
+
+      {/* Filters panel */}
+      {showFilters && (
+        <Card className="mb-4 animate-slide-up">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Estado</Label>
+                <Select value={filters.status} onValueChange={v => setFilters({ ...filters, status: v === "all" ? "" : v })}>
+                  <SelectTrigger className="h-9 text-xs" data-testid="filter-status"><SelectValue placeholder="Todos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo</Label>
+                <Select value={filters.trip_type} onValueChange={v => setFilters({ ...filters, trip_type: v === "all" ? "" : v })}>
+                  <SelectTrigger className="h-9 text-xs" data-testid="filter-type"><SelectValue placeholder="Todos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Prioridad</Label>
+                <Select value={filters.priority} onValueChange={v => setFilters({ ...filters, priority: v === "all" ? "" : v })}>
+                  <SelectTrigger className="h-9 text-xs" data-testid="filter-priority"><SelectValue placeholder="Todas" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Conductor</Label>
+                <Input className="h-9 text-xs" placeholder="Nombre conductor" value={filters.driver_name}
+                  onChange={e => setFilters({ ...filters, driver_name: e.target.value })} data-testid="filter-driver" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Origen</Label>
+                <Input className="h-9 text-xs" placeholder="Buscar origen" value={filters.origin}
+                  onChange={e => setFilters({ ...filters, origin: e.target.value })} data-testid="filter-origin" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Destino</Label>
+                <Input className="h-9 text-xs" placeholder="Buscar destino" value={filters.destination}
+                  onChange={e => setFilters({ ...filters, destination: e.target.value })} data-testid="filter-destination" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Desde</Label>
+                <Input type="date" className="h-9 text-xs" value={filters.date_from}
+                  onChange={e => setFilters({ ...filters, date_from: e.target.value })} data-testid="filter-date-from" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Hasta</Label>
+                <Input type="date" className="h-9 text-xs" value={filters.date_to}
+                  onChange={e => setFilters({ ...filters, date_to: e.target.value })} data-testid="filter-date-to" />
+              </div>
+              <div className="flex items-end">
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs text-slate-500" data-testid="clear-filters-btn">
+                  <XIcon className="w-3 h-3 mr-1" />Limpiar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Results count */}
+      <p className="text-sm text-slate-500 mb-3" data-testid="results-count">
+        Mostrando {filtered.length} de {trips.length} traslados
+      </p>
+
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="text-xs font-semibold w-[90px]">Estado</TableHead>
+                <TableHead className="text-xs font-semibold w-[70px]">Tipo</TableHead>
+                <TableHead className="text-xs font-semibold">Fecha</TableHead>
+                <TableHead className="text-xs font-semibold">Paciente/Desc.</TableHead>
+                <TableHead className="text-xs font-semibold">Origen</TableHead>
+                <TableHead className="text-xs font-semibold">Destino</TableHead>
+                <TableHead className="text-xs font-semibold">Conductor</TableHead>
+                <TableHead className="text-xs font-semibold">Vehiculo</TableHead>
+                <TableHead className="text-xs font-semibold w-[80px]">Prioridad</TableHead>
+                <TableHead className="text-xs font-semibold w-[100px]">KM</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(t => (
+                <TableRow key={t.id} className="cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setSelectedTrip(t)} data-testid={`hist-row-${t.id}`}>
+                  <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${statusColors[t.status]}`}>{statusLabels[t.status]}</span></TableCell>
+                  <TableCell className="text-xs">{typeLabels[t.trip_type] || "-"}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{t.scheduled_date || "-"}</TableCell>
+                  <TableCell className="text-xs font-medium max-w-[150px] truncate">{t.patient_name || "-"}</TableCell>
+                  <TableCell className="text-xs max-w-[120px] truncate">{t.origin}</TableCell>
+                  <TableCell className="text-xs max-w-[120px] truncate">{t.destination}</TableCell>
+                  <TableCell className="text-xs">{t.driver_name || <span className="text-slate-400">Sin asignar</span>}</TableCell>
+                  <TableCell className="text-xs">{t.vehicle_plate || "-"}</TableCell>
+                  <TableCell><span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.priority === "urgente" ? "bg-red-100 text-red-700" : t.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"}`}>{t.priority}</span></TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {t.start_mileage != null && t.end_mileage != null
+                      ? `${(t.end_mileage - t.start_mileage).toLocaleString()} km`
+                      : t.start_mileage != null ? `${t.start_mileage.toLocaleString()} →` : "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={10} className="text-center py-12 text-slate-400">
+                  {trips.length === 0 ? "Sin traslados registrados" : "Sin resultados para los filtros aplicados"}
+                </TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Detail dialog */}
+      <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" data-testid="history-detail-dialog">
+          <DialogHeader><DialogTitle>Detalle del Traslado</DialogTitle></DialogHeader>
+          {selectedTrip && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${statusColors[selectedTrip.status]}`}>{statusLabels[selectedTrip.status]}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${selectedTrip.priority === "urgente" ? "bg-red-100 text-red-700" : selectedTrip.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"}`}>{selectedTrip.priority}</span>
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">{typeLabels[selectedTrip.trip_type] || "General"}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div><p className="text-xs text-slate-500">Origen</p><p className="font-medium text-sm">{selectedTrip.origin}</p></div>
+                <div><p className="text-xs text-slate-500">Destino</p><p className="font-medium text-sm">{selectedTrip.destination}</p></div>
+                <div><p className="text-xs text-slate-500">Fecha Programada</p><p className="font-medium text-sm">{selectedTrip.scheduled_date || "-"}</p></div>
+                <div><p className="text-xs text-slate-500">Prioridad</p><p className="font-medium text-sm capitalize">{selectedTrip.priority}</p></div>
+              </div>
+
+              {selectedTrip.patient_name && (
+                <div className="border-t pt-3">
+                  <p className="text-xs text-slate-500">Paciente / Descripcion</p>
+                  <p className="font-medium text-sm">{selectedTrip.patient_name}</p>
+                </div>
+              )}
+
+              {selectedTrip.trip_type === "clinico" && (
+                <div className="p-3 bg-teal-50 rounded-lg space-y-2 border border-teal-100">
+                  <p className="text-xs font-semibold text-teal-700 uppercase">Informacion Clinica</p>
+                  {selectedTrip.clinical_team && <div><p className="text-xs text-slate-500">Equipo Clinico</p><p className="font-medium text-sm">{selectedTrip.clinical_team}</p></div>}
+                  {selectedTrip.contact_person && <div><p className="text-xs text-slate-500">Persona de Contacto</p><p className="font-medium text-sm">{selectedTrip.contact_person}</p></div>}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t pt-3">
+                <div><p className="text-xs text-slate-500">Conductor</p><p className="font-medium text-sm">{selectedTrip.driver_name || "Sin asignar"}</p></div>
+                <div><p className="text-xs text-slate-500">Vehiculo</p><p className="font-medium text-sm">{selectedTrip.vehicle_plate || "Sin asignar"}</p></div>
+                <div><p className="text-xs text-slate-500">Solicitante</p><p className="font-medium text-sm">{selectedTrip.requester_name}</p></div>
+              </div>
+
+              {(selectedTrip.start_mileage != null || selectedTrip.end_mileage != null) && (
+                <div className="grid grid-cols-3 gap-3 border-t pt-3">
+                  <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+                    <p className="text-xs text-slate-500">KM Inicio</p>
+                    <p className="font-bold text-sm">{selectedTrip.start_mileage != null ? selectedTrip.start_mileage.toLocaleString() : "-"}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+                    <p className="text-xs text-slate-500">KM Final</p>
+                    <p className="font-bold text-sm">{selectedTrip.end_mileage != null ? selectedTrip.end_mileage.toLocaleString() : "-"}</p>
+                  </div>
+                  <div className="bg-teal-50 rounded-lg p-2.5 text-center border border-teal-100">
+                    <p className="text-xs text-teal-600">KM Recorridos</p>
+                    <p className="font-bold text-sm text-teal-700">
+                      {selectedTrip.start_mileage != null && selectedTrip.end_mileage != null
+                        ? (selectedTrip.end_mileage - selectedTrip.start_mileage).toLocaleString() : "-"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {selectedTrip.notes && (
+                <div className="border-t pt-3"><p className="text-xs text-slate-500">Notas</p><p className="text-sm text-slate-600 bg-slate-50 p-2 rounded mt-1">{selectedTrip.notes}</p></div>
+              )}
+
+              <div className="border-t pt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-400">
+                <div><span className="font-medium">Creado:</span> {formatDateTime(selectedTrip.created_at)}</div>
+                <div><span className="font-medium">Actualizado:</span> {formatDateTime(selectedTrip.updated_at)}</div>
+                {selectedTrip.completed_at && <div className="col-span-2"><span className="font-medium">Completado:</span> {formatDateTime(selectedTrip.completed_at)}</div>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
