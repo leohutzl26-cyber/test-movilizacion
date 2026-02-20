@@ -1,3 +1,4 @@
+import google.generativeai as genai
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -440,19 +441,24 @@ async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depen
     contents = await file.read()
     img_base64 = base64.b64encode(contents).decode("utf-8")
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"ocr-{uuid.uuid4()}",
-            system_message="You are an OCR assistant specialized in reading vehicle odometers. Extract ONLY the odometer/mileage number from the dashboard image. Return ONLY the numeric value with no other text. If you cannot read it clearly, return ERROR."
-        ).with_model("openai", "gpt-5.2")
-        image_content = ImageContent(image_base64=img_base64)
-        user_msg = UserMessage(
-            text="Read the odometer number from this vehicle dashboard photo. Return only the number.",
-            file_contents=[image_content]
-        )
-        response = await chat.send_message(user_msg)
-        cleaned = response.strip().replace(",", "").replace(".", "").replace(" ", "").replace("km", "").replace("KM", "")
+       # 1. Configurar Gemini
+        genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        # 2. Preparar la imagen (img_base64 ya lo tienes arriba en tu código)
+        image_data = {
+            "mime_type": "image/jpeg",
+            "data": img_base64
+        }
+
+        # 3. Pedir la lectura
+        prompt = "Extract ONLY the odometer/mileage number from this vehicle dashboard image. Return ONLY the numeric value with no other text. If you cannot read it, return ERROR."
+        
+        response_ai = await model.generate_content_async([prompt, image_data])
+        response_text = response_ai.text
+        
+        # Limpiar el resultado para obtener solo el número
+        cleaned = response_text.strip().replace(",", "").replace(".", "").replace(" ", "").lower().replace("km", "")
         mileage_val = float(cleaned)
         if mileage_val >= vehicle.get("mileage", 0):
             next_maint = vehicle.get("next_maintenance_km", 10000)
