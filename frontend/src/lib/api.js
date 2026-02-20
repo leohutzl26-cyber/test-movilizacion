@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE = process.env.REACT_APP_BACKEND_URL;
+// Borra la línea que tenía el process.env y pon tu URL de Render así:
+const API_BASE = "https://test-movilizacion.onrender.com"; 
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
