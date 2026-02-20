@@ -39,8 +39,8 @@ if resend_api_key:
     resend.api_key = resend_api_key
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
-# LLM Key for OCR
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+# Gemini Key para OCR (Cambiado de EMERGENT_LLM_KEY a GEMINI_API_KEY)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 # FastAPI
 app = FastAPI()
@@ -49,7 +49,6 @@ security = HTTPBearer()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 # ============ PYDANTIC MODELS ============
 
 class UserRegister(BaseModel):
@@ -433,49 +432,60 @@ async def delete_vehicle(vehicle_id: str, user=Depends(require_roles("admin"))):
 
 @api_router.post("/vehicles/{vehicle_id}/ocr")
 async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depends(require_roles("conductor"))):
-    if not EMERGENT_LLM_KEY:
-        raise HTTPException(status_code=500, detail="OCR no configurado")
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="OCR no configurado: Falta GEMINI_API_KEY")
+    
     vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+    
     contents = await file.read()
     img_base64 = base64.b64encode(contents).decode("utf-8")
+    
     try:
-       # 1. Configurar Gemini
-        genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+        # 1. Configurar Gemini
+        genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        # 2. Preparar la imagen (img_base64 ya lo tienes arriba en tu código)
+        # 2. Preparar la imagen
         image_data = {
             "mime_type": "image/jpeg",
             "data": img_base64
         }
 
-        # 3. Pedir la lectura
+        # 3. Prompt para el odómetro
         prompt = "Extract ONLY the odometer/mileage number from this vehicle dashboard image. Return ONLY the numeric value with no other text. If you cannot read it, return ERROR."
         
+        # 4. Llamada asíncrona a Gemini
         response_ai = await model.generate_content_async([prompt, image_data])
-        response_text = response_ai.text
+        response_text = response_ai.text.strip()
         
-        # Limpiar el resultado para obtener solo el número
-        cleaned = response_text.strip().replace(",", "").replace(".", "").replace(" ", "").lower().replace("km", "")
+        # Limpiar el resultado
+        cleaned = response_text.replace(",", "").replace(".", "").replace(" ", "").lower().replace("km", "")
+        
+        if cleaned == "error":
+             return {"mileage": None, "raw_response": response_text, "error": "No se pudo leer el kilometraje"}
+             
         mileage_val = float(cleaned)
+        alert = None
+        
         if mileage_val >= vehicle.get("mileage", 0):
             next_maint = vehicle.get("next_maintenance_km", 10000)
             diff = next_maint - mileage_val
-            alert = None
             if diff <= 0:
                 alert = "rojo"
             elif diff <= 1000:
                 alert = "amarillo"
             await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": mileage_val, "maintenance_alert": alert}})
-        return {"mileage": mileage_val, "raw_response": response.strip(), "maintenance_alert": alert}
-    except (ValueError, TypeError):
-        return {"mileage": None, "raw_response": response.strip() if 'response' in dir() else "Error", "error": "No se pudo extraer el kilometraje"}
+            
+        return {"mileage": mileage_val, "raw_response": response_text, "maintenance_alert": alert}
+        
+    except (ValueError, TypeError) as e:
+        return {"mileage": None, "raw_response": "Error de procesamiento", "error": str(e)}
     except Exception as e:
         logger.error(f"OCR error: {e}")
         raise HTTPException(status_code=500, detail=f"Error en OCR: {str(e)}")
-
+        
 # ============ TRIP MANAGEMENT ============
 
 @api_router.post("/trips")
