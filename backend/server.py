@@ -447,9 +447,14 @@ async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depen
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        # 2. Preparar la imagen
+        # 2. Preparar la imagen descubriendo el formato real
+        content_type = file.content_type
+        # Gemini solo soporta ciertos formatos, nos aseguramos que sea uno válido:
+        if content_type not in ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]:
+            content_type = "image/jpeg" # Por defecto si es desconocido
+            
         image_data = {
-            "mime_type": "image/jpeg",
+            "mime_type": content_type,
             "data": img_base64
         }
 
