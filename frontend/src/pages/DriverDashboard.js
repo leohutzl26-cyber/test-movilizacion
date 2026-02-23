@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <--- ¡AGREGA ESTA LÍNEA!
 import { toast } from "sonner";
 import { HandMetal, Play, CheckCircle, Camera, Truck, MapPin, ArrowRight, Clock, Upload, AlertTriangle, Zap } from "lucide-react";
 import api from "@/lib/api";
