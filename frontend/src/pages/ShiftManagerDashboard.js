@@ -202,23 +202,24 @@ function VehiclesSection() {
   );
 }
 
-
 function ByVehicleSection() {
   const [data, setData] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para nuestra nueva Pizarra Interactiva
+  // Estados para la Pizarra Interactiva
   const [assignModal, setAssignModal] = useState(null);
   const [pendingTrips, setPendingTrips] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [selectedTripId, setSelectedTripId] = useState("");
   const [selectedDriverId, setSelectedDriverId] = useState("");
+  
+  // NUEVO: Estado para saber qué tarjeta estamos arrastrando
+  const [draggedItem, setDraggedItem] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Obtenemos simultáneamente la pizarra, los viajes sueltos y los conductores
       const [rData, rTrips, rDrivers] = await Promise.all([
         api.get(`/trips/by-vehicle?date=${selectedDate}`),
         api.get("/trips/pool"), 
@@ -235,17 +236,42 @@ function ByVehicleSection() {
   const handleAssign = async () => {
     if (!selectedTripId || !selectedDriverId) { toast.error("Seleccione un viaje y un conductor"); return; }
     try {
-      // 1. Movemos el viaje a la fecha seleccionada en la pizarra
       await api.put(`/trips/${selectedTripId}`, { scheduled_date: selectedDate });
-      // 2. Le asignamos el conductor y el vehículo de esta columna
       await api.put(`/trips/${selectedTripId}/manager-assign`, {
         driver_id: selectedDriverId,
         vehicle_id: assignModal.vehicle_id !== "unassigned" ? assignModal.vehicle_id : null
       });
       toast.success("Viaje programado exitosamente");
       setAssignModal(null); setSelectedTripId(""); setSelectedDriverId("");
-      fetchData(); // Recargamos la pizarra
+      fetchData(); 
     } catch (e) { toast.error("Error al programar el viaje"); }
+  };
+
+  // NUEVA FUNCION: La magia de soltar y reordenar visualmente
+  const handleDrop = (vehicleId, dropIndex) => {
+    // Si lo soltamos en la nada, o en una columna distinta, lo ignoramos (por ahora solo reordenamos dentro del mismo auto)
+    if (!draggedItem || draggedItem.vehicleId !== vehicleId) {
+      setDraggedItem(null);
+      return;
+    }
+    
+    // Hacemos una copia de los datos de la pizarra
+    const newData = [...data];
+    const vehicleIndex = newData.findIndex(v => v.vehicle.id === vehicleId);
+    
+    // Sacamos la lista de viajes de ese auto
+    const vehicleTrips = [...newData[vehicleIndex].trips];
+    
+    // Cortamos la tarjeta que arrastramos de su posición original
+    const [movedTrip] = vehicleTrips.splice(draggedItem.tripIndex, 1);
+    
+    // La pegamos en la nueva posición donde el mouse soltó el clic
+    vehicleTrips.splice(dropIndex, 0, movedTrip);
+    
+    // Actualizamos la pantalla con el nuevo orden
+    newData[vehicleIndex].trips = vehicleTrips;
+    setData(newData);
+    setDraggedItem(null);
   };
 
   const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800" };
@@ -271,7 +297,6 @@ function ByVehicleSection() {
       {loading ? <div className="flex-1 flex items-center justify-center text-slate-500">Cargando pizarra...</div> : (
         <div className="flex-1 flex gap-4 overflow-x-auto pb-4 snap-x">
           {data.map(item => (
-            // Columna de Vehículo
             <div key={item.vehicle.id} className="min-w-[320px] max-w-[320px] bg-slate-100/60 rounded-xl p-3 flex flex-col snap-start border border-slate-200">
               <div className="flex items-center justify-between mb-3 bg-white p-3 rounded-lg shadow-sm shrink-0">
                 <div className="flex items-center gap-3">
@@ -289,10 +314,18 @@ function ByVehicleSection() {
                 </div>
               </div>
 
-              {/* Lista de Viajes dentro de la columna */}
+              {/* Lista de Viajes (Ahora con Drag & Drop) */}
               <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                {item.trips.map(t => (
-                  <div key={t.id} className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-teal-300 transition-colors">
+                {item.trips.map((t, index) => (
+                  <div 
+                    key={t.id} 
+                    draggable
+                    onDragStart={() => setDraggedItem({ vehicleId: item.vehicle.id, tripIndex: index, tripId: t.id })}
+                    onDragOver={(e) => { e.preventDefault(); /* Permite soltar */ }}
+                    onDrop={(e) => { e.preventDefault(); handleDrop(item.vehicle.id, index); }}
+                    className={`p-3 bg-white rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing
+                      ${draggedItem?.tripId === t.id ? 'opacity-40 scale-[0.98] border-dashed border-teal-500' : 'border-slate-200 hover:border-teal-300'}`}
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
                     </div>
@@ -307,14 +340,17 @@ function ByVehicleSection() {
                     </div>
                   </div>
                 ))}
+                
                 {item.trips.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 py-8 border-2 border-dashed border-slate-200 rounded-lg">
+                  <div 
+                    onDragOver={(e) => e.preventDefault()}
+                    className="h-full flex flex-col items-center justify-center text-slate-400 py-8 border-2 border-dashed border-slate-200 rounded-lg"
+                  >
                     <p className="text-xs">Sin viajes programados</p>
                   </div>
                 )}
               </div>
 
-              {/* Botón Mágico de Programación */}
               <Button
                 variant="outline"
                 className="w-full mt-3 bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 border-dashed border-2 shrink-0 transition-all text-xs h-9"
@@ -328,7 +364,7 @@ function ByVehicleSection() {
         </div>
       )}
 
-      {/* Modal de Asignación */}
+      {/* Modal de Asignación (Se mantiene igual) */}
       <Dialog open={!!assignModal} onOpenChange={() => { setAssignModal(null); setSelectedTripId(""); setSelectedDriverId(""); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Programar para el {selectedDate}</DialogTitle></DialogHeader>
