@@ -208,81 +208,177 @@ function ByVehicleSection() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(true);
 
+  // Estados para nuestra nueva Pizarra Interactiva
+  const [assignModal, setAssignModal] = useState(null);
+  const [pendingTrips, setPendingTrips] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [selectedTripId, setSelectedTripId] = useState("");
+  const [selectedDriverId, setSelectedDriverId] = useState("");
+
   const fetchData = useCallback(async () => {
     setLoading(true);
-    try { const r = await api.get(`/trips/by-vehicle?date=${selectedDate}`); setData(r.data); }
-    catch {} finally { setLoading(false); }
+    try {
+      // Obtenemos simultáneamente la pizarra, los viajes sueltos y los conductores
+      const [rData, rTrips, rDrivers] = await Promise.all([
+        api.get(`/trips/by-vehicle?date=${selectedDate}`),
+        api.get("/trips/pool"), 
+        api.get("/drivers")
+      ]);
+      setData(rData.data);
+      setPendingTrips(rTrips.data);
+      setDrivers(rDrivers.data.filter(d => d.status === "aprobado"));
+    } catch {} finally { setLoading(false); }
   }, [selectedDate]);
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800" };
-  const vehicleStatusColors = {
-    disponible: "bg-green-100 text-green-700", en_servicio: "bg-blue-100 text-blue-700",
-    en_limpieza: "bg-violet-100 text-violet-700", en_taller: "bg-orange-100 text-orange-700"
+  const handleAssign = async () => {
+    if (!selectedTripId || !selectedDriverId) { toast.error("Seleccione un viaje y un conductor"); return; }
+    try {
+      // 1. Movemos el viaje a la fecha seleccionada en la pizarra
+      await api.put(`/trips/${selectedTripId}`, { scheduled_date: selectedDate });
+      // 2. Le asignamos el conductor y el vehículo de esta columna
+      await api.put(`/trips/${selectedTripId}/manager-assign`, {
+        driver_id: selectedDriverId,
+        vehicle_id: assignModal.vehicle_id !== "unassigned" ? assignModal.vehicle_id : null
+      });
+      toast.success("Viaje programado exitosamente");
+      setAssignModal(null); setSelectedTripId(""); setSelectedDriverId("");
+      fetchData(); // Recargamos la pizarra
+    } catch (e) { toast.error("Error al programar el viaje"); }
   };
+
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800" };
+  const vehicleStatusColors = { disponible: "bg-green-100 text-green-700", en_servicio: "bg-blue-100 text-blue-700", en_limpieza: "bg-violet-100 text-violet-700", en_taller: "bg-orange-100 text-orange-700" };
 
   const totalTrips = data.reduce((acc, d) => acc + d.trips.length, 0);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-slate-900" data-testid="byvehicle-title">Traslados por Vehiculo</h1>
-        <div className="flex items-center gap-3">
-          <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto h-10" data-testid="byvehicle-date" />
-          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])} data-testid="byvehicle-today">Hoy</Button>
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Cabecera de la Pizarra */}
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3 shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900" data-testid="byvehicle-title">Pizarra de Programacion</h1>
+          <p className="text-sm text-slate-500">{totalTrips} traslados programados para el {selectedDate}</p>
+        </div>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-lg border shadow-sm">
+          <CalendarDays className="w-5 h-5 text-teal-600" />
+          <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto h-9 border-0 bg-transparent focus-visible:ring-0 p-0" />
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])} className="h-8">Hoy</Button>
         </div>
       </div>
 
-      <p className="text-sm text-slate-500 mb-4">{totalTrips} traslados programados para el {selectedDate}</p>
-
-      {loading ? <div className="text-center py-12 text-slate-500">Cargando...</div> : (
-        <div className="space-y-4">
+      {loading ? <div className="flex-1 flex items-center justify-center text-slate-500">Cargando pizarra...</div> : (
+        <div className="flex-1 flex gap-4 overflow-x-auto pb-4 snap-x">
           {data.map(item => (
-            <Card key={item.vehicle.id} className={`${item.trips.length > 0 ? "" : "opacity-60"}`} data-testid={`byvehicle-${item.vehicle.id}`}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
-                      <Truck className="w-5 h-5 text-teal-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{item.vehicle.plate}</CardTitle>
-                      {item.vehicle.brand && <p className="text-sm text-slate-500">{item.vehicle.brand} {item.vehicle.model}</p>}
-                    </div>
+            // Columna de Vehículo
+            <div key={item.vehicle.id} className="min-w-[320px] max-w-[320px] bg-slate-100/60 rounded-xl p-3 flex flex-col snap-start border border-slate-200">
+              <div className="flex items-center justify-between mb-3 bg-white p-3 rounded-lg shadow-sm shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
+                    <Truck className="w-5 h-5 text-teal-600" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="text-xs" variant="outline">{item.trips.length} viaje{item.trips.length !== 1 ? "s" : ""}</Badge>
-                    {item.vehicle.status && <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${vehicleStatusColors[item.vehicle.status] || "bg-slate-100"}`}>{item.vehicle.status.replace(/_/g, " ")}</span>}
+                  <div>
+                    <h3 className="font-bold text-slate-900">{item.vehicle.plate}</h3>
+                    {item.vehicle.brand && <p className="text-[11px] text-slate-500 leading-tight">{item.vehicle.brand} {item.vehicle.model}</p>}
                   </div>
                 </div>
-              </CardHeader>
-              {item.trips.length > 0 && (
-                <CardContent className="pt-0">
-                  <div className="space-y-2">
-                    {item.trips.map(t => (
-                      <div key={t.id} className="p-3 bg-slate-50 rounded-lg flex items-center justify-between gap-3" data-testid={`byvehicle-trip-${t.id}`}>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.priority === "urgente" ? "bg-red-100 text-red-700" : t.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-200 text-slate-600"}`}>{t.priority}</span>
-                          </div>
-                          <p className="font-medium text-sm text-slate-900 truncate">{t.patient_name || "Sin nombre"}</p>
-                          <p className="text-xs text-slate-500 truncate">{t.origin} → {t.destination}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          {t.driver_name && <p className="text-xs text-teal-600 font-medium">{t.driver_name}</p>}
-                          {!t.driver_name && <p className="text-xs text-slate-400">Sin conductor</p>}
-                        </div>
-                      </div>
-                    ))}
+                <div className="text-right">
+                  {item.vehicle.status && <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold block mb-1 ${vehicleStatusColors[item.vehicle.status] || "bg-slate-100"}`}>{item.vehicle.status.replace(/_/g, " ")}</span>}
+                  <span className="text-[11px] text-slate-500 font-medium">{item.trips.length} viajes</span>
+                </div>
+              </div>
+
+              {/* Lista de Viajes dentro de la columna */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {item.trips.map(t => (
+                  <div key={t.id} className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-teal-300 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                    </div>
+                    <p className="font-medium text-sm text-slate-900 truncate mb-1">{t.patient_name || "Sin nombre"}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <MapPin className="w-3 h-3 text-teal-500 shrink-0" />
+                      <p className="text-[11px] text-slate-500 truncate">{t.origin} <ArrowRight className="w-3 h-3 inline" /> {t.destination}</p>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500 flex items-center gap-1"><User className="w-3 h-3"/> {t.driver_name || "Sin asignar"}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.priority === "urgente" ? "bg-red-100 text-red-700" : t.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"}`}>{t.priority}</span>
+                    </div>
                   </div>
-                </CardContent>
-              )}
-            </Card>
+                ))}
+                {item.trips.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 py-8 border-2 border-dashed border-slate-200 rounded-lg">
+                    <p className="text-xs">Sin viajes programados</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Botón Mágico de Programación */}
+              <Button
+                variant="outline"
+                className="w-full mt-3 bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 border-dashed border-2 shrink-0 transition-all text-xs h-9"
+                onClick={() => setAssignModal({ vehicle_id: item.vehicle.id, plate: item.vehicle.plate })}
+              >
+                + Programar en este vehículo
+              </Button>
+            </div>
           ))}
-          {data.length === 0 && <p className="text-center py-12 text-slate-400">Sin datos para esta fecha</p>}
+          {data.length === 0 && <p className="w-full text-center py-12 text-slate-400">No hay vehículos registrados</p>}
         </div>
       )}
+
+      {/* Modal de Asignación */}
+      <Dialog open={!!assignModal} onOpenChange={() => { setAssignModal(null); setSelectedTripId(""); setSelectedDriverId(""); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Programar para el {selectedDate}</DialogTitle></DialogHeader>
+          {assignModal && (
+            <div className="space-y-4 pt-2">
+              <div className="bg-teal-50 p-3 rounded-lg border border-teal-100 flex items-center justify-between">
+                <span className="text-sm text-teal-800 font-medium">Vehículo asignado:</span>
+                <Badge className="bg-teal-600">{assignModal.plate}</Badge>
+              </div>
+
+              <div className="space-y-2">
+                <Label>1. Seleccionar Viaje de la Bolsa</Label>
+                <Select value={selectedTripId} onValueChange={setSelectedTripId}>
+                  <SelectTrigger><SelectValue placeholder="Elija un viaje pendiente" /></SelectTrigger>
+                  <SelectContent>
+                    {pendingTrips.length === 0 ? (
+                      <SelectItem value="none" disabled>No hay viajes pendientes en la bolsa</SelectItem>
+                    ) : (
+                      pendingTrips.map(t => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.patient_name || "Sin nombre"} | {t.origin} → {t.destination}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>2. Asignar Conductor</Label>
+                <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                  <SelectTrigger><SelectValue placeholder="Elija un conductor" /></SelectTrigger>
+                  <SelectContent>
+                    {drivers.map(d => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name} {d.extra_available ? "(Disponible Extra)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <DialogFooter className="mt-4">
+                <Button variant="outline" onClick={() => setAssignModal(null)}>Cancelar</Button>
+                <Button className="bg-teal-600 hover:bg-teal-700" onClick={handleAssign}>Guardar Programación</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
