@@ -26,7 +26,6 @@ export default function ShiftManagerDashboard() {
           {section === "byvehicle" && <ByVehicleSection />}
           {section === "assign" && <AssignSection />}
           {section === "calendar" && <CalendarSection />}
-          {section === "drivers" && <DriversSection />}
           {section === "history" && <HistorySection />}
         </div>
       </main>
