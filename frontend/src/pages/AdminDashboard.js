@@ -381,3 +381,66 @@ function AuditSection() {
     </div>
   );
 }
+function DriversSection() {
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const fetchDrivers = useCallback(async () => { 
+    try { const r = await api.get("/drivers"); setDrivers(r.data); } 
+    catch {} finally { setLoading(false); } 
+  }, []);
+  
+  useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
+
+  const handleLicenseUpdate = async (id, date) => {
+    try { 
+      await api.put(`/drivers/${id}/license`, { license_expiry: date }); 
+      toast.success("Licencia actualizada exitosamente"); 
+      fetchDrivers(); 
+    } catch (e) { toast.error("Error al actualizar licencia"); }
+  };
+
+  const isLicenseExpired = (expiry) => {
+    if (!expiry) return false;
+    try { return new Date(expiry) < new Date(); } catch { return false; }
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Gestión de Conductores y Licencias</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {drivers.map(d => (
+          <Card key={d.id} className={`card-hover ${isLicenseExpired(d.license_expiry) ? "border-red-300 border-2" : ""}`}>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="font-semibold text-slate-900">{d.name}</p>
+                  <p className="text-xs text-slate-500">{d.email}</p>
+                </div>
+                {d.extra_available && <Badge className="bg-teal-100 text-teal-700 border-0">Extra</Badge>}
+              </div>
+              {isLicenseExpired(d.license_expiry) && (
+                <div className="flex items-center gap-2 mb-3 p-2 bg-red-50 rounded-lg border border-red-200">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <span className="text-xs text-red-700 font-medium">Licencia vencida</span>
+                </div>
+              )}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Venc. Licencia</p>
+                  <input
+                    type="date"
+                    className="w-full h-9 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    value={d.license_expiry ? d.license_expiry.split("T")[0] : ""}
+                    onChange={(e) => handleLicenseUpdate(d.id, e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {drivers.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin conductores registrados</p>}
+      </div>
+    </div>
+  );
+}
