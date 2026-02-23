@@ -85,7 +85,7 @@ function MyTripsSection() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState(null);
-  const [mileageDialog, setMileageDialog] = useState(null); // { tripId, action: "start"|"complete" }
+  const [mileageDialog, setMileageDialog] = useState(null); 
   const [mileageValue, setMileageValue] = useState("");
   const [mileageLoading, setMileageLoading] = useState(false);
   const [vehicles, setVehicles] = useState([]);
@@ -148,52 +148,85 @@ function MyTripsSection() {
   };
   const tripTypeLabels = { clinico: "Clinico", no_clinico: "No Clinico" };
 
+  const today = new Date().toISOString().split("T")[0];
+
   const activeTrips = trips.filter(t => ["asignado", "en_curso"].includes(t.status));
   const pastTrips = trips.filter(t => ["completado", "cancelado"].includes(t.status));
+
+  // Separamos los viajes en "Hoy" y "Próximos"
+  const todayTrips = activeTrips.filter(t => !t.scheduled_date || t.scheduled_date <= today);
+  const upcomingTrips = activeTrips.filter(t => t.scheduled_date && t.scheduled_date > today);
+
+  // Componente interno para no repetir el código de la tarjeta de viaje
+  const TripCard = ({ t }) => (
+    <Card key={t.id} className="shadow-md border-l-4 border-l-teal-500 animate-slide-up" data-testid={`active-trip-${t.id}`}>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+          <Button variant="ghost" size="sm" className="text-xs text-teal-600" onClick={() => setSelectedTrip(t)} data-testid={`detail-trip-${t.id}`}>Ver detalle</Button>
+        </div>
+        <p className="font-semibold text-lg text-slate-900">{t.patient_name || "Sin nombre"}</p>
+        <div className="flex items-center gap-2 text-sm text-slate-600 mt-1 mb-1">
+          <MapPin className="w-4 h-4 text-teal-500" />{t.origin} <ArrowRight className="w-3 h-3" /> {t.destination}
+        </div>
+        {t.scheduled_date && <p className="text-xs text-slate-400 mb-3 font-medium bg-slate-100 inline-block px-2 py-1 rounded">Fecha prog: {t.scheduled_date}</p>}
+        {t.start_mileage && <p className="text-xs text-slate-500 mb-2 mt-2">KM inicio: {t.start_mileage.toLocaleString()}</p>}
+        <div className="flex gap-2 mt-3">
+          {t.status === "asignado" && (
+            <Button onClick={() => handleMileageAction(t.id, "start")} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 touch-target active:scale-95" data-testid={`start-trip-${t.id}`}>
+              <Play className="w-5 h-5 mr-2" />Iniciar (registrar KM)
+            </Button>
+          )}
+          {t.status === "en_curso" && (
+            <Button onClick={() => handleMileageAction(t.id, "complete")} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-12 touch-target active:scale-95" data-testid={`complete-trip-${t.id}`}>
+              <CheckCircle className="w-5 h-5 mr-2" />Completar (registrar KM)
+            </Button>
+          )}
+          {["asignado", "en_curso"].includes(t.status) && (
+            <Button onClick={() => handleCancel(t.id)} variant="outline" className="h-12 text-red-500 border-red-200 hover:bg-red-50 touch-target" data-testid={`cancel-trip-${t.id}`}>
+              Cancelar
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="max-w-lg mx-auto">
       <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="my-trips-title">Mis Viajes</h1>
 
       {activeTrips.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-base font-semibold text-slate-700 mb-3">Activos</h2>
-          <div className="space-y-4">
-            {activeTrips.map(t => (
-              <Card key={t.id} className="shadow-md border-l-4 border-l-teal-500" data-testid={`active-trip-${t.id}`}>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
-                    <Button variant="ghost" size="sm" className="text-xs text-teal-600" onClick={() => setSelectedTrip(t)} data-testid={`detail-trip-${t.id}`}>Ver detalle</Button>
-                  </div>
-                  <p className="font-semibold text-lg text-slate-900">{t.patient_name || "Sin nombre"}</p>
-                  <div className="flex items-center gap-2 text-sm text-slate-600 mt-1 mb-1">
-                    <MapPin className="w-4 h-4 text-teal-500" />{t.origin} <ArrowRight className="w-3 h-3" /> {t.destination}
-                  </div>
-                  {t.scheduled_date && <p className="text-xs text-slate-400 mb-3">Fecha: {t.scheduled_date}</p>}
-                  {t.start_mileage && <p className="text-xs text-slate-500 mb-2">KM inicio: {t.start_mileage.toLocaleString()}</p>}
-                  <div className="flex gap-2">
-                    {t.status === "asignado" && (
-                      <Button onClick={() => handleMileageAction(t.id, "start")} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 touch-target active:scale-95" data-testid={`start-trip-${t.id}`}>
-                        <Play className="w-5 h-5 mr-2" />Iniciar (registrar KM)
-                      </Button>
-                    )}
-                    {t.status === "en_curso" && (
-                      <Button onClick={() => handleMileageAction(t.id, "complete")} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-12 touch-target active:scale-95" data-testid={`complete-trip-${t.id}`}>
-                        <CheckCircle className="w-5 h-5 mr-2" />Completar (registrar KM)
-                      </Button>
-                    )}
-                    {["asignado", "en_curso"].includes(t.status) && (
-                      <Button onClick={() => handleCancel(t.id)} variant="outline" className="h-12 text-red-500 border-red-200 hover:bg-red-50 touch-target" data-testid={`cancel-trip-${t.id}`}>
-                        Cancelar
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+        <Tabs defaultValue="today" className="w-full mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-4 bg-slate-200/60 p-1 h-12">
+            <TabsTrigger value="today" className="text-sm data-[state=active]:bg-teal-600 data-[state=active]:text-white font-semibold">
+              Hoy ({todayTrips.length})
+            </TabsTrigger>
+            <TabsTrigger value="upcoming" className="text-sm data-[state=active]:bg-teal-600 data-[state=active]:text-white font-semibold">
+              Próximos ({upcomingTrips.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="today" className="space-y-4 outline-none">
+            {todayTrips.map(t => <TripCard key={t.id} t={t} />)}
+            {todayTrips.length === 0 && (
+              <div className="text-center py-10 bg-white rounded-lg border border-dashed border-slate-300">
+                <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+                <p className="text-slate-500 font-medium">No tienes viajes programados para hoy</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="upcoming" className="space-y-4 outline-none">
+            {upcomingTrips.map(t => <TripCard key={t.id} t={t} />)}
+            {upcomingTrips.length === 0 && (
+              <div className="text-center py-10 bg-white rounded-lg border border-dashed border-slate-300">
+                <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500 font-medium">No hay viajes futuros programados</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
 
       {pastTrips.length > 0 && (
@@ -237,8 +270,8 @@ function MyTripsSection() {
               {selectedTrip.patient_name && <div><p className="text-xs text-slate-500">Paciente</p><p className="font-medium text-sm">{selectedTrip.patient_name}</p></div>}
               {selectedTrip.clinical_team && <div><p className="text-xs text-slate-500">Equipo Clinico</p><p className="font-medium text-sm">{selectedTrip.clinical_team}</p></div>}
               {selectedTrip.contact_person && <div><p className="text-xs text-slate-500">Contacto</p><p className="font-medium text-sm">{selectedTrip.contact_person}</p></div>}
-              {selectedTrip.scheduled_date && <div><p className="text-xs text-slate-500">Fecha</p><p className="font-medium text-sm">{selectedTrip.scheduled_date}</p></div>}
-              {selectedTrip.notes && <div><p className="text-xs text-slate-500">Notas</p><p className="text-sm text-slate-600">{selectedTrip.notes}</p></div>}
+              {selectedTrip.scheduled_date && <div><p className="text-xs text-slate-500">Fecha Programada</p><p className="font-medium text-sm bg-teal-50 text-teal-700 px-2 py-1 rounded inline-block">{selectedTrip.scheduled_date}</p></div>}
+              {selectedTrip.notes && <div><p className="text-xs text-slate-500">Notas</p><p className="text-sm text-slate-600 bg-slate-50 p-2 rounded">{selectedTrip.notes}</p></div>}
               <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                 {selectedTrip.start_mileage != null && <div><p className="text-xs text-slate-500">KM Inicio</p><p className="font-medium">{selectedTrip.start_mileage.toLocaleString()}</p></div>}
                 {selectedTrip.end_mileage != null && <div><p className="text-xs text-slate-500">KM Final</p><p className="font-medium">{selectedTrip.end_mileage.toLocaleString()}</p></div>}
