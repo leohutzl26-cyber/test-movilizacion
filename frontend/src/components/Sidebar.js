@@ -5,9 +5,10 @@ import { Ambulance, LayoutDashboard, Users, Truck, MapPin, ClipboardList, LogOut
 import { Button } from "@/components/ui/button";
 
 const navItems = {
-  admin: [
+ admin: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/admin", section: "dashboard" },
     { label: "Usuarios", icon: Users, path: "/admin", section: "users" },
+    { label: "Conductores", icon: Users, path: "/admin", section: "drivers" }, // <--- ¡Esta es la línea nueva!
     { label: "Vehiculos", icon: Truck, path: "/admin", section: "vehicles" },
     { label: "Destinos", icon: MapPin, path: "/admin", section: "destinations" },
     { label: "Registro", icon: ClipboardList, path: "/admin", section: "audit" },
