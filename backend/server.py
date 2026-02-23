@@ -353,7 +353,7 @@ async def toggle_extra_availability(driver_id: str, user=Depends(get_current_use
     return {"message": "Disponibilidad actualizada", "extra_available": new_val}
 
 @api_router.put("/drivers/{driver_id}/license")
-async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends(require_roles("admin", "coordinador"))):
+async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends(require_roles("admin"))):
     result = await db.users.update_one({"id": driver_id, "role": "conductor"}, {"$set": {"license_expiry": data.license_expiry}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Conductor no encontrado")
