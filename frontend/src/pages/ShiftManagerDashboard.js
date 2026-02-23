@@ -618,11 +618,11 @@ function DriversSection() {
               <div className="space-y-3">
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Venc. Licencia</p>
-                  <input
+                 <input
                     type="date"
-                    className="w-full h-9 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full h-9 px-3 rounded-md border border-slate-200 text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
                     value={d.license_expiry ? d.license_expiry.split("T")[0] : ""}
-                    onChange={(e) => handleLicenseUpdate(d.id, e.target.value)}
+                    disabled
                     data-testid={`license-date-${d.id}`}
                   />
                 </div>
