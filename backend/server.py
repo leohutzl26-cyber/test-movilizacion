@@ -638,6 +638,29 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
     await log_action(user["id"], user["name"], user["role"], "asignar_traslado", "traslado", trip_id, f"Asignado a {driver['name']}")
     return {"message": f"Viaje asignado a {driver['name']}"}
 
+@api_router.put("/trips/{trip_id}/unassign")
+async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin"))):
+    trip = await db.trips.find_one({"id": trip_id})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    
+    # Regla de negocio: No tocar viajes completados
+    if trip.get("status") == "completado":
+        raise HTTPException(status_code=400, detail="No se puede desasignar un viaje que ya está completado")
+        
+    # Devolvemos el viaje a la bolsa limpiando al conductor y vehículo
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "status": "pendiente",
+            "driver_id": None,
+            "driver_name": None,
+            "vehicle_id": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"message": "Viaje devuelto a la bolsa"}
+    
 @api_router.put("/trips/{trip_id}/assign")
 async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
     trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
