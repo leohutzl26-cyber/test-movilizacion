@@ -216,6 +216,7 @@ function ByVehicleSection() {
   
   // NUEVO: Estado para saber qué tarjeta estamos arrastrando
   const [draggedItem, setDraggedItem] = useState(null);
+  const [tripToUnassign, setTripToUnassign] = useState(null); // <--- NUEVA LÍNEA
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -277,13 +278,16 @@ function ByVehicleSection() {
     }
   };
   
-const handleUnassign = async (tripId) => {
+const confirmUnassignAction = async () => {
+    if (!tripToUnassign) return;
     try {
-      await api.put(`/trips/${tripId}/unassign`);
+      await api.put(`/trips/${tripToUnassign}/unassign`);
       toast.success("Viaje devuelto a la bolsa de pendientes");
-      fetchData(); // Recargamos para que desaparezca del auto y vuelva a la bolsa
+      fetchData(); 
     } catch (e) {
       toast.error(e.response?.data?.detail || "Error al desasignar el viaje");
+    } finally {
+      setTripToUnassign(null); // Limpiamos el estado para cerrar el modal
     }
   };
   
@@ -339,20 +343,24 @@ const handleUnassign = async (tripId) => {
                     className={`p-3 bg-white rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing
                       ${draggedItem?.tripId === t.id ? 'opacity-40 scale-[0.98] border-dashed border-teal-500' : 'border-slate-200 hover:border-teal-300'}`}
                   >
+
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
                       
-                      {t.status !== "completado" && (
+                      {/* Aquí está la doble condición: que no sea completado Y que no sea pendiente */}
+                      {t.status !== "completado" && t.status !== "pendiente" && (
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={(e) => { e.stopPropagation(); handleUnassign(t.id); }} 
+                          /* Aquí cambiamos handleUnassign por setTripToUnassign para que abra la ventana */
+                          onClick={(e) => { e.stopPropagation(); setTripToUnassign(t.id); }} 
                           className="h-6 px-2 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
                         >
                           Desasignar
                         </Button>
                       )}
                     </div>
+                    
                     <p className="font-medium text-sm text-slate-900 truncate mb-1">{t.patient_name || "Sin nombre"}</p>
                     <div className="flex items-center gap-1 mt-1">
                       <MapPin className="w-3 h-3 text-teal-500 shrink-0" />
@@ -439,7 +447,30 @@ const handleUnassign = async (tripId) => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+
+  {/* --- AQUÍ PEGAS EL CÓDIGO DEL PASO 4 --- */}
+      <Dialog open={!!tripToUnassign} onOpenChange={() => setTripToUnassign(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              ¿Desasignar este viaje?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600 py-2">
+            El traslado será removido de la programación de este vehículo y del conductor, volviendo a la bolsa de viajes pendientes. ¿Desea continuar?
+          </p>
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setTripToUnassign(null)}>Cancelar</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmUnassignAction}>
+              Sí, desasignar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* -------------------------------------- */}          
+            
+     </div>
   );
 }
 
