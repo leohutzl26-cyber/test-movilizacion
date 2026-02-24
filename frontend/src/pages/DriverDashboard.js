@@ -91,7 +91,18 @@ function MyTripsSection() {
   const [vehicles, setVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const fileInputRef = useRef(null);
+  const [unassignDialog, setUnassignDialog] = useState(null);
 
+  const handleConfirmUnassign = async () => {
+    if (!unassignDialog) return;
+    try {
+      await api.put(`/trips/${unassignDialog}/unassign`);
+      toast.success("Viaje desasignado y devuelto a la bolsa");
+      setUnassignDialog(null);
+      fetchTrips();
+    } catch (e) { toast.error("Error al desasignar"); }
+  };
+  
   const fetchTrips = useCallback(async () => { try { const r = await api.get("/trips"); setTrips(r.data); } catch {} finally { setLoading(false); } }, []);
   useEffect(() => { fetchTrips(); api.get("/vehicles").then(r => setVehicles(r.data)).catch(() => {}); }, [fetchTrips]);
 
@@ -135,10 +146,7 @@ function MyTripsSection() {
     } catch (e) { toast.error(e.response?.data?.detail || "Error al actualizar"); }
   };
 
-  const handleCancel = async (tripId) => {
-    try { await api.put(`/trips/${tripId}/status`, { status: "cancelado" }); toast.success("Viaje cancelado"); fetchTrips(); }
-    catch (e) { toast.error("Error"); }
-  };
+  
 
   const statusColors = {
     asignado: "bg-teal-100 text-teal-800 border-teal-200",
@@ -183,8 +191,8 @@ function MyTripsSection() {
             </Button>
           )}
           {["asignado", "en_curso"].includes(t.status) && (
-            <Button onClick={() => handleCancel(t.id)} variant="outline" className="h-12 text-red-500 border-red-200 hover:bg-red-50 touch-target" data-testid={`cancel-trip-${t.id}`}>
-              Cancelar
+            <Button onClick={() => setUnassignDialog(t.id)} variant="outline" className="h-12 text-orange-500 border-orange-200 hover:bg-orange-50 touch-target" data-testid={`unassign-trip-${t.id}`}>
+              <AlertTriangle className="w-4 h-4 mr-2" />Desasignar
             </Button>
           )}
         </div>
@@ -323,6 +331,24 @@ function MyTripsSection() {
           </div>
         </DialogContent>
       </Dialog>
+
+{/* --- AQUÍ PEGAS LA NUEVA VENTANA DE CONFIRMACIÓN --- */}
+      <Dialog open={!!unassignDialog} onOpenChange={() => setUnassignDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-orange-600 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5"/> ¿Desasignar Viaje?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">Al desasignar este viaje, volverá a la bolsa de pendientes y otro conductor tendrá que tomarlo. ¿Desea continuar?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnassignDialog(null)}>Volver</Button>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={handleConfirmUnassign}>Sí, desasignar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ---------------------------------------------------- */}
+              
     </div>
   );
 }
