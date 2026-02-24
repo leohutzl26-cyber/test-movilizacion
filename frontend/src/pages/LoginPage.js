@@ -17,14 +17,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-slate-50 flex items-center justify-center p-4" data-testid="login-page">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8 animate-slide-up">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-600 text-white mb-4 shadow-lg">
-            <Ambulance className="w-8 h-8" />
+        
+<div className="text-center mb-8 animate-slide-up">
+          <div className="inline-flex items-center justify-center w-24 h-24 mb-4">
+            <img src="/logo.png" alt="Logo Hospital Curicó" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Traslados Hospital</h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Hospital Curicó</h1>
           <p className="text-slate-500 mt-1 text-sm">Sistema de Gestion de Traslados</p>
         </div>
-
+    
         <Card className="shadow-xl border-slate-100 animate-slide-up" style={{ animationDelay: "100ms" }}>
           <Tabs value={tab} onValueChange={setTab}>
             <CardHeader className="pb-2">
