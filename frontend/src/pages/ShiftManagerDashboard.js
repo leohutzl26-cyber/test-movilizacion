@@ -276,7 +276,17 @@ function ByVehicleSection() {
       toast.error("Error de conexión al guardar el orden. La pizarra podría desajustarse.");
     }
   };
-
+  
+const handleUnassign = async (tripId) => {
+    try {
+      await api.put(`/trips/${tripId}/unassign`);
+      toast.success("Viaje devuelto a la bolsa de pendientes");
+      fetchData(); // Recargamos para que desaparezca del auto y vuelva a la bolsa
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Error al desasignar el viaje");
+    }
+  };
+  
   const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800" };
   const vehicleStatusColors = { disponible: "bg-green-100 text-green-700", en_servicio: "bg-blue-100 text-blue-700", en_limpieza: "bg-violet-100 text-violet-700", en_taller: "bg-orange-100 text-orange-700" };
 
@@ -331,6 +341,17 @@ function ByVehicleSection() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                      
+                      {t.status !== "completado" && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => { e.stopPropagation(); handleUnassign(t.id); }} 
+                          className="h-6 px-2 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
+                        >
+                          Desasignar
+                        </Button>
+                      )}
                     </div>
                     <p className="font-medium text-sm text-slate-900 truncate mb-1">{t.patient_name || "Sin nombre"}</p>
                     <div className="flex items-center gap-1 mt-1">
