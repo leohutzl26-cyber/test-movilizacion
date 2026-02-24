@@ -56,12 +56,15 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     <>
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-slate-200 px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center">
-            <Ambulance className="w-4 h-4 text-white" />
+
+     <div className="flex items-center gap-2">
+          <div className="w-8 h-8 flex items-center justify-center overflow-hidden">
+            <img src="/logo.png" alt="Logo Hospital" className="w-full h-full object-contain" />
           </div>
-          <span className="font-semibold text-sm text-slate-900">Traslados</span>
+          <span className="font-semibold text-sm text-slate-900">Movilización</span>
         </div>
+
+   
         <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)} data-testid="mobile-menu-btn">
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </Button>
@@ -75,17 +78,20 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
         data-testid="sidebar"
       >
-        <div className="p-6 border-b border-slate-100">
+
+<div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center shadow-md">
-              <Ambulance className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="Logo Hospital" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h2 className="font-bold text-sm text-slate-900">Traslados</h2>
+              <h2 className="font-bold text-sm text-slate-900">Movilización</h2>
               <p className="text-xs text-slate-500">Hospital</p>
             </div>
           </div>
         </div>
+
+        
 
         <div className="p-4 border-b border-slate-100">
           <div className="bg-slate-50 rounded-lg p-3">
