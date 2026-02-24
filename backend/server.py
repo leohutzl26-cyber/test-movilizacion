@@ -102,7 +102,10 @@ class TripStatusUpdate(BaseModel):
 class TripGroupUpdate(BaseModel):
     group_id: str
     order_in_group: int = 0
-
+    
+class TripReorder(BaseModel):
+    trip_ids: List[str]
+    
 class TripUpdate(BaseModel):
     origin: Optional[str] = None
     destination: Optional[str] = None
@@ -571,7 +574,7 @@ async def trips_calendar(start_date: str = None, end_date: str = None, user=Depe
 async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordinador", "admin"))):
     target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(500)
-    trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).to_list(5000)
+    trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).sort("order_in_group", 1).to_list(5000)
     result = []
     for v in vehicles:
         v_trips = [t for t in trips if t.get("vehicle_id") == v["id"]]
@@ -674,6 +677,16 @@ async def group_trip(trip_id: str, data: TripGroupUpdate, user=Depends(require_r
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
     return {"message": "Grupo actualizado"}
 
+@api_router.put("/trips/reorder")
+async def reorder_trips(data: TripReorder, user=Depends(require_roles("coordinador", "admin"))):
+    # Recibimos la lista de IDs en el orden correcto y actualizamos su posición en la BD
+    for index, trip_id in enumerate(data.trip_ids):
+        await db.trips.update_one(
+            {"id": trip_id}, 
+            {"$set": {"order_in_group": index, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    return {"message": "Orden actualizado en la base de datos"}
+    
 # ============ DESTINATION MANAGEMENT ============
 
 @api_router.get("/destinations")
