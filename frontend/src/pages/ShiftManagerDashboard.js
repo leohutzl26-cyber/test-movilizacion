@@ -247,31 +247,34 @@ function ByVehicleSection() {
     } catch (e) { toast.error("Error al programar el viaje"); }
   };
 
-  // NUEVA FUNCION: La magia de soltar y reordenar visualmente
-  const handleDrop = (vehicleId, dropIndex) => {
-    // Si lo soltamos en la nada, o en una columna distinta, lo ignoramos (por ahora solo reordenamos dentro del mismo auto)
+  // NUEVA FUNCION: La magia de soltar y guardar el orden en la base de datos
+  const handleDrop = async (vehicleId, dropIndex) => {
     if (!draggedItem || draggedItem.vehicleId !== vehicleId) {
       setDraggedItem(null);
       return;
     }
     
-    // Hacemos una copia de los datos de la pizarra
+    // 1. Reordenamos visualmente rápido para que el usuario no note demoras
     const newData = [...data];
     const vehicleIndex = newData.findIndex(v => v.vehicle.id === vehicleId);
-    
-    // Sacamos la lista de viajes de ese auto
     const vehicleTrips = [...newData[vehicleIndex].trips];
     
-    // Cortamos la tarjeta que arrastramos de su posición original
     const [movedTrip] = vehicleTrips.splice(draggedItem.tripIndex, 1);
-    
-    // La pegamos en la nueva posición donde el mouse soltó el clic
     vehicleTrips.splice(dropIndex, 0, movedTrip);
     
-    // Actualizamos la pantalla con el nuevo orden
     newData[vehicleIndex].trips = vehicleTrips;
     setData(newData);
     setDraggedItem(null);
+
+    // 2. Extraemos la lista de IDs en el nuevo orden
+    const newOrderIds = vehicleTrips.map(t => t.id);
+
+    // 3. Le avisamos al servidor que guarde este nuevo orden
+    try {
+      await api.put('/trips/reorder', { trip_ids: newOrderIds });
+    } catch (e) {
+      toast.error("Error de conexión al guardar el orden. La pizarra podría desajustarse.");
+    }
   };
 
   const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800" };
