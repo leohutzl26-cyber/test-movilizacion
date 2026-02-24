@@ -98,7 +98,8 @@ class TripStatusUpdate(BaseModel):
     status: str
     mileage: Optional[float] = None
     vehicle_id: Optional[str] = None
-
+    cancel_reason: Optional[str] = None
+    
 class TripGroupUpdate(BaseModel):
     group_id: str
     order_in_group: int = 0
@@ -639,16 +640,20 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
     return {"message": f"Viaje asignado a {driver['name']}"}
 
 @api_router.put("/trips/{trip_id}/unassign")
-async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin"))):
+async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin", "conductor"))): # <-- Agregamos "conductor"
     trip = await db.trips.find_one({"id": trip_id})
     if not trip:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
     
+    # Regla: Si es conductor, solo puede desasignar un viaje que él mismo tiene
+    if user["role"] == "conductor" and trip.get("driver_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="No puede desasignar un viaje de otro conductor")
+
     # Regla de negocio: No tocar viajes completados
     if trip.get("status") == "completado":
-        raise HTTPException(status_code=400, detail="No se puede desasignar un viaje que ya está completado")
+        raise HTTPException(status_code=400, detail="No se puede desasignar un viaje completado")
         
-    # Devolvemos el viaje a la bolsa limpiando al conductor y vehículo
+    # Devolvemos el viaje a la bolsa
     await db.trips.update_one(
         {"id": trip_id},
         {"$set": {
@@ -686,6 +691,10 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
         if trip and not trip.get("vehicle_id"):
             raise HTTPException(status_code=400, detail="Debe seleccionar un vehiculo para iniciar el viaje")
     update_data = {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    # NUEVO: Guardar el motivo de cancelación
+    if data.status == "cancelado" and data.cancel_reason:
+        update_data["cancel_reason"] = data.cancel_reason
+        
     if data.status == "completado":
         update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
     if data.status == "en_curso" and data.mileage is not None:
