@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, MapPin, Clock, ArrowRight, FileText, Edit, X as XIcon, Stethoscope, Truck, User, Phone, CalendarDays } from "lucide-react";
+import { Plus, MapPin, Clock, ArrowRight, FileText, Edit, X as XIcon, Stethoscope, Truck, User, Phone, CalendarDays, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
 
 export default function RequesterDashboard() {
@@ -202,13 +202,19 @@ function HistorySection() {
   const [editForm, setEditForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [destinations, setDestinations] = useState([]);
+  const [cancelDialog, setCancelDialog] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   const fetchTrips = useCallback(async () => { try { const r = await api.get("/trips"); setTrips(r.data); } catch {} finally { setLoading(false); } }, []);
   useEffect(() => { fetchTrips(); api.get("/destinations").then(r => setDestinations(r.data)).catch(() => {}); }, [fetchTrips]);
 
-  const handleCancel = async (tripId) => {
-    try { await api.put(`/trips/${tripId}/status`, { status: "cancelado" }); toast.success("Traslado cancelado"); fetchTrips(); setSelectedTrip(null); }
-    catch (e) { toast.error("Error al cancelar"); }
+  const handleConfirmCancel = async () => {
+    if (!cancelReason.trim()) { toast.error("Debe ingresar un motivo de cancelación"); return; }
+    try {
+      await api.put(`/trips/${cancelDialog.id}/status`, { status: "cancelado", cancel_reason: cancelReason });
+      toast.success("Traslado cancelado correctamente");
+      setCancelDialog(null); setCancelReason(""); fetchTrips(); setSelectedTrip(null);
+    } catch (e) { toast.error("Error al cancelar"); }
   };
 
   const handleStartEdit = (trip) => {
@@ -285,12 +291,20 @@ function HistorySection() {
               {selectedTrip.driver_name && <div><p className="text-xs text-slate-500">Conductor Asignado</p><p className="font-medium">{selectedTrip.driver_name}</p></div>}
               {selectedTrip.notes && <div><p className="text-xs text-slate-500">Notas</p><p className="text-sm text-slate-600">{selectedTrip.notes}</p></div>}
               <p className="text-xs text-slate-400">Creado: {new Date(selectedTrip.created_at).toLocaleString()}</p>
-              {selectedTrip.status === "pendiente" && (
-                <DialogFooter className="gap-2">
-                  <Button variant="outline" className="text-red-500 border-red-200 hover:bg-red-50" onClick={() => handleCancel(selectedTrip.id)} data-testid="cancel-trip-btn"><XIcon className="w-4 h-4 mr-1" />Cancelar Traslado</Button>
-                  <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => handleStartEdit(selectedTrip)} data-testid="edit-trip-btn"><Edit className="w-4 h-4 mr-1" />Editar</Button>
+
+              {["pendiente", "asignado"].includes(selectedTrip.status) && (
+                <DialogFooter className="gap-2 mt-4">
+                  <Button variant="outline" className="text-red-500 border-red-200 hover:bg-red-50" onClick={() => setCancelDialog(selectedTrip)} data-testid="cancel-trip-btn">
+                    <XIcon className="w-4 h-4 mr-1" />Cancelar Traslado
+                  </Button>
+                  {selectedTrip.status === "pendiente" && (
+                    <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => handleStartEdit(selectedTrip)} data-testid="edit-trip-btn">
+                      <Edit className="w-4 h-4 mr-1" />Editar
+                    </Button>
+                  )}
                 </DialogFooter>
               )}
+                
             </div>
           )}
           {selectedTrip && editMode && (
@@ -325,6 +339,24 @@ function HistorySection() {
           )}
         </DialogContent>
       </Dialog>
+
+          {/* Modal de Cancelación con Motivo */}
+      <Dialog open={!!cancelDialog} onOpenChange={() => { setCancelDialog(null); setCancelReason(""); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-600 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Cancelar Traslado</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">Por favor, indique el motivo por el cual desea cancelar este traslado:</p>
+            <textarea className="w-full min-h-[80px] px-3 py-2 rounded-md border border-slate-200 text-sm focus:border-red-400 focus:ring-1 focus:ring-red-400 outline-none" 
+              placeholder="Ej: Paciente dado de alta, suspendido por médico..." value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialog(null)}>Volver</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleConfirmCancel}>Confirmar Cancelación</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* -------------------------------------------------------- */}    
+
     </div>
   );
 }
