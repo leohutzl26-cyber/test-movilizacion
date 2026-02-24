@@ -483,6 +483,17 @@ function AssignSection() {
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState("");
   const [filter, setFilter] = useState("all");
+  const [cancelDialog, setCancelDialog] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+
+  const confirmCancel = async () => {
+    if (!cancelReason.trim()) { toast.error("Debe ingresar un motivo"); return; }
+    try {
+      await api.put(`/trips/${cancelDialog.id}/status`, { status: "cancelado", cancel_reason: cancelReason });
+      toast.success("Traslado cancelado");
+      setCancelDialog(null); setCancelReason(""); fetchAll();
+    } catch (e) { toast.error("Error al cancelar"); }
+  };
 
   const fetchAll = useCallback(async () => {
     try {
@@ -533,11 +544,22 @@ function AssignSection() {
                   {t.driver_name && <p className="text-sm text-teal-600 mt-1 font-medium">Conductor: {t.driver_name}</p>}
                   {t.vehicle_id && <p className="text-xs text-slate-500">Vehiculo: {vehicles.find(v => v.id === t.vehicle_id)?.plate || t.vehicle_id}</p>}
                 </div>
-                <Button onClick={() => { setAssignDialog(t); setSelectedDriver(t.driver_id || ""); setSelectedVehicle(t.vehicle_id || ""); }}
-                  className={`shrink-0 ${t.driver_id ? "bg-amber-500 hover:bg-amber-600" : "bg-teal-600 hover:bg-teal-700"}`}
-                  data-testid={`assign-btn-${t.id}`}>
-                  <ArrowLeftRight className="w-4 h-4 mr-1" />{t.driver_id ? "Reasignar" : "Asignar"}
-                </Button>
+
+                  <div className="flex flex-col gap-2 shrink-0 w-[120px]">
+                  <Button onClick={() => { setAssignDialog(t); setSelectedDriver(t.driver_id || ""); setSelectedVehicle(t.vehicle_id || ""); }}
+                    className={`h-9 text-xs w-full ${t.driver_id ? "bg-amber-500 hover:bg-amber-600" : "bg-teal-600 hover:bg-teal-700"}`}
+                    data-testid={`assign-btn-${t.id}`}>
+                    <ArrowLeftRight className="w-4 h-4 mr-1" />{t.driver_id ? "Reasignar" : "Asignar"}
+                  </Button>
+                  
+                  {/* Solo mostramos el botón si el viaje NO está en curso ni completado */}
+                  {["pendiente", "asignado"].includes(t.status) && (
+                    <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-9 text-xs text-red-500 border-red-200 hover:bg-red-50 w-full">
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+                    
               </div>
             </CardContent>
           </Card>
@@ -590,7 +612,24 @@ function AssignSection() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+   
+{/* --- AQUÍ PEGAS LA NUEVA VENTANA DE CONFIRMACIÓN (Paso 3 de Parte 4) --- */}
+      <Dialog open={!!cancelDialog} onOpenChange={() => { setCancelDialog(null); setCancelReason(""); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-600 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Cancelar Traslado</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">Por favor, indique el motivo por el cual cancela este traslado desde coordinación:</p>
+            <textarea className="w-full min-h-[80px] px-3 py-2 rounded-md border border-slate-200 text-sm focus:border-red-400 focus:ring-1 focus:ring-red-400 outline-none" 
+              placeholder="Ej: Falta de vehículos, reagendado..." value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialog(null)}>Volver</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmCancel}>Confirmar Cancelación</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+            
+      </div>
   );
 }
 
