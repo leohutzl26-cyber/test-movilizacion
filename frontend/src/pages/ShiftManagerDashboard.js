@@ -1232,4 +1232,4 @@ function NewTripSection() {
       </Card>
     </div>
   );
-
+}
