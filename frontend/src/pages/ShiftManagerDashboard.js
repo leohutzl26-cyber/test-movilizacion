@@ -1066,6 +1066,7 @@ function HistorySection() {
     </div>
   );
 }
+
 function NewTripSection() {
   const [destinations, setDestinations] = useState([]);
   const [tripType, setTripType] = useState("no_clinico");
