@@ -19,8 +19,7 @@ const navItems = {
     { label: "Vehiculos", icon: Truck, path: "/manager", section: "vehicles" },
     { label: "Programación", icon: Truck, path: "/manager", section: "byvehicle" },
     { label: "Asignacion", icon: ClipboardList, path: "/manager", section: "assign" },
-   { label: "Nuevo Traslado", icon: Plus, path: "/manager", section: "new" }, // <-- NUEVA LÍNEA 
-   { label: "Calendario", icon: CalendarDays, path: "/manager", section: "calendar" },
+    { label: "Calendario", icon: CalendarDays, path: "/manager", section: "calendar" },
     { label: "Historial", icon: History, path: "/manager", section: "history" },
   ],
   solicitante: [
