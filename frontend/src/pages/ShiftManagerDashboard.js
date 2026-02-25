@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ClipboardList, Users, Truck, Clock, AlertTriangle, RefreshCw, User, MapPin, ArrowRight, ArrowLeftRight, CalendarDays, ChevronLeft, ChevronRight, Search, Download, X as XIcon, FileText, Filter } from "lucide-react";
+import { ClipboardList, Users, Truck, Clock, AlertTriangle, RefreshCw, User, MapPin, ArrowRight, ArrowLeftRight, CalendarDays, ChevronLeft, ChevronRight, Search, Download, X as XIcon, FileText, Filter, Plus, Stethoscope, Phone } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import * as XLSX from "xlsx";
 import api from "@/lib/api";
@@ -20,6 +20,7 @@ export default function ShiftManagerDashboard() {
       <Sidebar activeSection={section} onSectionChange={setSection} />
       <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
         <div className="p-4 md:p-8">
+          {section === "new" && <NewTripSection />}
           {section === "dispatch" && <DispatchSection onNavigate={setSection} />}
           {section === "drivers" && <DriversSection />}
           {section === "vehicles" && <VehiclesSection />}
@@ -216,7 +217,7 @@ function ByVehicleSection() {
   
   // NUEVO: Estado para saber qué tarjeta estamos arrastrando
   const [draggedItem, setDraggedItem] = useState(null);
-  const [tripToUnassign, setTripToUnassign] = useState(null); // <--- NUEVA LÍNEA
+  const [tripToUnassign, setTripToUnassign] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -352,7 +353,6 @@ const confirmUnassignAction = async () => {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          /* Aquí cambiamos handleUnassign por setTripToUnassign para que abra la ventana */
                           onClick={(e) => { e.stopPropagation(); setTripToUnassign(t.id); }} 
                           className="h-6 px-2 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
                         >
@@ -448,7 +448,6 @@ const confirmUnassignAction = async () => {
         </DialogContent>
       </Dialog>
 
-  {/* --- AQUÍ PEGAS EL CÓDIGO DEL PASO 4 --- */}
       <Dialog open={!!tripToUnassign} onOpenChange={() => setTripToUnassign(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -468,8 +467,6 @@ const confirmUnassignAction = async () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* -------------------------------------- */}          
-            
      </div>
   );
 }
@@ -552,7 +549,6 @@ function AssignSection() {
                     <ArrowLeftRight className="w-4 h-4 mr-1" />{t.driver_id ? "Reasignar" : "Asignar"}
                   </Button>
                   
-                  {/* Solo mostramos el botón si el viaje NO está en curso ni completado */}
                   {["pendiente", "asignado"].includes(t.status) && (
                     <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-9 text-xs text-red-500 border-red-200 hover:bg-red-50 w-full">
                       Cancelar
@@ -613,7 +609,6 @@ function AssignSection() {
         </DialogContent>
       </Dialog>
    
-{/* --- AQUÍ PEGAS LA NUEVA VENTANA DE CONFIRMACIÓN (Paso 3 de Parte 4) --- */}
       <Dialog open={!!cancelDialog} onOpenChange={() => { setCancelDialog(null); setCancelReason(""); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="text-red-600 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Cancelar Traslado</DialogTitle></DialogHeader>
@@ -762,6 +757,168 @@ function DriversSection() {
         ))}
         {drivers.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin conductores registrados</p>}
       </div>
+    </div>
+  );
+}
+
+function NewTripSection() {
+  const [destinations, setDestinations] = useState([]);
+  const [tripType, setTripType] = useState("no_clinico");
+  const [form, setForm] = useState({
+    origin: "", destination: "", patient_name: "", patient_unit: "",
+    priority: "normal", notes: "", clinical_team: "", contact_person: "",
+    scheduled_date: new Date().toISOString().split("T")[0]
+  });
+  const [useCustomOrigin, setUseCustomOrigin] = useState(false);
+  const [useCustomDest, setUseCustomDest] = useState(false);
+  const [customOrigin, setCustomOrigin] = useState("");
+  const [customDest, setCustomDest] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => { api.get("/destinations").then(r => setDestinations(r.data)).catch(() => {}); }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const finalOrigin = useCustomOrigin ? customOrigin : form.origin;
+    const finalDest = useCustomDest ? customDest : form.destination;
+    if (!finalOrigin || !finalDest) { toast.error("Complete origen y destino"); return; }
+    if (tripType === "clinico" && !form.patient_name) { toast.error("Ingrese nombre del paciente para traslado clinico"); return; }
+    if (tripType === "clinico" && !form.contact_person) { toast.error("Ingrese persona de contacto para traslado clinico"); return; }
+    setLoading(true);
+    try {
+      await api.post("/trips", {
+        ...form, origin: finalOrigin, destination: finalDest, trip_type: tripType
+      });
+      toast.success("Solicitud de traslado creada exitosamente");
+      setForm({ origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "", clinical_team: "", contact_person: "", scheduled_date: new Date().toISOString().split("T")[0] });
+      setCustomOrigin(""); setCustomDest(""); setUseCustomOrigin(false); setUseCustomDest(false);
+    } catch (e) { toast.error(e.response?.data?.detail || "Error al crear solicitud"); }
+    finally { setLoading(false); }
+  };
+
+  const handleOriginSelect = (val) => {
+    if (val === "otro") { setUseCustomOrigin(true); setForm({ ...form, origin: "" }); }
+    else { setForm({ ...form, origin: val }); }
+  };
+  const handleDestSelect = (val) => {
+    if (val === "otro") { setUseCustomDest(true); setForm({ ...form, destination: "" }); }
+    else { setForm({ ...form, destination: val }); }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6">Nueva Solicitud de Traslado</h1>
+      <Card className="shadow-lg">
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">Tipo de Traslado *</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setTripType("clinico")}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${tripType === "clinico" ? "border-teal-500 bg-teal-50" : "border-slate-200 hover:border-slate-300"}`}>
+                  <Stethoscope className={`w-5 h-5 mb-2 ${tripType === "clinico" ? "text-teal-600" : "text-slate-400"}`} />
+                  <p className="font-semibold text-sm">Clinico</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Requiere paciente y equipo</p>
+                </button>
+                <button type="button" onClick={() => setTripType("no_clinico")}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${tripType === "no_clinico" ? "border-teal-500 bg-teal-50" : "border-slate-200 hover:border-slate-300"}`}>
+                  <Truck className={`w-5 h-5 mb-2 ${tripType === "no_clinico" ? "text-teal-600" : "text-slate-400"}`} />
+                  <p className="font-semibold text-sm">No Clinico</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Traslado general</p>
+                </button>
+              </div>
+            </div>
+
+            {tripType === "clinico" && (
+              <div className="space-y-4 p-4 bg-teal-50/50 rounded-lg border border-teal-100 animate-slide-up">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5"><User className="w-4 h-4 text-teal-600" />Nombre del Paciente *</Label>
+                  <Input placeholder="Nombre completo" value={form.patient_name} onChange={e => setForm({...form, patient_name: e.target.value})} required />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5"><Stethoscope className="w-4 h-4 text-teal-600" />Equipo Clinico de Acompanamiento</Label>
+                  <Input placeholder="Ej: Enfermera, Paramedico" value={form.clinical_team} onChange={e => setForm({...form, clinical_team: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5"><Phone className="w-4 h-4 text-teal-600" />Persona de Contacto *</Label>
+                  <Input placeholder="Nombre y telefono" value={form.contact_person} onChange={e => setForm({...form, contact_person: e.target.value})} required />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label>Origen *</Label>
+                {!useCustomOrigin ? (
+                  <Select onValueChange={handleOriginSelect}>
+                    <SelectTrigger><SelectValue placeholder="Seleccione origen" /></SelectTrigger>
+                    <SelectContent>
+                      {destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                      <SelectItem value="otro">Otro (especificar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input placeholder="Escriba el origen" value={customOrigin} onChange={e => setCustomOrigin(e.target.value)} autoFocus />
+                    <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => { setUseCustomOrigin(false); setCustomOrigin(""); }}><XIcon className="w-4 h-4" /></Button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Destino *</Label>
+                {!useCustomDest ? (
+                  <Select onValueChange={handleDestSelect}>
+                    <SelectTrigger><SelectValue placeholder="Seleccione destino" /></SelectTrigger>
+                    <SelectContent>
+                      {destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                      <SelectItem value="otro">Otro (especificar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input placeholder="Escriba el destino" value={customDest} onChange={e => setCustomDest(e.target.value)} autoFocus />
+                    <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => { setUseCustomDest(false); setCustomDest(""); }}><XIcon className="w-4 h-4" /></Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5"><CalendarDays className="w-4 h-4 text-teal-600" />Fecha de Traslado</Label>
+                <Input type="date" value={form.scheduled_date} onChange={e => setForm({...form, scheduled_date: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Prioridad</Label>
+                <Select value={form.priority} onValueChange={val => setForm({...form, priority: val})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="alta">Alta</SelectItem>
+                    <SelectItem value="urgente">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {tripType === "no_clinico" && (
+              <div className="space-y-2">
+                <Label>Descripcion / Persona a trasladar</Label>
+                <Input placeholder="Ej: Material quirurgico, Funcionario Juan Perez" value={form.patient_name} onChange={e => setForm({...form, patient_name: e.target.value})} />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Notas Adicionales</Label>
+              <textarea className="w-full min-h-[80px] px-3 py-2 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-y bg-white" placeholder="Indicaciones especiales, equipamiento necesario..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+            </div>
+
+            <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white h-12 text-base" disabled={loading}>
+              <Plus className="w-5 h-5 mr-2" />{loading ? "Creando..." : "Crear Solicitud de Traslado"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -1065,4 +1222,3 @@ function HistorySection() {
     </div>
   );
 }
-
