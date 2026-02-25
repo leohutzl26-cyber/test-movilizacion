@@ -1,23 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Ambulance, LayoutDashboard, Users, Truck, MapPin, ClipboardList, LogOut, Menu, X, CalendarDays, History } from "lucide-react";
+import { Ambulance, LayoutDashboard, Users, Truck, MapPin, ClipboardList, LogOut, Menu, X, CalendarDays, History, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = {
  admin: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/admin", section: "dashboard" },
     { label: "Usuarios", icon: Users, path: "/admin", section: "users" },
-    { label: "Conductores", icon: Users, path: "/admin", section: "drivers" }, // <--- ¡Esta es la línea nueva!
+    { label: "Conductores", icon: Users, path: "/admin", section: "drivers" },
     { label: "Vehiculos", icon: Truck, path: "/admin", section: "vehicles" },
     { label: "Destinos", icon: MapPin, path: "/admin", section: "destinations" },
     { label: "Registro", icon: ClipboardList, path: "/admin", section: "audit" },
   ],
   coordinador: [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/manager", section: "dispatch" },
+    { label: "Nuevo Traslado", icon: Plus, path: "/manager", section: "new" },
+    { label: "Despacho", icon: LayoutDashboard, path: "/manager", section: "dispatch" },
     { label: "Conductores", icon: Users, path: "/manager", section: "drivers" },
     { label: "Vehiculos", icon: Truck, path: "/manager", section: "vehicles" },
-    { label: "Programación", icon: Truck, path: "/manager", section: "byvehicle" },
+    { label: "Programacion", icon: Truck, path: "/manager", section: "byvehicle" }, 
     { label: "Asignacion", icon: ClipboardList, path: "/manager", section: "assign" },
     { label: "Calendario", icon: CalendarDays, path: "/manager", section: "calendar" },
     { label: "Historial", icon: History, path: "/manager", section: "history" },
@@ -79,7 +80,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         data-testid="sidebar"
       >
 
-<div className="p-6 border-b border-slate-100">
+        <div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
               <img src="/logo.png" alt="Logo Hospital" className="w-full h-full object-contain" />
@@ -90,8 +91,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
             </div>
           </div>
         </div>
-
-        
 
         <div className="p-4 border-b border-slate-100">
           <div className="bg-slate-50 rounded-lg p-3">
