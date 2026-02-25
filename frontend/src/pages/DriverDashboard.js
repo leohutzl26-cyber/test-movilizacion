@@ -410,18 +410,7 @@ function VehicleSection() {
     <div className="max-w-lg mx-auto">
       <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="vehicle-title">Mi Vehiculo</h1>
 
-      <Card className="mb-6 bg-teal-50 border-teal-200">
-        <CardContent className="p-5 flex items-center justify-between">
-          <div>
-            <p className="font-semibold text-teal-900">Disponibilidad Extra</p>
-            <p className="text-sm text-teal-700">Activar fuera de horario</p>
-          </div>
-          <Button onClick={handleToggleAvailability} variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-100 touch-target" data-testid="toggle-availability-btn">
-            <Zap className="w-4 h-4 mr-2" />Alternar
-          </Button>
-        </CardContent>
-      </Card>
-
+     
       <div className="space-y-4">
         {vehicles.map(v => (
           <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "border-red-300 border-2 bg-red-50" : v.maintenance_alert === "amarillo" ? "border-amber-300 border-2 bg-amber-50" : ""}`} data-testid={`vehicle-card-${v.id}`}>
