@@ -14,10 +14,11 @@ const navItems = {
     { label: "Registro", icon: ClipboardList, path: "/admin", section: "audit" },
   ],
   coordinador: [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/manager", section: "dispatch" },
+    { label: "Nuevo Traslado", icon: Plus, path: "/manager", section: "new" }, // <-- NUEVA LÍNEA
+    { label: "Despacho", icon: LayoutDashboard, path: "/manager", section: "dispatch" },
     { label: "Conductores", icon: Users, path: "/manager", section: "drivers" },
     { label: "Vehiculos", icon: Truck, path: "/manager", section: "vehicles" },
-    { label: "Programación", icon: Truck, path: "/manager", section: "byvehicle" },
+    { label: "Programacion", icon: Truck, path: "/manager", section: "byvehicle" }, 
     { label: "Asignacion", icon: ClipboardList, path: "/manager", section: "assign" },
     { label: "Calendario", icon: CalendarDays, path: "/manager", section: "calendar" },
     { label: "Historial", icon: History, path: "/manager", section: "history" },
