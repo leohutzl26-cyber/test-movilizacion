@@ -20,7 +20,7 @@ export default function ShiftManagerDashboard() {
       <Sidebar activeSection={section} onSectionChange={setSection} />
       <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
         <div className="p-4 md:p-8">
-          {section === "new" && <NewTripSection />} {/* <-- NUEVA LÍNEA */}
+          {section === "new" && <NewTripSection />}
           {section === "dispatch" && <DispatchSection onNavigate={setSection} />}
           {section === "drivers" && <DriversSection />}
           {section === "vehicles" && <VehiclesSection />}
@@ -217,7 +217,7 @@ function ByVehicleSection() {
   
   // NUEVO: Estado para saber qué tarjeta estamos arrastrando
   const [draggedItem, setDraggedItem] = useState(null);
-  const [tripToUnassign, setTripToUnassign] = useState(null); // <--- NUEVA LÍNEA
+  const [tripToUnassign, setTripToUnassign] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -353,7 +353,6 @@ const confirmUnassignAction = async () => {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          /* Aquí cambiamos handleUnassign por setTripToUnassign para que abra la ventana */
                           onClick={(e) => { e.stopPropagation(); setTripToUnassign(t.id); }} 
                           className="h-6 px-2 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
                         >
@@ -449,7 +448,6 @@ const confirmUnassignAction = async () => {
         </DialogContent>
       </Dialog>
 
-  {/* --- AQUÍ PEGAS EL CÓDIGO DEL PASO 4 --- */}
       <Dialog open={!!tripToUnassign} onOpenChange={() => setTripToUnassign(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -469,8 +467,6 @@ const confirmUnassignAction = async () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* -------------------------------------- */}          
-            
      </div>
   );
 }
@@ -553,7 +549,6 @@ function AssignSection() {
                     <ArrowLeftRight className="w-4 h-4 mr-1" />{t.driver_id ? "Reasignar" : "Asignar"}
                   </Button>
                   
-                  {/* Solo mostramos el botón si el viaje NO está en curso ni completado */}
                   {["pendiente", "asignado"].includes(t.status) && (
                     <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-9 text-xs text-red-500 border-red-200 hover:bg-red-50 w-full">
                       Cancelar
@@ -614,7 +609,6 @@ function AssignSection() {
         </DialogContent>
       </Dialog>
    
-{/* --- AQUÍ PEGAS LA NUEVA VENTANA DE CONFIRMACIÓN (Paso 3 de Parte 4) --- */}
       <Dialog open={!!cancelDialog} onOpenChange={() => { setCancelDialog(null); setCancelReason(""); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="text-red-600 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Cancelar Traslado</DialogTitle></DialogHeader>
@@ -1228,4 +1222,3 @@ function HistorySection() {
     </div>
   );
 }
-
