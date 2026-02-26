@@ -9,11 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Users, Truck, MapPin, ClipboardList, Plus, Check, X, Trash2, Edit, AlertTriangle, Shield, Search, TrendingUp, Activity } from "lucide-react";
+import { Users, Truck, MapPin, ClipboardList, Plus, Check, X, Trash2, Edit, AlertTriangle, Shield, ScrollText, Search } from "lucide-react";
 import api from "@/lib/api";
-
-// Importamos Recharts para los gráficos
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 export default function AdminDashboard() {
   const [section, setSection] = useState("dashboard");
@@ -36,75 +33,19 @@ export default function AdminDashboard() {
 
 function DashboardSection() {
   const [stats, setStats] = useState(null);
-  const [tripsTrend, setTripsTrend] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        // Obtenemos estadísticas generales y el historial de viajes al mismo tiempo
-        const [statsRes, tripsRes] = await Promise.all([
-          api.get("/stats"),
-          api.get("/trips/history")
-        ]);
-        
-        setStats(statsRes.data);
-
-        // Procesar datos para el gráfico de los últimos 7 días
-        const last7Days = [...Array(7)].map((_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          return d.toISOString().split('T')[0];
-        }).reverse(); // Del más antiguo al más reciente
-
-        const trendData = last7Days.map(date => {
-          // Formatear fecha para el gráfico (ej: "15 Feb")
-          const dateObj = new Date(date + "T00:00:00");
-          const label = `${dateObj.getDate()} ${dateObj.toLocaleString('es-ES', { month: 'short' })}`;
-          
-          // Contar viajes de ese día
-          const count = tripsRes.data.filter(t => 
-            (t.scheduled_date === date) || 
-            (t.created_at && t.created_at.startsWith(date))
-          ).length;
-
-          return { name: label, traslados: count };
-        });
-
-        setTripsTrend(trendData);
-      } catch (error) {
-        console.error("Error cargando dashboard:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
-
-  if (loading) return <div className="text-center py-12 text-slate-500 flex flex-col items-center"><Activity className="w-8 h-8 animate-spin text-teal-600 mb-2"/> Cargando panel analítico...</div>;
-
+  useEffect(() => { api.get("/stats").then(r => setStats(r.data)).catch(() => {}); }, []);
+  if (!stats) return <div className="text-center py-12 text-slate-500">Cargando...</div>;
   const cards = [
     { label: "Viajes Pendientes", value: stats.pending_trips, icon: ClipboardList, color: "text-amber-600 bg-amber-50" },
     { label: "Viajes Activos", value: stats.active_trips, icon: Truck, color: "text-blue-600 bg-blue-50" },
     { label: "Completados", value: stats.completed_trips, icon: Check, color: "text-emerald-600 bg-emerald-50" },
-    { label: "Vehiculos Disp.", value: `${stats.vehicles_available}/${stats.total_vehicles}`, icon: Truck, color: "text-teal-600 bg-teal-50" },
+    { label: "Vehiculos Disponibles", value: `${stats.vehicles_available}/${stats.total_vehicles}`, icon: Truck, color: "text-teal-600 bg-teal-50" },
     { label: "Conductores", value: stats.total_drivers, icon: Users, color: "text-indigo-600 bg-indigo-50" },
     { label: "Usuarios Pendientes", value: stats.pending_users, icon: Shield, color: stats.pending_users > 0 ? "text-red-600 bg-red-50" : "text-slate-600 bg-slate-50" },
   ];
-
-  // Datos para el gráfico circular
-  const pieData = [
-    { name: 'Pendientes', value: stats.pending_trips, color: '#f59e0b' }, // amber-500
-    { name: 'Activos', value: stats.active_trips, color: '#3b82f6' }, // blue-500
-    { name: 'Completados', value: stats.completed_trips, color: '#10b981' }, // emerald-500
-  ].filter(item => item.value > 0); // Ocultar si está en 0
-
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-900" data-testid="dashboard-title">Panel Analítico</h1>
-      
-      {/* Tarjetas de Resumen */}
+    <div>
+      <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6" data-testid="dashboard-title">Panel de Control</h1>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {cards.map((c) => (
           <div key={c.label} className="stat-card card-hover animate-slide-up" data-testid={`stat-${c.label.toLowerCase().replace(/ /g,'-')}`}>
@@ -114,27 +55,393 @@ function DashboardSection() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
-        
-        {/* Gráfico de Barras: Traslados de la Semana */}
-        <Card className="lg:col-span-2 shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-teal-600" />
-              Traslados últimos 7 días
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={tripsTrend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <RechartsTooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    cursor={{ fill: '#f1f5f9' }}
+function UsersSection() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchUsers = useCallback(async () => { try { const r = await api.get("/users"); setUsers(r.data); } catch {} finally { setLoading(false); } }, []);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  const handleApprove = async (id) => { try { await api.put(`/users/${id}/approve`); toast.success("Usuario aprobado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
+  const handleReject = async (id) => { try { await api.put(`/users/${id}/reject`); toast.success("Usuario rechazado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
+  const handleDelete = async (id) => { try { await api.delete(`/users/${id}`); toast.success("Usuario eliminado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
+  const handleRoleChange = async (id, role) => { try { await api.put(`/users/${id}/role`, { role }); toast.success("Rol actualizado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
+
+  const roleLabels = { admin: "Admin", coordinador: "Coordinador", solicitante: "Solicitante", conductor: "Conductor" };
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800", aprobado: "bg-emerald-100 text-emerald-800", rechazado: "bg-red-100 text-red-800" };
+
+  if (loading) return <div className="text-center py-12 text-slate-500">Cargando usuarios...</div>;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6" data-testid="users-title">Gestion de Usuarios</h1>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead><TableHead>Rol</TableHead><TableHead>Estado</TableHead><TableHead>Acciones</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => (
+                <TableRow key={u.id} data-testid={`user-row-${u.id}`}>
+                  <TableCell className="font-medium">{u.name}</TableCell>
+                  <TableCell className="text-sm text-slate-500">{u.email}</TableCell>
+                  <TableCell>
+                    <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
+                      <SelectTrigger className="w-32 h-8 text-xs" data-testid={`role-select-${u.id}`}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColors[u.status]}`}>{u.status}</span></TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {u.status === "pendiente" && (
+                        <>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleApprove(u.id)} data-testid={`approve-${u.id}`}><Check className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 hover:bg-red-50" onClick={() => handleReject(u.id)} data-testid={`reject-${u.id}`}><X className="w-4 h-4" /></Button>
+                        </>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => handleDelete(u.id)} data-testid={`delete-user-${u.id}`}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {users.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-400">Sin usuarios registrados</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function VehiclesSection() {
+  const [vehicles, setVehicles] = useState([]);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 });
+  const [loading, setLoading] = useState(true);
+  const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data); } catch {} finally { setLoading(false); } }, []);
+  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+
+  const handleCreate = async () => {
+    await handleSave();
+  };
+
+  const handleStatusChange = async (id, status) => {
+    try { await api.put(`/vehicles/${id}/status`, { status }); toast.success("Estado actualizado"); fetchVehicles(); }
+    catch (e) { toast.error("Error"); }
+  };
+
+  const handleDelete = async (id) => {
+    try { await api.delete(`/vehicles/${id}`); toast.success("Vehiculo eliminado"); fetchVehicles(); }
+    catch (e) { toast.error("Error al eliminar"); }
+  };
+
+  const handleEdit = (v) => {
+    setForm({ plate: v.plate, brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, next_maintenance_km: v.next_maintenance_km });
+    setEditId(v.id);
+    setShowDialog(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editId) {
+        await api.put(`/vehicles/${editId}`, form);
+        toast.success("Vehiculo actualizado");
+      } else {
+        await api.post("/vehicles", form);
+        toast.success("Vehiculo creado");
+      }
+      setShowDialog(false); setEditId(null); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); fetchVehicles();
+    } catch (e) { toast.error("Error"); }
+  };
+
+  const statusOptions = ["disponible", "en_servicio", "en_limpieza", "en_taller", "fuera_de_servicio"];
+  const alertIcon = (alert) => {
+    if (alert === "rojo") return <AlertTriangle className="w-4 h-4 text-red-500" />;
+    if (alert === "amarillo") return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+    return null;
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-slate-900" data-testid="vehicles-title">Gestion de Flota</h1>
+        <Button onClick={() => { setEditId(null); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); setShowDialog(true); }} className="bg-teal-600 hover:bg-teal-700" data-testid="add-vehicle-btn"><Plus className="w-4 h-4 mr-2" />Agregar Vehiculo</Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {vehicles.map((v) => (
+          <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "alert-rojo border-2" : v.maintenance_alert === "amarillo" ? "alert-amarillo border-2" : ""}`} data-testid={`vehicle-${v.id}`}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{v.plate}</CardTitle>
+                <div className="flex items-center gap-1">{alertIcon(v.maintenance_alert)}<span className={`px-2 py-1 rounded-full text-xs font-semibold status-${v.status}`}>{v.status}</span></div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600">{v.brand} {v.model} ({v.year})</p>
+              <div className="mt-3 flex items-center justify-between">
+                <div><p className="text-xs text-slate-500">Kilometraje</p><p className="font-semibold">{(v.mileage || 0).toLocaleString()} km</p></div>
+                <div><p className="text-xs text-slate-500">Prox. Mant.</p><p className="font-semibold">{(v.next_maintenance_km || 0).toLocaleString()} km</p></div>
+              </div>
+              <Select value={v.status} onValueChange={(val) => handleStatusChange(v.id, val)}>
+                <SelectTrigger className="mt-3 h-9 text-xs" data-testid={`vehicle-status-${v.id}`}><SelectValue /></SelectTrigger>
+                <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+              </Select>
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => handleEdit(v)} data-testid={`edit-vehicle-${v.id}`}><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-xs" onClick={() => handleDelete(v.id)} data-testid={`delete-vehicle-${v.id}`}><Trash2 className="w-3 h-3 mr-1" />Eliminar</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {vehicles.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin vehiculos registrados</p>}
+      </div>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent data-testid="add-vehicle-dialog">
+          <DialogHeader><DialogTitle>{editId ? "Editar Vehiculo" : "Agregar Vehiculo"}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Patente</Label><Input data-testid="vehicle-plate-input" value={form.plate} onChange={e => setForm({...form, plate: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Marca</Label><Input data-testid="vehicle-brand-input" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Modelo</Label><Input data-testid="vehicle-model-input" value={form.model} onChange={e => setForm({...form, model: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Ano</Label><Input data-testid="vehicle-year-input" type="number" value={form.year} onChange={e => setForm({...form, year: parseInt(e.target.value)})} /></div>
+            <div className="space-y-2"><Label>Kilometraje</Label><Input data-testid="vehicle-mileage-input" type="number" value={form.mileage} onChange={e => setForm({...form, mileage: parseFloat(e.target.value)})} /></div>
+            <div className="space-y-2"><Label>Prox. Mantencion (km)</Label><Input data-testid="vehicle-maint-input" type="number" value={form.next_maintenance_km} onChange={e => setForm({...form, next_maintenance_km: parseFloat(e.target.value)})} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)} data-testid="cancel-vehicle-btn">Cancelar</Button>
+            <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700" data-testid="save-vehicle-btn">{editId ? "Actualizar" : "Guardar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DestinationsSection() {
+  const [destinations, setDestinations] = useState([]);
+  const [showDialog, setShowDialog] = useState(false);
+  const [form, setForm] = useState({ name: "", address: "" });
+  const [loading, setLoading] = useState(true);
+  const fetchDest = useCallback(async () => { try { const r = await api.get("/destinations"); setDestinations(r.data); } catch {} finally { setLoading(false); } }, []);
+  useEffect(() => { fetchDest(); }, [fetchDest]);
+
+  const handleCreate = async () => {
+    try { await api.post("/destinations", form); toast.success("Destino creado"); setShowDialog(false); setForm({ name: "", address: "" }); fetchDest(); }
+    catch (e) { toast.error("Error"); }
+  };
+  const handleDelete = async (id) => { try { await api.delete(`/destinations/${id}`); toast.success("Destino eliminado"); fetchDest(); } catch { toast.error("Error"); } };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-slate-900" data-testid="destinations-title">Destinos Frecuentes</h1>
+        <Button onClick={() => setShowDialog(true)} className="bg-teal-600 hover:bg-teal-700" data-testid="add-destination-btn"><Plus className="w-4 h-4 mr-2" />Agregar Destino</Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {destinations.map((d) => (
+          <Card key={d.id} className="card-hover" data-testid={`destination-${d.id}`}>
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-600" /><p className="font-semibold text-slate-900">{d.name}</p></div>
+                {d.address && <p className="text-sm text-slate-500 mt-1 ml-6">{d.address}</p>}
+              </div>
+              <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => handleDelete(d.id)} data-testid={`delete-dest-${d.id}`}><Trash2 className="w-4 h-4" /></Button>
+            </CardContent>
+          </Card>
+        ))}
+        {destinations.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin destinos registrados</p>}
+      </div>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent data-testid="add-destination-dialog">
+          <DialogHeader><DialogTitle>Agregar Destino</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Nombre</Label><Input data-testid="dest-name-input" placeholder="Ej: Urgencias" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Direccion</Label><Input data-testid="dest-address-input" placeholder="Ej: Piso 1, Ala Norte" value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} className="bg-teal-600 hover:bg-teal-700" data-testid="save-destination-btn">Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AuditSection() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterAction, setFilterAction] = useState("");
+  const [filterEntity, setFilterEntity] = useState("");
+
+  useEffect(() => { api.get("/audit-logs").then(r => { setLogs(r.data); setLoading(false); }).catch(() => setLoading(false)); }, []);
+
+  const actionLabels = {
+    registro: "Registro", aprobar_usuario: "Aprobar Usuario", rechazar_usuario: "Rechazar Usuario",
+    cambiar_rol: "Cambiar Rol", eliminar_usuario: "Eliminar Usuario",
+    crear_vehiculo: "Crear Vehiculo", cambiar_estado_vehiculo: "Cambiar Estado Vehiculo", eliminar_vehiculo: "Eliminar Vehiculo",
+    crear_traslado: "Crear Traslado", asignar_traslado: "Asignar Traslado", tomar_traslado: "Tomar Traslado",
+    cambiar_estado_traslado: "Cambiar Estado Traslado"
+  };
+  const entityLabels = { usuario: "Usuario", vehiculo: "Vehiculo", traslado: "Traslado" };
+  const actionColors = {
+    registro: "bg-blue-100 text-blue-700", aprobar_usuario: "bg-emerald-100 text-emerald-700",
+    rechazar_usuario: "bg-red-100 text-red-700", cambiar_rol: "bg-violet-100 text-violet-700",
+    eliminar_usuario: "bg-red-100 text-red-700", crear_vehiculo: "bg-teal-100 text-teal-700",
+    cambiar_estado_vehiculo: "bg-amber-100 text-amber-700", eliminar_vehiculo: "bg-red-100 text-red-700",
+    crear_traslado: "bg-teal-100 text-teal-700", asignar_traslado: "bg-blue-100 text-blue-700",
+    tomar_traslado: "bg-blue-100 text-blue-700", cambiar_estado_traslado: "bg-amber-100 text-amber-700"
+  };
+  const roleLabels = { admin: "Admin", coordinador: "Coordinador", solicitante: "Solicitante", conductor: "Conductor" };
+
+  const filtered = logs.filter(l => {
+    if (filterAction && l.action !== filterAction) return false;
+    if (filterEntity && l.entity_type !== filterEntity) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const fields = [l.user_name, l.action, l.entity_type, l.details].filter(Boolean);
+      if (!fields.some(f => f.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  const formatTs = (iso) => {
+    if (!iso) return "-";
+    try { const d = new Date(iso); return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+    catch { return iso; }
+  };
+
+  const uniqueActions = [...new Set(logs.map(l => l.action))];
+  const uniqueEntities = [...new Set(logs.map(l => l.entity_type))];
+
+  if (loading) return <div className="text-center py-12 text-slate-500">Cargando registro...</div>;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="audit-title">Registro de Actividad</h1>
+
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input placeholder="Buscar por usuario, accion, detalle..." className="pl-10 h-10" value={search} onChange={e => setSearch(e.target.value)} data-testid="audit-search" />
+        </div>
+        <Select value={filterAction} onValueChange={v => setFilterAction(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[180px] h-10" data-testid="audit-filter-action"><SelectValue placeholder="Todas las acciones" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las acciones</SelectItem>
+            {uniqueActions.map(a => <SelectItem key={a} value={a}>{actionLabels[a] || a}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterEntity} onValueChange={v => setFilterEntity(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[160px] h-10" data-testid="audit-filter-entity"><SelectValue placeholder="Todas las entidades" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {uniqueEntities.map(e => <SelectItem key={e} value={e}>{entityLabels[e] || e}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <p className="text-sm text-slate-500 mb-3">{filtered.length} registros</p>
+
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="text-xs font-semibold">Fecha/Hora</TableHead>
+                <TableHead className="text-xs font-semibold">Usuario</TableHead>
+                <TableHead className="text-xs font-semibold">Rol</TableHead>
+                <TableHead className="text-xs font-semibold">Accion</TableHead>
+                <TableHead className="text-xs font-semibold">Entidad</TableHead>
+                <TableHead className="text-xs font-semibold">Detalle</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.slice(0, 200).map(l => (
+                <TableRow key={l.id} data-testid={`audit-row-${l.id}`}>
+                  <TableCell className="text-xs whitespace-nowrap text-slate-500">{formatTs(l.timestamp)}</TableCell>
+                  <TableCell className="text-xs font-medium">{l.user_name}</TableCell>
+                  <TableCell><span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">{roleLabels[l.user_role] || l.user_role}</span></TableCell>
+                  <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${actionColors[l.action] || "bg-slate-100 text-slate-700"}`}>{actionLabels[l.action] || l.action}</span></TableCell>
+                  <TableCell className="text-xs capitalize">{entityLabels[l.entity_type] || l.entity_type}</TableCell>
+                  <TableCell className="text-xs text-slate-600 max-w-[250px] truncate">{l.details}</TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-12 text-slate-400">Sin registros de actividad</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+function DriversSection() {
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const fetchDrivers = useCallback(async () => { 
+    try { const r = await api.get("/drivers"); setDrivers(r.data); } 
+    catch {} finally { setLoading(false); } 
+  }, []);
+  
+  useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
+
+  const handleLicenseUpdate = async (id, date) => {
+    try { 
+      await api.put(`/drivers/${id}/license`, { license_expiry: date }); 
+      toast.success("Licencia actualizada exitosamente"); 
+      fetchDrivers(); 
+    } catch (e) { toast.error("Error al actualizar licencia"); }
+  };
+
+  const isLicenseExpired = (expiry) => {
+    if (!expiry) return false;
+    try { return new Date(expiry) < new Date(); } catch { return false; }
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Gestión de Conductores y Licencias</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {drivers.map(d => (
+          <Card key={d.id} className={`card-hover ${isLicenseExpired(d.license_expiry) ? "border-red-300 border-2" : ""}`}>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="font-semibold text-slate-900">{d.name}</p>
+                  <p className="text-xs text-slate-500">{d.email}</p>
+                </div>
+                {d.extra_available && <Badge className="bg-teal-100 text-teal-700 border-0">Extra</Badge>}
+              </div>
+              {isLicenseExpired(d.license_expiry) && (
+                <div className="flex items-center gap-2 mb-3 p-2 bg-red-50 rounded-lg border border-red-200">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <span className="text-xs text-red-700 font-medium">Licencia vencida</span>
+                </div>
+              )}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Venc. Licencia</p>
+                  <input
+                    type="date"
+                    className="w-full h-9 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    value={d.license_expiry ? d.license_expiry.split("T")[0] : ""}
+                    onChange={(e) => handleLicenseUpdate(d.id, e.target.value)}
                   />
-                  <Bar dataKey="traslados" fill="#0d9488" radius={[4, 4, 0, 0]} name="Cantidad de Viajes" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {drivers.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin conductores registrados</p>}
+      </div>
+    </div>
+  );
+}
