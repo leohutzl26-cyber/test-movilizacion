@@ -9,8 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Users, Truck, MapPin, ClipboardList, Plus, Check, X, Trash2, Edit, AlertTriangle, Shield, ScrollText, Search } from "lucide-react";
+import { Users, Truck, MapPin, ClipboardList, Plus, Check, X, Trash2, Edit, AlertTriangle, Shield, Search, TrendingUp, Activity } from "lucide-react";
 import api from "@/lib/api";
+
+// Importamos Recharts para los gráficos
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function AdminDashboard() {
   const [section, setSection] = useState("dashboard");
@@ -33,19 +36,70 @@ export default function AdminDashboard() {
 
 function DashboardSection() {
   const [stats, setStats] = useState(null);
-  useEffect(() => { api.get("/stats").then(r => setStats(r.data)).catch(() => {}); }, []);
-  if (!stats) return <div className="text-center py-12 text-slate-500">Cargando...</div>;
+  const [tripsTrend, setTripsTrend] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [statsRes, tripsRes] = await Promise.all([
+          api.get("/stats"),
+          api.get("/trips/history")
+        ]);
+        
+        setStats(statsRes.data);
+
+        // Procesar datos para el gráfico de los últimos 7 días
+        const last7Days = [...Array(7)].map((_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          return d.toISOString().split('T')[0];
+        }).reverse(); 
+
+        const trendData = last7Days.map(date => {
+          const dateObj = new Date(date + "T00:00:00");
+          const label = `${dateObj.getDate()} ${dateObj.toLocaleString('es-ES', { month: 'short' })}`;
+          
+          const count = tripsRes.data.filter(t => 
+            (t.scheduled_date === date) || 
+            (t.created_at && t.created_at.startsWith(date))
+          ).length;
+
+          return { name: label, traslados: count };
+        });
+
+        setTripsTrend(trendData);
+      } catch (error) {
+        console.error("Error cargando dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) return <div className="text-center py-12 text-slate-500 flex flex-col items-center"><Activity className="w-8 h-8 animate-spin text-teal-600 mb-2"/> Cargando panel analítico...</div>;
+
   const cards = [
     { label: "Viajes Pendientes", value: stats.pending_trips, icon: ClipboardList, color: "text-amber-600 bg-amber-50" },
     { label: "Viajes Activos", value: stats.active_trips, icon: Truck, color: "text-blue-600 bg-blue-50" },
     { label: "Completados", value: stats.completed_trips, icon: Check, color: "text-emerald-600 bg-emerald-50" },
-    { label: "Vehiculos Disponibles", value: `${stats.vehicles_available}/${stats.total_vehicles}`, icon: Truck, color: "text-teal-600 bg-teal-50" },
+    { label: "Vehiculos Disp.", value: `${stats.vehicles_available}/${stats.total_vehicles}`, icon: Truck, color: "text-teal-600 bg-teal-50" },
     { label: "Conductores", value: stats.total_drivers, icon: Users, color: "text-indigo-600 bg-indigo-50" },
     { label: "Usuarios Pendientes", value: stats.pending_users, icon: Shield, color: stats.pending_users > 0 ? "text-red-600 bg-red-50" : "text-slate-600 bg-slate-50" },
   ];
+
+  const pieData = [
+    { name: 'Pendientes', value: stats.pending_trips, color: '#f59e0b' },
+    { name: 'Activos', value: stats.active_trips, color: '#3b82f6' }, 
+    { name: 'Completados', value: stats.completed_trips, color: '#10b981' }, 
+  ].filter(item => item.value > 0); 
+
   return (
-    <div>
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6" data-testid="dashboard-title">Panel de Control</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl md:text-3xl font-bold text-slate-900" data-testid="dashboard-title">Panel Analítico</h1>
+      
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {cards.map((c) => (
           <div key={c.label} className="stat-card card-hover animate-slide-up" data-testid={`stat-${c.label.toLowerCase().replace(/ /g,'-')}`}>
@@ -54,6 +108,81 @@ function DashboardSection() {
             <p className="text-xs text-slate-500 mt-1">{c.label}</p>
           </div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+        
+        <Card className="lg:col-span-2 shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-teal-600" />
+              Traslados últimos 7 días
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={tripsTrend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    cursor={{ fill: '#f1f5f9' }}
+                  />
+                  <Bar dataKey="traslados" fill="#0d9488" radius={[4, 4, 0, 0]} name="Cantidad de Viajes" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Activity className="w-5 h-5 text-teal-600" />
+              Estado Actual
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center">
+            {pieData.length > 0 ? (
+              <div className="h-[240px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-[240px] flex items-center justify-center text-slate-400">Sin datos actuales</div>
+            )}
+            
+            <div className="flex flex-wrap justify-center gap-4 mt-2 w-full">
+              {pieData.map((entry, index) => (
+                <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                  <span>{entry.name} ({entry.value})</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
@@ -76,7 +205,7 @@ function UsersSection() {
   if (loading) return <div className="text-center py-12 text-slate-500">Cargando usuarios...</div>;
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6" data-testid="users-title">Gestion de Usuarios</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6" data-testid="users-title">Gestión de Usuarios</h1>
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -128,10 +257,6 @@ function VehiclesSection() {
   const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data); } catch {} finally { setLoading(false); } }, []);
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
-  const handleCreate = async () => {
-    await handleSave();
-  };
-
   const handleStatusChange = async (id, status) => {
     try { await api.put(`/vehicles/${id}/status`, { status }); toast.success("Estado actualizado"); fetchVehicles(); }
     catch (e) { toast.error("Error"); }
@@ -171,23 +296,23 @@ function VehiclesSection() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900" data-testid="vehicles-title">Gestion de Flota</h1>
+        <h1 className="text-2xl font-bold text-slate-900" data-testid="vehicles-title">Gestión de Flota</h1>
         <Button onClick={() => { setEditId(null); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); setShowDialog(true); }} className="bg-teal-600 hover:bg-teal-700" data-testid="add-vehicle-btn"><Plus className="w-4 h-4 mr-2" />Agregar Vehiculo</Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {vehicles.map((v) => (
-          <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "alert-rojo border-2" : v.maintenance_alert === "amarillo" ? "alert-amarillo border-2" : ""}`} data-testid={`vehicle-${v.id}`}>
+          <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "border-red-300 border-2 bg-red-50" : v.maintenance_alert === "amarillo" ? "border-amber-300 border-2 bg-amber-50" : ""}`} data-testid={`vehicle-${v.id}`}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">{v.plate}</CardTitle>
-                <div className="flex items-center gap-1">{alertIcon(v.maintenance_alert)}<span className={`px-2 py-1 rounded-full text-xs font-semibold status-${v.status}`}>{v.status}</span></div>
+                <div className="flex items-center gap-1">{alertIcon(v.maintenance_alert)}<span className={`px-2 py-1 rounded-full text-xs font-semibold status-${v.status}`}>{v.status.replace(/_/g, ' ')}</span></div>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-600">{v.brand} {v.model} ({v.year})</p>
-              <div className="mt-3 flex items-center justify-between">
-                <div><p className="text-xs text-slate-500">Kilometraje</p><p className="font-semibold">{(v.mileage || 0).toLocaleString()} km</p></div>
-                <div><p className="text-xs text-slate-500">Prox. Mant.</p><p className="font-semibold">{(v.next_maintenance_km || 0).toLocaleString()} km</p></div>
+              <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-slate-100">
+                <div><p className="text-[10px] text-slate-500 uppercase tracking-wider">Kilometraje</p><p className="font-semibold text-slate-900">{(v.mileage || 0).toLocaleString()} km</p></div>
+                <div className="text-right"><p className="text-[10px] text-slate-500 uppercase tracking-wider">Próx. Mant.</p><p className="font-semibold text-slate-900">{(v.next_maintenance_km || 0).toLocaleString()} km</p></div>
               </div>
               <Select value={v.status} onValueChange={(val) => handleStatusChange(v.id, val)}>
                 <SelectTrigger className="mt-3 h-9 text-xs" data-testid={`vehicle-status-${v.id}`}><SelectValue /></SelectTrigger>
@@ -205,15 +330,15 @@ function VehiclesSection() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent data-testid="add-vehicle-dialog">
           <DialogHeader><DialogTitle>{editId ? "Editar Vehiculo" : "Agregar Vehiculo"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Patente</Label><Input data-testid="vehicle-plate-input" value={form.plate} onChange={e => setForm({...form, plate: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Marca</Label><Input data-testid="vehicle-brand-input" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Modelo</Label><Input data-testid="vehicle-model-input" value={form.model} onChange={e => setForm({...form, model: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Ano</Label><Input data-testid="vehicle-year-input" type="number" value={form.year} onChange={e => setForm({...form, year: parseInt(e.target.value)})} /></div>
-            <div className="space-y-2"><Label>Kilometraje</Label><Input data-testid="vehicle-mileage-input" type="number" value={form.mileage} onChange={e => setForm({...form, mileage: parseFloat(e.target.value)})} /></div>
-            <div className="space-y-2"><Label>Prox. Mantencion (km)</Label><Input data-testid="vehicle-maint-input" type="number" value={form.next_maintenance_km} onChange={e => setForm({...form, next_maintenance_km: parseFloat(e.target.value)})} /></div>
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="space-y-2"><Label>Patente</Label><Input data-testid="vehicle-plate-input" value={form.plate} onChange={e => setForm({...form, plate: e.target.value})} placeholder="Ej: AB-CD-12" /></div>
+            <div className="space-y-2"><Label>Marca</Label><Input data-testid="vehicle-brand-input" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} placeholder="Ej: Ford" /></div>
+            <div className="space-y-2"><Label>Modelo</Label><Input data-testid="vehicle-model-input" value={form.model} onChange={e => setForm({...form, model: e.target.value})} placeholder="Ej: Transit" /></div>
+            <div className="space-y-2"><Label>Año</Label><Input data-testid="vehicle-year-input" type="number" value={form.year} onChange={e => setForm({...form, year: parseInt(e.target.value)})} /></div>
+            <div className="space-y-2"><Label>Kilometraje Actual</Label><Input data-testid="vehicle-mileage-input" type="number" value={form.mileage} onChange={e => setForm({...form, mileage: parseFloat(e.target.value)})} /></div>
+            <div className="space-y-2"><Label>Próxima Mantención</Label><Input data-testid="vehicle-maint-input" type="number" value={form.next_maintenance_km} onChange={e => setForm({...form, next_maintenance_km: parseFloat(e.target.value)})} /></div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowDialog(false)} data-testid="cancel-vehicle-btn">Cancelar</Button>
             <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700" data-testid="save-vehicle-btn">{editId ? "Actualizar" : "Guardar"}</Button>
           </DialogFooter>
@@ -260,11 +385,11 @@ function DestinationsSection() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent data-testid="add-destination-dialog">
           <DialogHeader><DialogTitle>Agregar Destino</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Nombre</Label><Input data-testid="dest-name-input" placeholder="Ej: Urgencias" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Direccion</Label><Input data-testid="dest-address-input" placeholder="Ej: Piso 1, Ala Norte" value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></div>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2"><Label>Nombre del destino</Label><Input data-testid="dest-name-input" placeholder="Ej: Urgencias Adulto" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Ubicación / Detalles (opcional)</Label><Input data-testid="dest-address-input" placeholder="Ej: Piso 1, Ala Norte" value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
             <Button onClick={handleCreate} className="bg-teal-600 hover:bg-teal-700" data-testid="save-destination-btn">Guardar</Button>
           </DialogFooter>
@@ -290,7 +415,7 @@ function AuditSection() {
     crear_traslado: "Crear Traslado", asignar_traslado: "Asignar Traslado", tomar_traslado: "Tomar Traslado",
     cambiar_estado_traslado: "Cambiar Estado Traslado"
   };
-  const entityLabels = { usuario: "Usuario", vehiculo: "Vehiculo", traslado: "Traslado" };
+  const entityLabels = { usuario: "Usuario", vehiculo: "Vehículo", traslado: "Traslado" };
   const actionColors = {
     registro: "bg-blue-100 text-blue-700", aprobar_usuario: "bg-emerald-100 text-emerald-700",
     rechazar_usuario: "bg-red-100 text-red-700", cambiar_rol: "bg-violet-100 text-violet-700",
@@ -321,19 +446,19 @@ function AuditSection() {
   const uniqueActions = [...new Set(logs.map(l => l.action))];
   const uniqueEntities = [...new Set(logs.map(l => l.entity_type))];
 
-  if (loading) return <div className="text-center py-12 text-slate-500">Cargando registro...</div>;
+  if (loading) return <div className="text-center py-12 text-slate-500">Cargando registro de auditoría...</div>;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="audit-title">Registro de Actividad</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="audit-title">Registro de Actividad (Auditoría)</h1>
 
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4 bg-white p-3 rounded-lg border shadow-sm">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input placeholder="Buscar por usuario, accion, detalle..." className="pl-10 h-10" value={search} onChange={e => setSearch(e.target.value)} data-testid="audit-search" />
+          <Input placeholder="Buscar por usuario, acción, detalle..." className="pl-10 h-10 bg-slate-50 border-transparent focus:bg-white focus:border-slate-300" value={search} onChange={e => setSearch(e.target.value)} data-testid="audit-search" />
         </div>
         <Select value={filterAction} onValueChange={v => setFilterAction(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-[180px] h-10" data-testid="audit-filter-action"><SelectValue placeholder="Todas las acciones" /></SelectTrigger>
+          <SelectTrigger className="w-[200px] h-10" data-testid="audit-filter-action"><SelectValue placeholder="Todas las acciones" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las acciones</SelectItem>
             {uniqueActions.map(a => <SelectItem key={a} value={a}>{actionLabels[a] || a}</SelectItem>)}
@@ -342,36 +467,36 @@ function AuditSection() {
         <Select value={filterEntity} onValueChange={v => setFilterEntity(v === "all" ? "" : v)}>
           <SelectTrigger className="w-[160px] h-10" data-testid="audit-filter-entity"><SelectValue placeholder="Todas las entidades" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="all">Todas las entidades</SelectItem>
             {uniqueEntities.map(e => <SelectItem key={e} value={e}>{entityLabels[e] || e}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      <p className="text-sm text-slate-500 mb-3">{filtered.length} registros</p>
+      <p className="text-sm text-slate-500 mb-3">{filtered.length} registros encontrados</p>
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="text-xs font-semibold">Fecha/Hora</TableHead>
+                <TableHead className="text-xs font-semibold">Fecha y Hora</TableHead>
                 <TableHead className="text-xs font-semibold">Usuario</TableHead>
                 <TableHead className="text-xs font-semibold">Rol</TableHead>
-                <TableHead className="text-xs font-semibold">Accion</TableHead>
+                <TableHead className="text-xs font-semibold">Acción</TableHead>
                 <TableHead className="text-xs font-semibold">Entidad</TableHead>
-                <TableHead className="text-xs font-semibold">Detalle</TableHead>
+                <TableHead className="text-xs font-semibold">Detalle del Evento</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.slice(0, 200).map(l => (
-                <TableRow key={l.id} data-testid={`audit-row-${l.id}`}>
+                <TableRow key={l.id} data-testid={`audit-row-${l.id}`} className="hover:bg-slate-50">
                   <TableCell className="text-xs whitespace-nowrap text-slate-500">{formatTs(l.timestamp)}</TableCell>
                   <TableCell className="text-xs font-medium">{l.user_name}</TableCell>
-                  <TableCell><span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">{roleLabels[l.user_role] || l.user_role}</span></TableCell>
+                  <TableCell><span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">{roleLabels[l.user_role] || l.user_role}</span></TableCell>
                   <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${actionColors[l.action] || "bg-slate-100 text-slate-700"}`}>{actionLabels[l.action] || l.action}</span></TableCell>
-                  <TableCell className="text-xs capitalize">{entityLabels[l.entity_type] || l.entity_type}</TableCell>
-                  <TableCell className="text-xs text-slate-600 max-w-[250px] truncate">{l.details}</TableCell>
+                  <TableCell className="text-xs capitalize font-medium text-slate-700">{entityLabels[l.entity_type] || l.entity_type}</TableCell>
+                  <TableCell className="text-xs text-slate-600 max-w-[250px] truncate">{l.details || "-"}</TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-12 text-slate-400">Sin registros de actividad</TableCell></TableRow>}
@@ -382,6 +507,7 @@ function AuditSection() {
     </div>
   );
 }
+
 function DriversSection() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -411,31 +537,29 @@ function DriversSection() {
       <h1 className="text-2xl font-bold text-slate-900 mb-6">Gestión de Conductores y Licencias</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {drivers.map(d => (
-          <Card key={d.id} className={`card-hover ${isLicenseExpired(d.license_expiry) ? "border-red-300 border-2" : ""}`}>
+          <Card key={d.id} className={`card-hover ${isLicenseExpired(d.license_expiry) ? "border-red-300 border-2 bg-red-50" : ""}`}>
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="font-semibold text-slate-900">{d.name}</p>
+                  <p className="font-semibold text-slate-900 text-lg">{d.name}</p>
                   <p className="text-xs text-slate-500">{d.email}</p>
                 </div>
-                {d.extra_available && <Badge className="bg-teal-100 text-teal-700 border-0">Extra</Badge>}
+                {d.extra_available && <Badge className="bg-teal-100 text-teal-700 border-0">Disponible Extra</Badge>}
               </div>
               {isLicenseExpired(d.license_expiry) && (
-                <div className="flex items-center gap-2 mb-3 p-2 bg-red-50 rounded-lg border border-red-200">
-                  <AlertTriangle className="w-4 h-4 text-red-500" />
-                  <span className="text-xs text-red-700 font-medium">Licencia vencida</span>
+                <div className="flex items-center gap-2 mb-3 p-2 bg-red-100 rounded-lg border border-red-200 text-red-800">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Licencia vencida</span>
                 </div>
               )}
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Venc. Licencia</p>
-                  <input
-                    type="date"
-                    className="w-full h-9 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    value={d.license_expiry ? d.license_expiry.split("T")[0] : ""}
-                    onChange={(e) => handleLicenseUpdate(d.id, e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2 mt-4">
+                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Fecha Vencimiento Licencia</p>
+                <Input
+                  type="date"
+                  className="w-full h-10 font-medium"
+                  value={d.license_expiry ? d.license_expiry.split("T")[0] : ""}
+                  onChange={(e) => handleLicenseUpdate(d.id, e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
