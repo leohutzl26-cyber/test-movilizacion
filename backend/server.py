@@ -9,6 +9,8 @@ import logging
 import asyncio
 import uuid
 import base64
+import string
+import random
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -39,7 +41,7 @@ if resend_api_key:
     resend.api_key = resend_api_key
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
-# Gemini Key para OCR (Cambiado de EMERGENT_LLM_KEY a GEMINI_API_KEY)
+# Gemini Key para OCR
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 # FastAPI
@@ -49,6 +51,7 @@ security = HTTPBearer()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 # ============ PYDANTIC MODELS ============
 
 class UserRegister(BaseModel):
@@ -250,8 +253,11 @@ async def forgot_password(data: ForgotPassword):
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
     if not user:
         return {"message": "Si el correo existe, recibira instrucciones de recuperacion."}
-    reset_token = create_token({"sub": user["id"], "type": "reset"}, timedelta(hours=1))
-    await db.users.update_one({"id": user["id"]}, {"$set": {"reset_token": reset_token}})
+        
+    # Generar un código de 6 dígitos en vez de un JWT largo
+    reset_code = ''.join(random.choices(string.digits, k=6))
+    await db.users.update_one({"id": user["id"]}, {"$set": {"reset_token": reset_code}})
+    
     if resend_api_key:
         try:
             html_content = f"""
@@ -260,9 +266,9 @@ async def forgot_password(data: ForgotPassword):
                 <p>Hola {user['name']},</p>
                 <p>Recibimos una solicitud para restablecer tu contrasena. Usa el siguiente codigo:</p>
                 <div style="background: #F1F5F9; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                    <code style="font-size: 24px; font-weight: bold; color: #0F766E;">{reset_token[:20]}</code>
+                    <code style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #0F766E;">{reset_code}</code>
                 </div>
-                <p style="color: #64748B; font-size: 12px;">Este codigo expira en 1 hora.</p>
+                <p style="color: #64748B; font-size: 12px;">Este codigo expira pronto.</p>
             </div>
             """
             params = {
@@ -274,21 +280,22 @@ async def forgot_password(data: ForgotPassword):
             await asyncio.to_thread(resend.Emails.send, params)
         except Exception as e:
             logger.error(f"Error enviando email: {e}")
-    return {"message": "Si el correo existe, recibira instrucciones de recuperacion.", "reset_token": reset_token}
+            
+    # Siempre devolvemos el código para que el frontend lo pueda autocompletar si no hay email configurado
+    return {"message": "Si el correo existe, recibira instrucciones de recuperacion.", "reset_token": reset_code}
 
 @api_router.post("/auth/reset-password")
 async def reset_password(data: ResetPassword):
-    try:
-        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id or payload.get("type") != "reset":
-            raise HTTPException(status_code=400, detail="Token invalido")
-    except JWTError:
-        raise HTTPException(status_code=400, detail="Token invalido o expirado")
+    # Buscamos al usuario por el código de 6 dígitos directamente
+    user = await db.users.find_one({"reset_token": data.token})
+    if not user:
+        raise HTTPException(status_code=400, detail="Código de recuperación inválido o expirado")
+        
     new_hash = pwd_context.hash(data.new_password)
-    result = await db.users.update_one({"id": user_id}, {"$set": {"password_hash": new_hash, "reset_token": None}})
+    result = await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": new_hash, "reset_token": None}})
+    
     if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=404, detail="Error al actualizar contraseña")
     return {"message": "Contrasena actualizada correctamente"}
 
 @api_router.get("/auth/me")
@@ -553,7 +560,6 @@ async def active_trips(user=Depends(require_roles("coordinador", "admin"))):
 @api_router.get("/trips/history")
 async def trips_history(user=Depends(require_roles("coordinador", "admin"))):
     trips = await db.trips.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
-    # Enrich with vehicle plate
     vehicle_ids = list(set(t.get("vehicle_id") for t in trips if t.get("vehicle_id")))
     vehicles_map = {}
     if vehicle_ids:
@@ -573,7 +579,6 @@ async def trips_calendar(start_date: str = None, end_date: str = None, user=Depe
 
 @api_router.put("/trips/reorder")
 async def reorder_trips(data: TripReorder, user=Depends(require_roles("coordinador", "admin"))):
-    # Recibimos la lista de IDs en el orden correcto y actualizamos su posición en la BD
     for index, trip_id in enumerate(data.trip_ids):
         await db.trips.update_one(
             {"id": trip_id}, 
@@ -590,7 +595,6 @@ async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordin
     for v in vehicles:
         v_trips = [t for t in trips if t.get("vehicle_id") == v["id"]]
         result.append({"vehicle": v, "trips": v_trips})
-    # Also include unassigned trips (no vehicle)
     unassigned = [t for t in trips if not t.get("vehicle_id")]
     if unassigned:
         result.append({"vehicle": {"id": "unassigned", "plate": "Sin Vehiculo", "brand": "", "model": "", "status": ""}, "trips": unassigned})
@@ -640,20 +644,15 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
     return {"message": f"Viaje asignado a {driver['name']}"}
 
 @api_router.put("/trips/{trip_id}/unassign")
-async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin", "conductor"))): # <-- Agregamos "conductor"
+async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin", "conductor"))): 
     trip = await db.trips.find_one({"id": trip_id})
     if not trip:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
-    
-    # Regla: Si es conductor, solo puede desasignar un viaje que él mismo tiene
     if user["role"] == "conductor" and trip.get("driver_id") != user["id"]:
         raise HTTPException(status_code=403, detail="No puede desasignar un viaje de otro conductor")
-
-    # Regla de negocio: No tocar viajes completados
     if trip.get("status") == "completado":
         raise HTTPException(status_code=400, detail="No se puede desasignar un viaje completado")
         
-    # Devolvemos el viaje a la bolsa
     await db.trips.update_one(
         {"id": trip_id},
         {"$set": {
@@ -685,13 +684,11 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
     valid_statuses = ["pendiente", "asignado", "en_curso", "completado", "cancelado"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail="Estado invalido")
-    # Conductor must provide vehicle_id when starting a trip
     if data.status == "en_curso" and user["role"] == "conductor" and not data.vehicle_id:
         trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
         if trip and not trip.get("vehicle_id"):
             raise HTTPException(status_code=400, detail="Debe seleccionar un vehiculo para iniciar el viaje")
     update_data = {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}
-    # NUEVO: Guardar el motivo de cancelación
     if data.status == "cancelado" and data.cancel_reason:
         update_data["cancel_reason"] = data.cancel_reason
         
@@ -719,8 +716,6 @@ async def group_trip(trip_id: str, data: TripGroupUpdate, user=Depends(require_r
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
     return {"message": "Grupo actualizado"}
 
-
-    
 # ============ DESTINATION MANAGEMENT ============
 
 @api_router.get("/destinations")
