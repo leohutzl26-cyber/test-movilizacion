@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <--- ¡AGREGA ESTA LÍNEA!
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { HandMetal, Play, CheckCircle, Camera, Truck, MapPin, ArrowRight, Clock, Upload, AlertTriangle, Zap } from "lucide-react";
 import api from "@/lib/api";
@@ -125,7 +125,7 @@ function MyTripsSection() {
       const res = await api.post(`/vehicles/${targetVehicleId}/ocr`, formData, { headers: { "Content-Type": "multipart/form-data" } });
       if (res.data.mileage) {
         setMileageValue(String(res.data.mileage));
-        toast.success(`Kilometraje detectado: ${res.data.mileage.toLocaleString()} km`);
+        toast.success(`Kilometraje detectado: ${res.data.mileage.toLocaleString()} km. Por favor, confirme y guarde.`);
       } else { toast.error("No se pudo leer. Ingrese manualmente."); }
     } catch (e) { toast.error("Error en OCR"); }
     finally { setMileageLoading(false); }
@@ -146,8 +146,6 @@ function MyTripsSection() {
     } catch (e) { toast.error(e.response?.data?.detail || "Error al actualizar"); }
   };
 
-  
-
   const statusColors = {
     asignado: "bg-teal-100 text-teal-800 border-teal-200",
     en_curso: "bg-blue-100 text-blue-800 border-blue-200",
@@ -161,11 +159,9 @@ function MyTripsSection() {
   const activeTrips = trips.filter(t => ["asignado", "en_curso"].includes(t.status));
   const pastTrips = trips.filter(t => ["completado", "cancelado"].includes(t.status));
 
-  // Separamos los viajes en "Hoy" y "Próximos"
   const todayTrips = activeTrips.filter(t => !t.scheduled_date || t.scheduled_date <= today);
   const upcomingTrips = activeTrips.filter(t => t.scheduled_date && t.scheduled_date > today);
 
-  // Componente interno para no repetir el código de la tarjeta de viaje
   const TripCard = ({ t }) => (
     <Card key={t.id} className="shadow-md border-l-4 border-l-teal-500 animate-slide-up" data-testid={`active-trip-${t.id}`}>
       <CardContent className="p-5">
@@ -332,7 +328,6 @@ function MyTripsSection() {
         </DialogContent>
       </Dialog>
 
-{/* --- AQUÍ PEGAS LA NUEVA VENTANA DE CONFIRMACIÓN --- */}
       <Dialog open={!!unassignDialog} onOpenChange={() => setUnassignDialog(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -347,8 +342,6 @@ function MyTripsSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* ---------------------------------------------------- */}
-              
     </div>
   );
 }
@@ -380,9 +373,8 @@ function VehicleSection() {
     try {
       const res = await api.post(`/vehicles/${selectedVehicle.id}/ocr`, formData, { headers: { "Content-Type": "multipart/form-data" } });
       if (res.data.mileage) {
-        toast.success(`Kilometraje detectado: ${res.data.mileage.toLocaleString()} km`);
-        setShowOcr(false);
-        const r = await api.get("/vehicles"); setVehicles(r.data);
+        toast.success(`Kilometraje sugerido: ${res.data.mileage.toLocaleString()} km. Por favor confirme.`);
+        setManualMileage(String(res.data.mileage)); // ¡Aquí rellenamos la casilla pero no cerramos ni guardamos!
       } else {
         toast.error("No se pudo leer el odometro. Ingrese manualmente.");
       }
@@ -394,7 +386,7 @@ function VehicleSection() {
     if (!selectedVehicle || !manualMileage) return;
     try {
       await api.put(`/vehicles/${selectedVehicle.id}/mileage`, { mileage: parseFloat(manualMileage) });
-      toast.success("Kilometraje actualizado");
+      toast.success("Kilometraje actualizado correctamente en la base de datos.");
       setShowOcr(false);
       setManualMileage("");
       const r = await api.get("/vehicles"); setVehicles(r.data);
@@ -410,7 +402,6 @@ function VehicleSection() {
     <div className="max-w-lg mx-auto">
       <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="vehicle-title">Mi Vehiculo</h1>
 
-     
       <div className="space-y-4">
         {vehicles.map(v => (
           <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "border-red-300 border-2 bg-red-50" : v.maintenance_alert === "amarillo" ? "border-amber-300 border-2 bg-amber-50" : ""}`} data-testid={`vehicle-card-${v.id}`}>
@@ -444,44 +435,4 @@ function VehicleSection() {
                   <Camera className="w-5 h-5 mr-2" />Registrar KM
                 </Button>
                 <Select value={v.status} onValueChange={val => handleStatusChange(v.id, val)}>
-                  <SelectTrigger className="w-auto h-11 touch-target" data-testid={`driver-vehicle-status-${v.id}`}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="disponible">Disponible</SelectItem>
-                    <SelectItem value="en_servicio">En Servicio</SelectItem>
-                    <SelectItem value="en_limpieza">En Limpieza</SelectItem>
-                    <SelectItem value="en_taller">En Taller</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {vehicles.length === 0 && <p className="text-center py-12 text-slate-400">Sin vehiculos en el sistema</p>}
-      </div>
-
-      <Dialog open={showOcr} onOpenChange={setShowOcr}>
-        <DialogContent className="max-w-sm" data-testid="ocr-dialog">
-          <DialogHeader><DialogTitle>Registrar Kilometraje</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-slate-500">Vehiculo: <strong>{selectedVehicle?.plate}</strong></p>
-            <div className="border-2 border-dashed border-teal-200 rounded-xl p-8 text-center hover:border-teal-400 transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleOcrUpload} className="hidden" data-testid="ocr-file-input" />
-              {ocrLoading ? (
-                <div className="flex flex-col items-center gap-2"><div className="animate-spin w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full" /><p className="text-sm text-teal-600">Procesando imagen...</p></div>
-              ) : (
-                <div className="flex flex-col items-center gap-2"><Camera className="w-10 h-10 text-teal-400" /><p className="text-sm text-slate-600 font-medium">Tomar foto del odometro</p><p className="text-xs text-slate-400">La IA extraera el kilometraje</p></div>
-              )}
-            </div>
-            <div className="border-t border-slate-200 pt-4">
-              <p className="text-xs text-slate-500 mb-2">O ingrese manualmente:</p>
-              <div className="flex gap-2">
-                <Input type="number" placeholder="Ej: 45230" value={manualMileage} onChange={e => setManualMileage(e.target.value)} data-testid="manual-mileage-input" className="flex-1" />
-                <Button onClick={handleManualMileage} className="bg-teal-600 hover:bg-teal-700 touch-target" data-testid="manual-mileage-btn">Guardar</Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+                  <SelectTrigger className="w-auto h-11 touch-target" data-testid={`driver-vehicle-status-${v.id}`}><SelectValue
