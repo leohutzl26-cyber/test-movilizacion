@@ -7,11 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ClipboardList, Users, Truck, Clock, AlertTriangle, RefreshCw, User, MapPin, ArrowRight, ArrowLeftRight, CalendarDays, ChevronLeft, ChevronRight, Search, Download, X as XIcon, FileText, Filter, Plus, Stethoscope, Phone } from "lucide-react";
+import { ClipboardList, Users, Truck, Clock, AlertTriangle, RefreshCw, User, MapPin, ArrowRight, ArrowLeftRight, CalendarDays, ChevronLeft, ChevronRight, Search, Download, X as XIcon, FileText, Filter, Plus, Stethoscope, Phone, TrendingUp, Activity } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import * as XLSX from "xlsx";
 import api from "@/lib/api";
+
+// Importamos Recharts para los gráficos
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function ShiftManagerDashboard() {
   const [section, setSection] = useState("dispatch");
@@ -38,13 +42,41 @@ function DispatchSection({ onNavigate }) {
   const [stats, setStats] = useState(null);
   const [poolTrips, setPoolTrips] = useState([]);
   const [activeTrips, setActiveTrips] = useState([]);
+  const [tripsTrend, setTripsTrend] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [s, p, a] = await Promise.all([api.get("/stats"), api.get("/trips/pool"), api.get("/trips/active")]);
-      setStats(s.data); setPoolTrips(p.data); setActiveTrips(a.data.filter(t => t.driver_id));
+      // Agregamos la llamada a history para poder dibujar los gráficos
+      const [s, p, a, h] = await Promise.all([
+        api.get("/stats"), 
+        api.get("/trips/pool"), 
+        api.get("/trips/active"),
+        api.get("/trips/history")
+      ]);
+      setStats(s.data); 
+      setPoolTrips(p.data); 
+      setActiveTrips(a.data.filter(t => t.driver_id));
+
+      // Procesar datos para el gráfico de los últimos 7 días
+      const last7Days = [...Array(7)].map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return d.toISOString().split('T')[0];
+      }).reverse(); 
+
+      const trendData = last7Days.map(date => {
+        const dateObj = new Date(date + "T00:00:00");
+        const label = `${dateObj.getDate()} ${dateObj.toLocaleString('es-ES', { month: 'short' })}`;
+        const count = h.data.filter(t => 
+          (t.scheduled_date === date) || 
+          (t.created_at && t.created_at.startsWith(date))
+        ).length;
+        return { name: label, traslados: count };
+      });
+
+      setTripsTrend(trendData);
     } catch {} finally { setRefreshing(false); }
   }, []);
 
@@ -52,6 +84,12 @@ function DispatchSection({ onNavigate }) {
 
   const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800" };
   const priorityColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
+
+  const pieData = stats ? [
+    { name: 'Pendientes', value: stats.pending_trips, color: '#f59e0b' },
+    { name: 'Activos', value: stats.active_trips, color: '#3b82f6' }, 
+    { name: 'Completados', value: stats.completed_trips, color: '#10b981' }, 
+  ].filter(item => item.value > 0) : []; 
 
   return (
     <div>
@@ -83,48 +121,137 @@ function DispatchSection({ onNavigate }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2"><Clock className="w-5 h-5 text-amber-500" />Bolsa de Trabajo ({poolTrips.length})</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs text-teal-600" onClick={() => onNavigate("assign")} data-testid="go-to-assign">Asignar →</Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
-            {poolTrips.map(t => (
-              <div key={t.id} className="p-4 bg-white rounded-lg border border-slate-100 shadow-sm animate-slide-up" data-testid={`pool-trip-${t.id}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${priorityColors[t.priority] || priorityColors.normal}`}>{t.priority}</span>
-                  <span className="text-xs text-slate-400">{t.scheduled_date || new Date(t.created_at).toLocaleTimeString()}</span>
-                </div>
-                <p className="font-medium text-slate-900">{t.patient_name || "Sin nombre"}</p>
-                <p className="text-sm text-slate-500 mt-1">{t.origin} → {t.destination}</p>
-              </div>
-            ))}
-            {poolTrips.length === 0 && <p className="text-center py-8 text-slate-400">Sin viajes pendientes</p>}
-          </CardContent>
-        </Card>
+      {/* Uso de Tabs para no recargar la pantalla del coordinador */}
+      <Tabs defaultValue="live" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6 bg-slate-200/60 p-1">
+          <TabsTrigger value="live" className="text-sm font-semibold data-[state=active]:bg-teal-600 data-[state=active]:text-white">
+            Operación en Vivo
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="text-sm font-semibold data-[state=active]:bg-teal-600 data-[state=active]:text-white">
+            Panel Analítico
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2"><Truck className="w-5 h-5 text-blue-500" />Viajes Activos ({activeTrips.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
-            {activeTrips.map(t => (
-              <div key={t.id} className="p-4 bg-white rounded-lg border border-slate-100 shadow-sm" data-testid={`active-trip-${t.id}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
-                  <span className="text-xs text-slate-500 flex items-center gap-1"><User className="w-3 h-3" />{t.driver_name}</span>
+        <TabsContent value="live" className="outline-none animate-slide-up">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2"><Clock className="w-5 h-5 text-amber-500" />Bolsa de Trabajo ({poolTrips.length})</CardTitle>
+                  <Button variant="ghost" size="sm" className="text-xs text-teal-600" onClick={() => onNavigate("assign")} data-testid="go-to-assign">Asignar →</Button>
                 </div>
-                <p className="font-medium text-slate-900">{t.patient_name || "Sin nombre"}</p>
-                <p className="text-sm text-slate-500">{t.origin} → {t.destination}</p>
-              </div>
-            ))}
-            {activeTrips.length === 0 && <p className="text-center py-8 text-slate-400">Sin viajes activos</p>}
-          </CardContent>
-        </Card>
-      </div>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
+                {poolTrips.map(t => (
+                  <div key={t.id} className="p-4 bg-white rounded-lg border border-slate-100 shadow-sm hover:border-teal-300 transition-colors" data-testid={`pool-trip-${t.id}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${priorityColors[t.priority] || priorityColors.normal}`}>{t.priority}</span>
+                      <span className="text-xs text-slate-400">{t.scheduled_date || new Date(t.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="font-medium text-slate-900">{t.patient_name || "Sin nombre"}</p>
+                    <p className="text-sm text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-teal-500 shrink-0"/> {t.origin} <ArrowRight className="w-3 h-3 mx-1" /> {t.destination}</p>
+                  </div>
+                ))}
+                {poolTrips.length === 0 && <p className="text-center py-8 text-slate-400">Sin viajes pendientes</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2"><Truck className="w-5 h-5 text-blue-500" />Viajes Activos ({activeTrips.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
+                {activeTrips.map(t => (
+                  <div key={t.id} className="p-4 bg-white rounded-lg border border-slate-100 shadow-sm" data-testid={`active-trip-${t.id}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                      <span className="text-xs text-slate-500 flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-md"><User className="w-3 h-3" />{t.driver_name}</span>
+                    </div>
+                    <p className="font-medium text-slate-900">{t.patient_name || "Sin nombre"}</p>
+                    <p className="text-sm text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-teal-500 shrink-0"/> {t.origin} <ArrowRight className="w-3 h-3 mx-1" /> {t.destination}</p>
+                  </div>
+                ))}
+                {activeTrips.length === 0 && <p className="text-center py-8 text-slate-400">Sin viajes activos</p>}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="outline-none animate-slide-up">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2 shadow-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-teal-600" />
+                  Traslados últimos 7 días
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tripsTrend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <RechartsTooltip 
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        cursor={{ fill: '#f1f5f9' }}
+                      />
+                      <Bar dataKey="traslados" fill="#0d9488" radius={[4, 4, 0, 0]} name="Cantidad de Viajes" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-teal-600" />
+                  Estado Actual
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center">
+                {pieData.length > 0 ? (
+                  <div className="h-[240px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-[240px] flex items-center justify-center text-slate-400">Sin datos actuales</div>
+                )}
+                
+                <div className="flex flex-wrap justify-center gap-4 mt-2 w-full">
+                  {pieData.map((entry, index) => (
+                    <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                      <span>{entry.name} ({entry.value})</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -215,7 +342,7 @@ function ByVehicleSection() {
   const [selectedTripId, setSelectedTripId] = useState("");
   const [selectedDriverId, setSelectedDriverId] = useState("");
   
-  // NUEVO: Estado para saber qué tarjeta estamos arrastrando
+  // Estado para saber qué tarjeta estamos arrastrando
   const [draggedItem, setDraggedItem] = useState(null);
   const [tripToUnassign, setTripToUnassign] = useState(null);
 
@@ -249,14 +376,12 @@ function ByVehicleSection() {
     } catch (e) { toast.error("Error al programar el viaje"); }
   };
 
-  // NUEVA FUNCION: La magia de soltar y guardar el orden en la base de datos
   const handleDrop = async (vehicleId, dropIndex) => {
     if (!draggedItem || draggedItem.vehicleId !== vehicleId) {
       setDraggedItem(null);
       return;
     }
     
-    // 1. Reordenamos visualmente rápido para que el usuario no note demoras
     const newData = [...data];
     const vehicleIndex = newData.findIndex(v => v.vehicle.id === vehicleId);
     const vehicleTrips = [...newData[vehicleIndex].trips];
@@ -268,14 +393,12 @@ function ByVehicleSection() {
     setData(newData);
     setDraggedItem(null);
 
-    // 2. Extraemos la lista de IDs en el nuevo orden
     const newOrderIds = vehicleTrips.map(t => t.id);
 
-    // 3. Le avisamos al servidor que guarde este nuevo orden
     try {
       await api.put('/trips/reorder', { trip_ids: newOrderIds });
     } catch (e) {
-      toast.error("Error de conexión al guardar el orden. La pizarra podría desajustarse.");
+      toast.error("Error de conexión al guardar el orden.");
     }
   };
   
@@ -288,7 +411,7 @@ const confirmUnassignAction = async () => {
     } catch (e) {
       toast.error(e.response?.data?.detail || "Error al desasignar el viaje");
     } finally {
-      setTripToUnassign(null); // Limpiamos el estado para cerrar el modal
+      setTripToUnassign(null); 
     }
   };
   
@@ -299,7 +422,6 @@ const confirmUnassignAction = async () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
-      {/* Cabecera de la Pizarra */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900" data-testid="byvehicle-title">Pizarra de Programacion</h1>
@@ -332,14 +454,13 @@ const confirmUnassignAction = async () => {
                 </div>
               </div>
 
-              {/* Lista de Viajes (Ahora con Drag & Drop) */}
               <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                 {item.trips.map((t, index) => (
                   <div 
                     key={t.id} 
                     draggable
                     onDragStart={() => setDraggedItem({ vehicleId: item.vehicle.id, tripIndex: index, tripId: t.id })}
-                    onDragOver={(e) => { e.preventDefault(); /* Permite soltar */ }}
+                    onDragOver={(e) => { e.preventDefault(); }}
                     onDrop={(e) => { e.preventDefault(); handleDrop(item.vehicle.id, index); }}
                     className={`p-3 bg-white rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing
                       ${draggedItem?.tripId === t.id ? 'opacity-40 scale-[0.98] border-dashed border-teal-500' : 'border-slate-200 hover:border-teal-300'}`}
@@ -348,7 +469,6 @@ const confirmUnassignAction = async () => {
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
                       
-                      {/* Aquí está la doble condición: que no sea completado Y que no sea pendiente */}
                       {t.status !== "completado" && t.status !== "pendiente" && (
                         <Button 
                           variant="ghost" 
@@ -396,7 +516,6 @@ const confirmUnassignAction = async () => {
         </div>
       )}
 
-      {/* Modal de Asignación (Se mantiene igual) */}
       <Dialog open={!!assignModal} onOpenChange={() => { setAssignModal(null); setSelectedTripId(""); setSelectedDriverId(""); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Programar para el {selectedDate}</DialogTitle></DialogHeader>
