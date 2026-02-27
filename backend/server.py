@@ -116,7 +116,7 @@ class TripCreate(BaseModel):
     accompaniment: str = ""
     # Nuevos campos no clinicos
     task_details: str = ""
-    staff_count: int = ""
+    staff_count: str = "" # <--- AQUÍ ESTÁ LA CORRECCIÓN, AHORA ES TEXTO ("str")
 
 class TripStatusUpdate(BaseModel):
     status: str
@@ -155,7 +155,7 @@ class TripUpdate(BaseModel):
     patient_requirements: Optional[List[str]] = None
     accompaniment: Optional[str] = None
     task_details: Optional[str] = None
-    staff_count: Optional[str] = None
+    staff_count: Optional[str] = None # <--- AQUÍ TAMBIÉN SE CORRIGIÓ A TEXTO
 
 class ManagerAssign(BaseModel):
     driver_id: str
@@ -259,6 +259,17 @@ async def login(data: UserLogin):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     if user["status"] != "aprobado":
         raise HTTPException(status_code=403, detail="Cuenta pendiente de aprobacion")
+        
+    if user.get("role") == "conductor" and user.get("license_expiry"):
+        try:
+            expiry = datetime.fromisoformat(user["license_expiry"])
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry < datetime.now(timezone.utc):
+                raise HTTPException(status_code=403, detail="Licencia de conducir vencida. Contacte al administrador.")
+        except (ValueError, TypeError):
+            pass
+
     token = create_token({"sub": user["id"], "role": user["role"]})
     return {
         "token": token,
@@ -310,7 +321,7 @@ async def change_password(data: ChangePassword, user=Depends(get_current_user)):
 async def get_me(user=Depends(get_current_user)):
     return {k: v for k, v in user.items() if k != "password_hash"}
 
-# ============ USER & VEHICLE ENDPOINTS (Omitted details for brevity, kept exactly the same) ============
+# ============ USER & VEHICLE ENDPOINTS ============
 @api_router.get("/users")
 async def list_users(user=Depends(require_roles("admin"))):
     return await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
@@ -403,7 +414,7 @@ async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depen
     except Exception:
         return {"mileage": None}
 
-# ============ TRIP MANAGEMENT (ACTUALIZADO CON NUEVOS CAMPOS) ============
+# ============ TRIP MANAGEMENT ============
 
 @api_router.post("/trips")
 async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "coordinador", "admin"))):
@@ -589,7 +600,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["https://movilizacion-hcu.onrender.com", "http://localhost:3000"], 
+    allow_origins=["https://movilizacion-hcu.onrender.com", "http://localhost:3000", "https://test-movilizacion.onrender.com"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
