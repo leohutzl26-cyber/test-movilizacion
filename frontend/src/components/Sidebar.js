@@ -11,6 +11,8 @@ import api from "@/lib/api";
 export default function Sidebar({ activeSection, onSectionChange }) {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Estados para el modal de cambio de contraseña
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [loading, setLoading] = useState(false);
@@ -75,68 +77,69 @@ export default function Sidebar({ activeSection, onSectionChange }) {
 
   return (
     <>
-      {/* Barra superior móvil */}
       <div className="lg:hidden fixed top-0 left-0 w-full h-14 bg-teal-700 flex items-center justify-between px-4 z-50 shadow-md">
-        <div className="flex items-center gap-2 text-white font-bold text-lg">
-          <Truck className="w-5 h-5" /> Hosp. Curicó
+        <div className="flex items-center gap-2">
+          <img src="/logo.png" alt="Hospital de Curicó" className="h-8 object-contain" />
         </div>
-        <button onClick={() => setIsOpen(!isOpen)} className="text-white">
+        <button onClick={() => setIsOpen(!isOpen)} className="text-white touch-target p-2 -mr-2">
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      {/* Sombra de fondo para móvil */}
       {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />}
 
-      {/* Panel Lateral */}
-      <div className={`fixed top-0 left-0 h-full w-64 bg-slate-900 text-slate-300 flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
-        <div className="h-16 flex items-center gap-3 px-6 bg-slate-950 text-white font-bold text-xl border-b border-slate-800 shrink-0">
-          <Truck className="w-6 h-6 text-teal-500" />
-          <span>Movilización</span>
+      <div className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"} lg:translate-x-0`}>
+        
+        <div className="h-20 flex items-center justify-center border-b border-slate-100 shrink-0 px-4 bg-slate-50/50">
+          <img src="/logo.png" alt="Hospital de Curicó" className="h-14 object-contain" />
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
           {links.map((link) => {
             const isActive = activeSection === link.id;
             return (
               <button
                 key={link.id}
                 onClick={() => { onSectionChange(link.id); setIsOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm font-medium
-                  ${isActive ? "bg-teal-600 text-white shadow-md" : "hover:bg-slate-800 hover:text-white"}`}
+                data-testid={`nav-${link.id}`}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium touch-target
+                  ${isActive 
+                    ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-100" 
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100"}`}
               >
-                <link.icon className={`w-5 h-5 ${isActive ? "text-teal-200" : "text-slate-400"}`} />
+                <link.icon className={`w-5 h-5 ${isActive ? "text-teal-600" : "text-slate-400"}`} />
                 {link.label}
               </button>
             );
           })}
         </nav>
 
-        {/* Zona del Usuario y Opciones de Sesión */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 shrink-0">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
           <div className="mb-4 px-2">
-            <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-            <p className="text-[10px] uppercase tracking-wider text-teal-500 mt-1 font-bold">{user?.role}</p>
+            <p className="text-sm font-bold text-slate-900 truncate" data-testid="user-name">{user?.name}</p>
+            <p className="text-xs text-slate-500 truncate mb-1" data-testid="user-email">{user?.email}</p>
+            <span className="inline-block px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase tracking-wider" data-testid="user-role">
+              {user?.role}
+            </span>
           </div>
-          
+
           <button 
             onClick={() => setPasswordDialog(true)} 
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors mb-2"
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2"
           >
             <Key className="w-4 h-4" /> Cambiar Contraseña
           </button>
 
           <button 
             onClick={logout} 
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors"
+            data-testid="logout-btn"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
           >
             <LogOut className="w-4 h-4" /> Cerrar Sesión
           </button>
         </div>
       </div>
 
-      {/* Ventana flotante de Cambio de Contraseña */}
       <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
