@@ -116,7 +116,7 @@ class TripCreate(BaseModel):
     accompaniment: str = ""
     # Nuevos campos no clinicos
     task_details: str = ""
-    staff_count: int = 0
+    staff_count: int = ""
 
 class TripStatusUpdate(BaseModel):
     status: str
@@ -155,7 +155,7 @@ class TripUpdate(BaseModel):
     patient_requirements: Optional[List[str]] = None
     accompaniment: Optional[str] = None
     task_details: Optional[str] = None
-    staff_count: Optional[int] = None
+    staff_count: Optional[str] = None
 
 class ManagerAssign(BaseModel):
     driver_id: str
