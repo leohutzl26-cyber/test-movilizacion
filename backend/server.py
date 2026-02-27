@@ -71,6 +71,10 @@ class ResetPassword(BaseModel):
     token: str
     new_password: str
 
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+
 class VehicleCreate(BaseModel):
     plate: str
     brand: str
@@ -254,7 +258,6 @@ async def forgot_password(data: ForgotPassword):
     if not user:
         return {"message": "Si el correo existe, recibira instrucciones de recuperacion."}
         
-    # Generar un código de 6 dígitos en vez de un JWT largo
     reset_code = ''.join(random.choices(string.digits, k=6))
     await db.users.update_one({"id": user["id"]}, {"$set": {"reset_token": reset_code}})
     
@@ -281,12 +284,10 @@ async def forgot_password(data: ForgotPassword):
         except Exception as e:
             logger.error(f"Error enviando email: {e}")
             
-    # Siempre devolvemos el código para que el frontend lo pueda autocompletar si no hay email configurado
     return {"message": "Si el correo existe, recibira instrucciones de recuperacion.", "reset_token": reset_code}
 
 @api_router.post("/auth/reset-password")
 async def reset_password(data: ResetPassword):
-    # Buscamos al usuario por el código de 6 dígitos directamente
     user = await db.users.find_one({"reset_token": data.token})
     if not user:
         raise HTTPException(status_code=400, detail="Código de recuperación inválido o expirado")
@@ -297,6 +298,17 @@ async def reset_password(data: ResetPassword):
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Error al actualizar contraseña")
     return {"message": "Contrasena actualizada correctamente"}
+
+@api_router.put("/auth/change-password")
+async def change_password(data: ChangePassword, user=Depends(get_current_user)):
+    db_user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    if not pwd_context.verify(data.current_password, db_user.get("password_hash", "")):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+        
+    new_hash = pwd_context.hash(data.new_password)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": new_hash}})
+    await log_action(user["id"], user["name"], user["role"], "cambiar_contrasena", "usuario", user["id"], "El usuario actualizó su propia contraseña")
+    return {"message": "Contraseña actualizada exitosamente"}
 
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
@@ -432,7 +444,6 @@ async def update_vehicle_mileage(vehicle_id: str, data: VehicleMileageUpdate, us
     await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": data.mileage, "maintenance_alert": alert}})
     return {"message": "Kilometraje actualizado", "mileage": data.mileage, "maintenance_alert": alert}
 
-
 @api_router.delete("/vehicles/{vehicle_id}")
 async def delete_vehicle(vehicle_id: str, user=Depends(require_roles("admin"))):
     result = await db.vehicles.delete_one({"id": vehicle_id})
@@ -454,47 +465,30 @@ async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depen
     img_base64 = base64.b64encode(contents).decode("utf-8")
     
     try:
-        # 1. Configurar Gemini
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        # 2. Preparar la imagen descubriendo el formato real
         content_type = file.content_type
-        # Gemini solo soporta ciertos formatos, nos aseguramos que sea uno válido:
         if content_type not in ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]:
-            content_type = "image/jpeg" # Por defecto si es desconocido
+            content_type = "image/jpeg"
             
         image_data = {
             "mime_type": content_type,
             "data": img_base64
         }
 
-        # 3. Prompt para el odómetro
         prompt = "Extract ONLY the odometer/mileage number from this vehicle dashboard image. Return ONLY the numeric value with no other text. If you cannot read it, return ERROR."
         
-        # 4. Llamada asíncrona a Gemini
         response_ai = await model.generate_content_async([prompt, image_data])
         response_text = response_ai.text.strip()
         
-        # Limpiar el resultado
         cleaned = response_text.replace(",", "").replace(".", "").replace(" ", "").lower().replace("km", "")
         
         if cleaned == "error":
              return {"mileage": None, "raw_response": response_text, "error": "No se pudo leer el kilometraje"}
              
         mileage_val = float(cleaned)
-        alert = None
-        
-        if mileage_val >= vehicle.get("mileage", 0):
-            next_maint = vehicle.get("next_maintenance_km", 10000)
-            diff = next_maint - mileage_val
-            if diff <= 0:
-                alert = "rojo"
-            elif diff <= 1000:
-                alert = "amarillo"
-            await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": mileage_val, "maintenance_alert": alert}})
-            
-        return {"mileage": mileage_val, "raw_response": response_text, "maintenance_alert": alert}
+        return {"mileage": mileage_val, "raw_response": response_text}
         
     except (ValueError, TypeError) as e:
         return {"mileage": None, "raw_response": "Error de procesamiento", "error": str(e)}
