@@ -265,24 +265,342 @@ function DriversSection() {
 function AssignSection() {
   const [trips, setTrips] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [assignDialog, setAssignDialog] = useState(null);
-  const [driverId, setDriverId] = useState("");
-  const fetchAll = useCallback(async () => { try { const [t, d] = await Promise.all([api.get("/trips/active"), api.get("/drivers")]); setTrips(t.data); setDrivers(d.data.filter(x=>x.status==="aprobado")); } catch{} }, []);
+  const [selectedDriver, setSelectedDriver] = useState("");
+  const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [cancelDialog, setCancelDialog] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+
+  const confirmCancel = async () => {
+    if (!cancelReason.trim()) { toast.error("Debe ingresar un motivo"); return; }
+    try {
+      await api.put(`/trips/${cancelDialog.id}/status`, { status: "cancelado", cancel_reason: cancelReason });
+      toast.success("Traslado cancelado"); setCancelDialog(null); setCancelReason(""); fetchAll();
+    } catch (e) { toast.error("Error al cancelar"); }
+  };
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [t, d, v] = await Promise.all([api.get("/trips/active"), api.get("/drivers"), api.get("/vehicles")]);
+      setTrips(t.data); setDrivers(d.data.filter(dr => dr.status === "aprobado")); setVehicles(v.data);
+    } catch {} finally { setLoading(false); }
+  }, []);
   useEffect(() => { fetchAll(); }, [fetchAll]);
-  const handleAssign = async () => { if(!driverId) return; try { await api.put(`/trips/${assignDialog.id}/manager-assign`, {driver_id: driverId}); toast.success("Asignado"); setAssignDialog(null); fetchAll(); } catch{} };
-  return <div><h1 className="text-2xl font-bold mb-4">Asignación</h1><div className="space-y-2">{trips.map(t => <Card key={t.id}><CardContent className="p-4 flex justify-between items-center"><p className="font-medium">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p><Button onClick={()=>setAssignDialog(t)}>Asignar</Button></CardContent></Card>)}</div>
-  <Dialog open={!!assignDialog} onOpenChange={()=>setAssignDialog(null)}><DialogContent><DialogHeader><DialogTitle>Asignar</DialogTitle></DialogHeader><Select onValueChange={setDriverId}><SelectTrigger><SelectValue placeholder="Conductor"/></SelectTrigger><SelectContent>{drivers.map(d=><SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select><DialogFooter><Button onClick={handleAssign} className="bg-teal-600 text-white">Guardar</Button></DialogFooter></DialogContent></Dialog></div>;
+
+  const handleAssign = async () => {
+    if (!selectedDriver) { toast.error("Seleccione un conductor"); return; }
+    try {
+      await api.put(`/trips/${assignDialog.id}/manager-assign`, { driver_id: selectedDriver, vehicle_id: selectedVehicle || null });
+      toast.success("Viaje asignado exitosamente"); setAssignDialog(null); setSelectedDriver(""); setSelectedVehicle(""); fetchAll();
+    } catch (e) { toast.error("Error al asignar"); }
+  };
+
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800" };
+  const priorityColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
+
+  const filteredTrips = filter === "all" ? trips : trips.filter(t => t.status === filter);
+
+  return (
+    <div className="animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-4">Asignación de Traslados</h1>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {[{v:"all",l:"Todos"},{v:"pendiente",l:"Pendientes"},{v:"asignado",l:"Asignados"},{v:"en_curso",l:"En Curso"}].map(f => (
+          <Button key={f.v} variant={filter === f.v ? "default" : "outline"} size="sm" onClick={() => setFilter(f.v)} className={filter === f.v ? "bg-teal-600 hover:bg-teal-700 text-white" : ""}>{f.l}</Button>
+        ))}
+      </div>
+      <div className="space-y-3">
+        {filteredTrips.map(t => (
+          <Card key={t.id} className="card-hover shadow-sm border border-slate-200">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${priorityColors[t.priority] || priorityColors.normal}`}>{t.priority}</span>
+                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
+                    <span className="text-xs text-slate-400">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="font-semibold text-slate-900 text-lg">{t.trip_type === "clinico" ? t.patient_name : t.task_details || "Sin descripción"}</p>
+                  <div className="flex items-center gap-1.5 text-sm text-slate-600 mt-1"><MapPin className="w-3.5 h-3.5 text-teal-500" />{t.origin} <ArrowRight className="w-3 h-3" /> {t.destination}</div>
+                  {t.driver_name && <p className="text-sm text-teal-600 mt-2 font-medium bg-teal-50 inline-block px-2 py-1 rounded">Conductor: {t.driver_name}</p>}
+                  {t.vehicle_id && <p className="text-xs text-slate-500 mt-1">Vehículo: {vehicles.find(v => v.id === t.vehicle_id)?.plate || t.vehicle_id}</p>}
+                </div>
+                <div className="flex flex-col gap-2 shrink-0 w-[120px]">
+                  <Button onClick={() => { setAssignDialog(t); setSelectedDriver(t.driver_id || ""); setSelectedVehicle(t.vehicle_id || ""); }} className={`h-9 text-xs w-full ${t.driver_id ? "bg-amber-500 hover:bg-amber-600" : "bg-teal-600 hover:bg-teal-700"}`}>
+                    <ArrowLeftRight className="w-4 h-4 mr-1" />{t.driver_id ? "Reasignar" : "Asignar"}
+                  </Button>
+                  {["pendiente", "asignado"].includes(t.status) && (
+                    <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-9 text-xs text-red-500 border-red-200 hover:bg-red-50 w-full">Cancelar</Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {filteredTrips.length === 0 && !loading && <p className="text-center py-12 text-slate-400">Sin viajes en esta categoría</p>}
+      </div>
+
+      <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{assignDialog?.driver_id ? "Reasignar Traslado" : "Asignar Traslado"}</DialogTitle></DialogHeader>
+          {assignDialog && (
+            <div className="space-y-4">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="font-semibold text-sm">{assignDialog.trip_type === "clinico" ? assignDialog.patient_name : assignDialog.task_details}</p>
+                <p className="text-sm text-slate-500">{assignDialog.origin} → {assignDialog.destination}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Conductor *</Label>
+                <Select value={selectedDriver} onValueChange={setSelectedDriver}>
+                  <SelectTrigger><SelectValue placeholder="Seleccione conductor" /></SelectTrigger>
+                  <SelectContent>
+                    {drivers.map(d => (<SelectItem key={d.id} value={d.id}>{d.name} {d.extra_available ? " - Extra" : ""}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Vehículo (opcional)</Label>
+                <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
+                  <SelectTrigger><SelectValue placeholder="Seleccione vehículo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin vehículo</SelectItem>
+                    {vehicles.filter(v => v.status === "disponible").map(v => (<SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter><Button variant="outline" onClick={() => setAssignDialog(null)}>Cancelar</Button><Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={handleAssign}>{assignDialog.driver_id ? "Confirmar Reasignación" : "Confirmar Asignación"}</Button></DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+  
+      <Dialog open={!!cancelDialog} onOpenChange={() => { setCancelDialog(null); setCancelReason(""); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-600 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Cancelar Traslado</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">Indique el motivo por el cual cancela este traslado:</p>
+            <textarea className="w-full min-h-[80px] px-3 py-2 rounded-md border border-slate-200 text-sm focus:border-red-400 focus:ring-1 outline-none" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setCancelDialog(null)}>Volver</Button><Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmCancel}>Confirmar Cancelación</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 function CalendarSection() {
+  const [weekOffset, setWeekOffset] = useState(0);
   const [trips, setTrips] = useState([]);
-  const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - d.getDay() + 1 + i); return d; });
-  useEffect(() => { api.get(`/trips/calendar?start_date=${days[0].toISOString().split("T")[0]}&end_date=${days[6].toISOString().split("T")[0]}`).then(r => setTrips(r.data)).catch(()=>{}); }, []);
-  return <div><h1 className="text-2xl font-bold mb-4">Calendario Semanal</h1><div className="grid grid-cols-7 gap-2">{days.map((d, i) => (<div key={i} className="min-h-[150px] border rounded p-2 bg-white"><p className="text-center font-bold text-sm text-slate-500">{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i]}</p><p className="text-center text-lg">{d.getDate()}</p><div className="space-y-1 mt-2">{trips.filter(t => t.scheduled_date === d.toISOString().split("T")[0]).map(t => <div key={t.id} className="text-[10px] bg-slate-100 p-1 rounded truncate">{t.trip_type==="clinico"?t.patient_name:t.task_details}</div>)}</div></div>))}</div></div>;
+
+  const getWeekDates = (offset) => {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - today.getDay() + 1 + (offset * 7));
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i); days.push(d);
+    }
+    return days;
+  };
+
+  const weekDays = getWeekDates(weekOffset);
+  const startDate = weekDays[0].toISOString().split("T")[0];
+  const endDate = weekDays[6].toISOString().split("T")[0];
+
+  useEffect(() => {
+    api.get(`/trips/calendar?start_date=${startDate}&end_date=${endDate}`).then(r => { setTrips(r.data); }).catch(() => {});
+  }, [startDate, endDate]);
+
+  const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  const statusColors = { pendiente: "bg-amber-200 text-amber-900 border-amber-300", asignado: "bg-teal-200 text-teal-900 border-teal-300", en_curso: "bg-blue-200 text-blue-900 border-blue-300", completado: "bg-emerald-200 text-emerald-900 border-emerald-300" };
+  const today = new Date().toISOString().split("T")[0];
+
+  return (
+    <div className="animate-slide-up">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Calendario Semanal</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => setWeekOffset(w => w - 1)}><ChevronLeft className="w-4 h-4" /></Button>
+          <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoy</Button>
+          <Button variant="outline" size="icon" onClick={() => setWeekOffset(w => w + 1)}><ChevronRight className="w-4 h-4" /></Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-3">
+        {weekDays.map((day, i) => {
+          const dateStr = day.toISOString().split("T")[0];
+          const dayTrips = trips.filter(t => t.scheduled_date === dateStr);
+          const isToday = dateStr === today;
+          return (
+            <div key={i} className={`min-h-[250px] rounded-xl border-2 p-3 ${isToday ? "border-teal-500 bg-teal-50/20" : "border-slate-200 bg-white shadow-sm"}`}>
+              <div className="text-center mb-3">
+                <p className={`text-xs font-bold uppercase tracking-wider ${isToday ? "text-teal-600" : "text-slate-500"}`}>{dayNames[i]}</p>
+                <p className={`text-2xl font-black ${isToday ? "text-teal-700" : "text-slate-900"}`}>{day.getDate()}</p>
+              </div>
+              <div className="space-y-2">
+                {dayTrips.map(t => (
+                  <div key={t.id} className={`p-2 rounded-lg text-xs border shadow-sm ${statusColors[t.status] || "bg-slate-100 text-slate-700 border-slate-200"}`}>
+                    <p className="font-bold truncate text-[11px] mb-0.5">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                    <p className="text-[10px] truncate opacity-90">{t.origin} → {t.destination}</p>
+                    {t.driver_name && <p className="text-[10px] truncate font-medium mt-1"><User className="w-3 h-3 inline mr-1"/>{t.driver_name}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function ByVehicleSection() {
   const [data, setData] = useState([]);
-  useEffect(() => { api.get(`/trips/by-vehicle?date=${new Date().toISOString().split("T")[0]}`).then(r => setData(r.data)).catch(()=>{}); }, []);
-  return <div><h1 className="text-2xl font-bold mb-4">Pizarra de Programación</h1><div className="flex gap-4 overflow-x-auto">{data.map(d => <div key={d.vehicle.id} className="min-w-[300px] bg-slate-100 p-3 rounded-lg"><h3 className="font-bold mb-3 bg-white p-2 rounded shadow-sm">{d.vehicle.plate}</h3><div className="space-y-2">{d.trips.map(t => <div key={t.id} className="bg-white p-2 text-sm rounded shadow-sm">{t.trip_type==="clinico"?t.patient_name:t.task_details}</div>)}{d.trips.length===0 && <p className="text-xs text-center text-slate-400">Sin viajes</p>}</div></div>)}</div></div>;
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [loading, setLoading] = useState(true);
+
+  const [assignModal, setAssignModal] = useState(null);
+  const [pendingTrips, setPendingTrips] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [selectedTripId, setSelectedTripId] = useState("");
+  const [selectedDriverId, setSelectedDriverId] = useState("");
+  
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [tripToUnassign, setTripToUnassign] = useState(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [rData, rTrips, rDrivers] = await Promise.all([
+        api.get(`/trips/by-vehicle?date=${selectedDate}`),
+        api.get("/trips/pool"), 
+        api.get("/drivers")
+      ]);
+      setData(rData.data);
+      setPendingTrips(rTrips.data);
+      setDrivers(rDrivers.data.filter(d => d.status === "aprobado"));
+    } catch {} finally { setLoading(false); }
+  }, [selectedDate]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAssign = async () => {
+    if (!selectedTripId || !selectedDriverId) { toast.error("Seleccione un viaje y un conductor"); return; }
+    try {
+      await api.put(`/trips/${selectedTripId}`, { scheduled_date: selectedDate });
+      await api.put(`/trips/${selectedTripId}/manager-assign`, {
+        driver_id: selectedDriverId,
+        vehicle_id: assignModal.vehicle_id !== "unassigned" ? assignModal.vehicle_id : null
+      });
+      toast.success("Viaje programado exitosamente");
+      setAssignModal(null); setSelectedTripId(""); setSelectedDriverId("");
+      fetchData(); 
+    } catch (e) { toast.error("Error al programar el viaje"); }
+  };
+
+  const handleDrop = async (vehicleId, dropIndex) => {
+    if (!draggedItem || draggedItem.vehicleId !== vehicleId) { setDraggedItem(null); return; }
+    const newData = [...data];
+    const vehicleIndex = newData.findIndex(v => v.vehicle.id === vehicleId);
+    const vehicleTrips = [...newData[vehicleIndex].trips];
+    const [movedTrip] = vehicleTrips.splice(draggedItem.tripIndex, 1);
+    vehicleTrips.splice(dropIndex, 0, movedTrip);
+    newData[vehicleIndex].trips = vehicleTrips;
+    setData(newData);
+    setDraggedItem(null);
+    const newOrderIds = vehicleTrips.map(t => t.id);
+    try { await api.put('/trips/reorder', { trip_ids: newOrderIds }); } catch (e) { toast.error("Error al guardar orden."); }
+  };
+  
+  const confirmUnassignAction = async () => {
+    if (!tripToUnassign) return;
+    try { await api.put(`/trips/${tripToUnassign}/unassign`); toast.success("Viaje devuelto a la bolsa"); fetchData(); } 
+    catch (e) { toast.error("Error al desasignar"); } finally { setTripToUnassign(null); }
+  };
+  
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800" };
+  const vehicleStatusColors = { disponible: "bg-green-100 text-green-700", en_servicio: "bg-blue-100 text-blue-700", en_limpieza: "bg-violet-100 text-violet-700", en_taller: "bg-orange-100 text-orange-700" };
+
+  const totalTrips = data.reduce((acc, d) => acc + d.trips.length, 0);
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-120px)] animate-slide-up">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3 shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Pizarra de Programación</h1>
+          <p className="text-sm text-slate-500">{totalTrips} traslados para el {selectedDate}</p>
+        </div>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-lg border shadow-sm">
+          <CalendarDays className="w-5 h-5 text-teal-600" />
+          <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto h-9 border-0 bg-transparent focus-visible:ring-0 p-0 font-medium" />
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])} className="h-8">Hoy</Button>
+        </div>
+      </div>
+
+      {loading ? <div className="flex-1 flex items-center justify-center text-slate-500"><Activity className="w-6 h-6 animate-spin mr-2"/>Cargando pizarra...</div> : (
+        <div className="flex-1 flex gap-4 overflow-x-auto pb-4 snap-x">
+          {data.map(item => (
+            <div key={item.vehicle.id} className="min-w-[320px] max-w-[320px] bg-slate-100/80 rounded-xl p-3 flex flex-col snap-start border border-slate-200">
+              <div className="flex items-center justify-between mb-3 bg-white p-3 rounded-xl shadow-sm shrink-0 border border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center"><Truck className="w-5 h-5 text-teal-600" /></div>
+                  <div>
+                    <h3 className="font-bold text-slate-900">{item.vehicle.plate}</h3>
+                    {item.vehicle.brand && <p className="text-[11px] text-slate-500 leading-tight">{item.vehicle.brand} {item.vehicle.model}</p>}
+                  </div>
+                </div>
+                <div className="text-right">
+                  {item.vehicle.status && <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold block mb-1 ${vehicleStatusColors[item.vehicle.status] || "bg-slate-100"}`}>{item.vehicle.status.replace(/_/g, " ")}</span>}
+                  <span className="text-[11px] text-slate-500 font-bold">{item.trips.length} viajes</span>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {item.trips.map((t, index) => (
+                  <div key={t.id} draggable onDragStart={() => setDraggedItem({ vehicleId: item.vehicle.id, tripIndex: index, tripId: t.id })} onDragOver={(e) => { e.preventDefault(); }} onDrop={(e) => { e.preventDefault(); handleDrop(item.vehicle.id, index); }} className={`p-3 bg-white rounded-lg border shadow-sm transition-all cursor-grab active:cursor-grabbing ${draggedItem?.tripId === t.id ? 'opacity-40 scale-[0.98] border-dashed border-teal-500' : 'border-slate-200 hover:border-teal-300'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                      {t.status !== "completado" && t.status !== "pendiente" && (<Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setTripToUnassign(t.id); }} className="h-6 px-2 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200">Desasignar</Button>)}
+                    </div>
+                    <p className="font-bold text-sm text-slate-900 truncate mb-1">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                    <div className="flex items-center gap-1 mt-1"><MapPin className="w-3 h-3 text-teal-500 shrink-0" /><p className="text-[11px] text-slate-500 truncate">{t.origin} <ArrowRight className="w-3 h-3 inline" /> {t.destination}</p></div>
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between"><span className="text-[11px] text-slate-600 font-medium flex items-center gap-1"><User className="w-3 h-3 text-teal-600"/> {t.driver_name || "Sin asignar"}</span><span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.priority === "urgente" ? "bg-red-100 text-red-700" : t.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"}`}>{t.priority}</span></div>
+                  </div>
+                ))}
+                {item.trips.length === 0 && (<div onDragOver={(e) => e.preventDefault()} className="h-full flex flex-col items-center justify-center text-slate-400 py-8 border-2 border-dashed border-slate-200 rounded-lg bg-white/50"><p className="text-xs font-medium">Arrastra un viaje aquí</p></div>)}
+              </div>
+              <Button variant="outline" className="w-full mt-3 bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 border-dashed border-2 shrink-0 transition-all text-xs font-bold h-10" onClick={() => setAssignModal({ vehicle_id: item.vehicle.id, plate: item.vehicle.plate })}>+ Programar Aquí</Button>
+            </div>
+          ))}
+          {data.length === 0 && <p className="w-full text-center py-12 text-slate-400">No hay vehículos registrados en la flota</p>}
+        </div>
+      )}
+
+      {/* Dialogs */}
+      <Dialog open={!!assignModal} onOpenChange={() => { setAssignModal(null); setSelectedTripId(""); setSelectedDriverId(""); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Programar para el {selectedDate}</DialogTitle></DialogHeader>
+          {assignModal && (
+            <div className="space-y-4 pt-2">
+              <div className="bg-teal-50 p-3 rounded-lg border border-teal-100 flex items-center justify-between"><span className="text-sm text-teal-800 font-medium">Vehículo asignado:</span><Badge className="bg-teal-600 text-sm py-1">{assignModal.plate}</Badge></div>
+              <div className="space-y-2"><Label className="font-bold">1. Seleccionar Viaje de la Bolsa</Label><Select value={selectedTripId} onValueChange={setSelectedTripId}><SelectTrigger className="h-11"><SelectValue placeholder="Elija un viaje pendiente" /></SelectTrigger><SelectContent>{pendingTrips.length === 0 ? (<SelectItem value="none" disabled>No hay viajes pendientes</SelectItem>) : (pendingTrips.map(t => (<SelectItem key={t.id} value={t.id}>{t.trip_type === "clinico" ? t.patient_name : t.task_details} | {t.origin} → {t.destination}</SelectItem>)))}</SelectContent></Select></div>
+              <div className="space-y-2"><Label className="font-bold">2. Asignar Conductor</Label><Select value={selectedDriverId} onValueChange={setSelectedDriverId}><SelectTrigger className="h-11"><SelectValue placeholder="Elija un conductor" /></SelectTrigger><SelectContent>{drivers.map(d => (<SelectItem key={d.id} value={d.id}>{d.name} {d.extra_available ? "(Extra)" : ""}</SelectItem>))}</SelectContent></Select></div>
+              <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setAssignModal(null)}>Cancelar</Button><Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={handleAssign}>Guardar Programación</Button></DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!tripToUnassign} onOpenChange={() => setTripToUnassign(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-600 flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> ¿Desasignar este viaje?</DialogTitle></DialogHeader>
+          <p className="text-sm text-slate-600 py-2">El traslado volverá a la bolsa de pendientes para ser reasignado. ¿Desea continuar?</p>
+          <DialogFooter className="mt-2"><Button variant="outline" onClick={() => setTripToUnassign(null)}>Cancelar</Button><Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmUnassignAction}>Sí, desasignar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
