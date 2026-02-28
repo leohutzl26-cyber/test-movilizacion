@@ -100,7 +100,6 @@ class TripCreate(BaseModel):
     clinical_team: str = ""
     contact_person: str = ""
     scheduled_date: str = ""
-    # Nuevos campos clinicos
     rut: str = ""
     age: str = ""
     diagnosis: str = ""
@@ -114,9 +113,8 @@ class TripCreate(BaseModel):
     required_personnel: List[str] = Field(default_factory=list)
     patient_requirements: List[str] = Field(default_factory=list)
     accompaniment: str = ""
-    # Nuevos campos no clinicos
     task_details: str = ""
-    staff_count: str = "" # <--- AQUÍ ESTÁ LA CORRECCIÓN, AHORA ES TEXTO ("str")
+    staff_count: str = ""
 
 class TripStatusUpdate(BaseModel):
     status: str
@@ -140,7 +138,6 @@ class TripUpdate(BaseModel):
     notes: Optional[str] = None
     trip_type: Optional[str] = None
     scheduled_date: Optional[str] = None
-    # Nuevos campos opcionales para update
     rut: Optional[str] = None
     age: Optional[str] = None
     diagnosis: Optional[str] = None
@@ -155,7 +152,7 @@ class TripUpdate(BaseModel):
     patient_requirements: Optional[List[str]] = None
     accompaniment: Optional[str] = None
     task_details: Optional[str] = None
-    staff_count: Optional[str] = None # <--- AQUÍ TAMBIÉN SE CORRIGIÓ A TEXTO
+    staff_count: Optional[str] = None
 
 class ManagerAssign(BaseModel):
     driver_id: str
@@ -266,7 +263,7 @@ async def login(data: UserLogin):
             if expiry.tzinfo is None:
                 expiry = expiry.replace(tzinfo=timezone.utc)
             if expiry < datetime.now(timezone.utc):
-                raise HTTPException(status_code=403, detail="Licencia de conducir vencida. Contacte al administrador.")
+                raise HTTPException(status_code=403, detail="Licencia de conducir vencida.")
         except (ValueError, TypeError):
             pass
 
@@ -287,7 +284,7 @@ async def login(data: UserLogin):
 async def forgot_password(data: ForgotPassword):
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
     if not user:
-        return {"message": "Si el correo existe, recibira instrucciones de recuperacion."}
+        return {"message": "Si el correo existe, recibira instrucciones."}
     reset_code = ''.join(random.choices(string.digits, k=6))
     await db.users.update_one({"id": user["id"]}, {"$set": {"reset_token": reset_code}})
     if resend_api_key:
@@ -418,8 +415,16 @@ async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depen
 
 @api_router.post("/trips")
 async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "coordinador", "admin"))):
+    # Generador de Folio Único (Ej: TR-854932)
+    while True:
+        folio = f"TR-{random.randint(100000, 999999)}"
+        exists = await db.trips.find_one({"tracking_number": folio})
+        if not exists:
+            break
+
     trip = {
         "id": str(uuid.uuid4()),
+        "tracking_number": folio,
         "requester_id": user["id"],
         "requester_name": user["name"],
         "driver_id": None,
@@ -442,7 +447,6 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None,
         
-        # NUEVOS CAMPOS
         "rut": data.rut,
         "age": data.age,
         "diagnosis": data.diagnosis,
@@ -461,7 +465,7 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
     }
     await db.trips.insert_one(trip)
     trip.pop("_id", None)
-    await log_action(user["id"], user["name"], user["role"], "crear_traslado", "traslado", trip["id"], f"{data.origin} -> {data.destination}")
+    await log_action(user["id"], user["name"], user["role"], "crear_traslado", "traslado", trip["id"], f"Folio {folio}: {data.origin} -> {data.destination}")
     return trip
 
 @api_router.get("/trips")
