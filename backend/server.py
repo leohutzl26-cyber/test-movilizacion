@@ -398,38 +398,20 @@ async def delete_vehicle(vehicle_id: str, user=Depends(require_roles("admin"))):
     await db.vehicles.delete_one({"id": vehicle_id})
     return {"message": "Ok"}
 
-@api_router.post("/vehicles/{vehicle_id}/ocr")
-async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depends(require_roles("conductor"))):
-    contents = await file.read()
-    img_base64 = base64.b64encode(contents).decode("utf-8")
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response_ai = await model.generate_content_async(["Extract ONLY the odometer number", {"mime_type": file.content_type, "data": img_base64}])
-        cleaned = response_ai.text.strip().replace(",", "").replace(".", "").replace(" ", "").lower().replace("km", "")
-        return {"mileage": float(cleaned) if cleaned != "error" else None}
-    except Exception:
-        return {"mileage": None}
-
 # ============ TRIP MANAGEMENT ============
 
 @api_router.post("/trips")
 async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "coordinador", "admin"))):
-    # --- GENERADOR DE FOLIO CORRELATIVO POR FECHA ---
-    # Formato: TR-AAMMDD-001 (Ejemplo: TR-260228-001)
     today_str = datetime.now(timezone.utc).strftime("%y%m%d")
     today_prefix = f"TR-{today_str}-"
     
-    # Contamos cuántos viajes existen que empiecen con el prefijo de hoy
     count_today = await db.trips.count_documents({"tracking_number": {"$regex": f"^{today_prefix}"}})
     sequential = count_today + 1
     folio = f"{today_prefix}{sequential:03d}"
     
-    # Validación extra de seguridad por si hay algún choque
     while await db.trips.find_one({"tracking_number": folio}):
         sequential += 1
         folio = f"{today_prefix}{sequential:03d}"
-    # ------------------------------------------------
 
     trip = {
         "id": str(uuid.uuid4()),
@@ -456,7 +438,6 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None,
         
-        # NUEVOS CAMPOS
         "rut": data.rut,
         "age": data.age,
         "diagnosis": data.diagnosis,
@@ -552,14 +533,51 @@ async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
     await db.trips.update_one({"id": trip_id}, {"$set": {"driver_id": user["id"], "driver_name": user["name"], "status": "asignado"}})
     return {"message": "Asignado"}
 
+# --- AQUÍ ESTÁN LOS CANDADOS DE KILOMETRAJE ---
 @api_router.put("/trips/{trip_id}/status")
 async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(get_current_user)):
+    trip = await db.trips.find_one({"id": trip_id})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+
     update_data = {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}
-    if data.status == "cancelado" and data.cancel_reason: update_data["cancel_reason"] = data.cancel_reason
-    if data.status == "completado": update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
-    if data.status == "en_curso" and data.mileage is not None: update_data["start_mileage"] = data.mileage
-    if data.status == "completado" and data.mileage is not None: update_data["end_mileage"] = data.mileage
-    if data.vehicle_id: update_data["vehicle_id"] = data.vehicle_id
+    if data.status == "cancelado" and data.cancel_reason: 
+        update_data["cancel_reason"] = data.cancel_reason
+    if data.status == "completado": 
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+    if data.vehicle_id: 
+        update_data["vehicle_id"] = data.vehicle_id
+
+    # CANDADO DE INICIO DE VIAJE
+    if data.status == "en_curso" and data.mileage is not None: 
+        if data.vehicle_id:
+            vehicle = await db.vehicles.find_one({"id": data.vehicle_id})
+            if vehicle and data.mileage < vehicle.get("mileage", 0):
+                raise HTTPException(status_code=400, detail=f"Error Crítico: El kilometraje inicial ({data.mileage} km) NO puede ser menor al actual registrado en el vehículo ({vehicle.get('mileage', 0)} km).")
+            # Actualizamos el vehículo al iniciar
+            await db.vehicles.update_one({"id": data.vehicle_id}, {"$set": {"mileage": data.mileage}})
+        update_data["start_mileage"] = data.mileage
+        
+    # CANDADOS DE FIN DE VIAJE
+    if data.status == "completado" and data.mileage is not None: 
+        start_km = trip.get("start_mileage", 0)
+        
+        # Validación lógica: Fin > Inicio
+        if data.mileage <= start_km:
+            raise HTTPException(status_code=400, detail=f"Error Crítico: El kilometraje final ({data.mileage} km) debe ser estrictamente mayor al inicial ({start_km} km).")
+            
+        # Validación límite máximo (1400 km)
+        recorrido = data.mileage - start_km
+        if recorrido > 1400:
+            raise HTTPException(status_code=400, detail=f"Alerta Anti-Error: Es imposible recorrer {recorrido} km en un solo viaje. Verifique los datos.")
+            
+        update_data["end_mileage"] = data.mileage
+        
+        # Actualizamos el vehículo al finalizar
+        veh_id = trip.get("vehicle_id") or data.vehicle_id
+        if veh_id:
+            await db.vehicles.update_one({"id": veh_id}, {"$set": {"mileage": data.mileage}})
+
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     return {"message": "Ok"}
 
