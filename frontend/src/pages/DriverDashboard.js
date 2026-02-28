@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User } from "lucide-react";
 import api from "@/lib/api";
@@ -115,19 +115,16 @@ function TripPoolSection({ onNavigate }) {
           <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{selectedTrip?.tracking_number}</Badge></DialogTitle></DialogHeader>
           {selectedTrip && (
             <div className="space-y-5 text-sm pt-2">
-              
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
                 <p className="text-sm text-red-600 font-black mb-1 flex items-center gap-1.5 uppercase tracking-wider"><Clock className="w-5 h-5"/> Horarios de Traslado</p>
                 <p className="font-black text-red-900 text-xl md:text-2xl mt-1">Citación: {selectedTrip.appointment_time||"-"} <span className="text-slate-400 mx-2">|</span> Salida: {selectedTrip.departure_time||"-"}</p>
                 <p className="text-base font-bold text-red-800 mt-2 bg-red-100 inline-block px-3 py-1 rounded-lg">Fecha: {selectedTrip.scheduled_date}</p>
               </div>
-
               <div className="flex gap-2 mb-2 mt-4">
                 <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${sColors[selectedTrip.status]}`}>{sLabels[selectedTrip.status]}</span>
                 <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">{selectedTrip.trip_type==="clinico"?"Traslado Clínico":"Traslado No Clínico"}</span>
                 <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${selectedTrip.priority === "urgente" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{selectedTrip.priority}</span>
               </div>
-              
               {selectedTrip.trip_type === "clinico" ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -153,14 +150,11 @@ function TripPoolSection({ onNavigate }) {
                   <div><p className="text-xs text-slate-500 font-bold">Cantidad de Funcionarios</p><p className="font-medium text-slate-800">{selectedTrip.staff_count}</p></div>
                 </div>
               )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><MapPin className="w-4 h-4 text-teal-600"/> Origen</p><p className="font-black text-lg text-slate-900">{selectedTrip.origin}</p><p className="text-sm font-medium text-slate-500 mt-1">{selectedTrip.patient_unit||""} {selectedTrip.bed?`(Cama ${selectedTrip.bed})`:""}</p></div>
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><Navigation className="w-4 h-4 text-blue-600"/> Destino</p><p className="font-black text-lg text-slate-900">{selectedTrip.destination}</p></div>
               </div>
-
               {selectedTrip.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 font-medium border border-amber-200">{selectedTrip.notes}</p></div>)}
-
               <Button onClick={() => { handleTakeTrip(selectedTrip.id); setSelectedTrip(null); }} className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold h-14 text-lg rounded-xl shadow-md">
                 <Truck className="w-6 h-6 mr-2"/> Tomar este Viaje
               </Button>
@@ -182,8 +176,6 @@ function MyTripsSection() {
   const [mileage, setMileage] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [detailsDialog, setDetailsDialog] = useState(null);
-
-  // Nuevo estado para la advertencia "Anti-Dedo Gordo" (>700km)
   const [showWarning, setShowWarning] = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -196,13 +188,43 @@ function MyTripsSection() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Autocompletado Mágico de Kilometraje Inicial
-  useEffect(() => {
-    if (actionType === "start" && selectedVehicle) {
-      const veh = vehicles.find(v => v.id === selectedVehicle);
+  // FUNCIÓN PARA ABRIR VENTANAS Y LIMPIAR LA MEMORIA SUCIA
+  const openActionDialog = (trip, type) => {
+    setActionDialog(trip);
+    setActionType(type);
+    setCancelReason("");
+    setShowWarning(false);
+
+    if (type === "start") {
+      const vehId = trip.vehicle_id || "";
+      setSelectedVehicle(vehId);
+      if (vehId) {
+        const veh = vehicles.find(v => v.id === vehId);
+        setMileage(veh ? veh.mileage.toString() : "");
+      } else {
+        setMileage("");
+      }
+    } else {
+      setSelectedVehicle(trip.vehicle_id || "");
+      setMileage("");
+    }
+  };
+
+  const closeActionDialog = () => {
+    setActionDialog(null);
+    setSelectedVehicle("");
+    setMileage("");
+    setCancelReason("");
+    setShowWarning(false);
+  };
+
+  const handleVehicleChange = (vehId) => {
+    setSelectedVehicle(vehId);
+    if (actionType === "start") {
+      const veh = vehicles.find(v => v.id === vehId);
       if (veh) setMileage(veh.mileage.toString());
     }
-  }, [selectedVehicle, actionType, vehicles]);
+  };
 
   const handleAction = async () => {
     if (actionType === "start" && !selectedVehicle) { toast.error("Seleccione un vehículo"); return; }
@@ -210,12 +232,11 @@ function MyTripsSection() {
     if (actionType === "end" && !mileage) { toast.error("Ingrese kilometraje final"); return; }
     if (actionType === "cancel" && !cancelReason) { toast.error("Debe ingresar un motivo"); return; }
     
-    // Alerta Anti-Dedo Gordo (>700km)
     if (actionType === "end" && actionDialog?.start_mileage) {
       const distance = parseFloat(mileage) - actionDialog.start_mileage;
       if (distance > 700 && !showWarning) {
         setShowWarning(true);
-        return; // Detiene el guardado y muestra la advertencia
+        return; 
       }
     }
 
@@ -227,7 +248,8 @@ function MyTripsSection() {
       
       await api.put(`/trips/${actionDialog.id}/status`, payload);
       toast.success(actionType === "start" ? "Viaje iniciado" : actionType === "end" ? "Viaje finalizado" : "Viaje devuelto");
-      setActionDialog(null); setSelectedVehicle(""); setMileage(""); setCancelReason(""); setShowWarning(false); fetchAll();
+      closeActionDialog(); 
+      fetchAll();
     } catch (e) { 
       toast.error(e.response?.data?.detail || "Error al procesar la acción"); 
       setShowWarning(false);
@@ -273,14 +295,14 @@ function MyTripsSection() {
 
                 {t.status === "asignado" && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-slate-100">
-                    <Button onClick={() => { setActionDialog(t); setActionType("start"); }} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><Play className="w-6 h-6 mr-2 fill-current"/> Iniciar Viaje</Button>
-                    <Button onClick={() => { setActionDialog(t); setActionType("cancel"); }} variant="outline" className="h-14 text-red-600 border-red-200 hover:bg-red-50 rounded-xl px-6 font-bold sm:w-auto w-full transition-colors">Devolver</Button>
+                    <Button onClick={() => openActionDialog(t, "start")} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><Play className="w-6 h-6 mr-2 fill-current"/> Iniciar Viaje</Button>
+                    <Button onClick={() => openActionDialog(t, "cancel")} variant="outline" className="h-14 text-red-600 border-red-200 hover:bg-red-50 rounded-xl px-6 font-bold sm:w-auto w-full transition-colors">Devolver</Button>
                   </div>
                 )}
                 
                 {t.status === "en_curso" && (
                   <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-                    <Button onClick={() => { setActionDialog(t); setActionType("end"); }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><CheckCircle className="w-6 h-6 mr-2"/> Finalizar Viaje</Button>
+                    <Button onClick={() => openActionDialog(t, "end")} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><CheckCircle className="w-6 h-6 mr-2"/> Finalizar Viaje</Button>
                   </div>
                 )}
               </div>
@@ -290,8 +312,7 @@ function MyTripsSection() {
         {trips.length === 0 && <div className="text-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm"><p className="text-xl font-bold text-slate-500">No tienes viajes asignados</p><p className="text-sm font-medium mt-2">Revisa la bolsa de viajes disponibles para tomar uno.</p></div>}
       </div>
 
-      {/* Modal de Acción (Iniciar, Finalizar, Cancelar) */}
-      <Dialog open={!!actionDialog} onOpenChange={() => { setActionDialog(null); setSelectedVehicle(""); setMileage(""); setCancelReason(""); setShowWarning(false); }}>
+      <Dialog open={!!actionDialog} onOpenChange={closeActionDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl flex items-center gap-2">
@@ -310,11 +331,17 @@ function MyTripsSection() {
 
               {actionType === "start" && (
                 <>
-                  <div className="space-y-2"><Label className="font-bold text-slate-700 text-sm">1. Seleccione Vehículo</Label><Select value={selectedVehicle} onValueChange={setSelectedVehicle}><SelectTrigger className="h-12 text-base border-slate-300 font-medium"><SelectValue placeholder="Seleccione patente" /></SelectTrigger><SelectContent>{vehicles.map(v => (<SelectItem key={v.id} value={v.id} className="py-2.5 font-bold">{v.plate} - {v.brand}</SelectItem>))}</SelectContent></Select></div>
+                  <div className="space-y-2">
+                    <Label className="font-bold text-slate-700 text-sm">1. Seleccione Vehículo</Label>
+                    <Select value={selectedVehicle} onValueChange={handleVehicleChange}>
+                      <SelectTrigger className="h-12 text-base border-slate-300 font-medium"><SelectValue placeholder="Seleccione patente" /></SelectTrigger>
+                      <SelectContent>{vehicles.map(v => (<SelectItem key={v.id} value={v.id} className="py-2.5 font-bold">{v.plate} - {v.brand}</SelectItem>))}</SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label className="font-bold text-slate-700 text-sm">2. Kilometraje Inicial</Label>
                     <Input type="number" placeholder="Ej: 120500" value={mileage} onChange={e => setMileage(e.target.value)} className="h-14 text-2xl font-black text-center border-slate-300 shadow-inner text-blue-800" />
-                    <p className="text-xs text-slate-500 font-medium mt-1">Sugerido automáticamente de la última lectura.</p>
+                    <p className="text-xs text-slate-500 font-medium mt-1">Sugerido automáticamente del vehículo seleccionado.</p>
                   </div>
                 </>
               )}
@@ -335,7 +362,7 @@ function MyTripsSection() {
               )}
               
               <DialogFooter className="mt-6">
-                <Button variant="outline" className="h-12 w-full sm:w-auto font-bold" onClick={() => {setActionDialog(null); setShowWarning(false);}}>Volver</Button>
+                <Button variant="outline" className="h-12 w-full sm:w-auto font-bold" onClick={closeActionDialog}>Volver</Button>
                 <Button className={`h-12 w-full sm:w-auto text-base font-bold text-white shadow-md ${showWarning ? "bg-red-600 hover:bg-red-700 animate-pulse" : actionType === "start" ? "bg-blue-600 hover:bg-blue-700" : actionType === "end" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`} onClick={handleAction}>
                   {showWarning ? "SÍ, CONFIRMO EL KILOMETRAJE" : "Confirmar"}
                 </Button>
@@ -345,7 +372,6 @@ function MyTripsSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Detalles del Viaje Asignado */}
       <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{detailsDialog?.tracking_number}</Badge></DialogTitle></DialogHeader>
