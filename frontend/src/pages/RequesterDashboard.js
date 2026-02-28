@@ -252,14 +252,15 @@ function MyRequestsSection() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[req.status] || "bg-slate-100"}`}>{req.status.replace(/_/g, " ")}</span>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{req.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
+                  <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">{req.tracking_number || req.id.substring(0,6).toUpperCase()}</span>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${statusColors[req.status] || "bg-slate-100"}`}>{req.status.replace(/_/g, " ")}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200">{req.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
                 </div>
-                <span className="text-xs text-slate-400">{req.scheduled_date || new Date(req.created_at).toLocaleDateString()}</span>
+                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{req.scheduled_date || new Date(req.created_at).toLocaleDateString()}</span>
               </div>
-              <p className="font-semibold text-slate-900">{req.trip_type === "clinico" ? req.patient_name : req.task_details}</p>
-              <div className="flex items-center gap-2 text-sm text-slate-600 mt-2">
-                <MapPin className="w-4 h-4 text-teal-500" /> {req.origin} <ArrowRight className="w-3 h-3" /> {req.destination}
+              <p className="font-bold text-lg text-slate-900 mb-1">{req.trip_type === "clinico" ? req.patient_name : req.task_details}</p>
+              <div className="flex items-center gap-2 text-sm text-slate-600 mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100 w-fit">
+                <MapPin className="w-4 h-4 text-teal-500" /> <span className="font-medium">{req.origin}</span> <ArrowRight className="w-3 h-3 mx-1 text-slate-400" /> <span className="font-medium">{req.destination}</span>
               </div>
             </CardContent>
           </Card>
@@ -269,37 +270,50 @@ function MyRequestsSection() {
 
       <Dialog open={!!selectedReq} onOpenChange={() => setSelectedReq(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Detalle de la Solicitud</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-xl border-b pb-3 flex justify-between items-center">Detalle de la Solicitud <Badge className="bg-slate-800 text-white font-mono">{selectedReq?.tracking_number}</Badge></DialogTitle></DialogHeader>
           {selectedReq && (
-            <div className="space-y-4 text-sm">
+            <div className="space-y-5 text-sm pt-2">
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusColors[selectedReq.status]}`}>{selectedReq.status.replace(/_/g, " ")}</span>
-                <span className="px-2 py-1 bg-slate-100 rounded-full text-xs font-semibold uppercase">{selectedReq.trip_type.replace(/_/g, " ")}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg">
-                <div><p className="text-xs text-slate-500">Origen</p><p className="font-bold">{selectedReq.origin}</p></div>
-                <div><p className="text-xs text-slate-500">Destino</p><p className="font-bold">{selectedReq.destination}</p></div>
+                <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${statusColors[selectedReq.status]}`}>{selectedReq.status.replace(/_/g, " ")}</span>
+                <span className="px-3 py-1 bg-slate-100 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-200">{selectedReq.trip_type.replace(/_/g, " ")}</span>
+                <span className="text-xs font-bold text-slate-500 ml-auto">{new Date(selectedReq.created_at).toLocaleDateString()}</span>
               </div>
               
-              {selectedReq.trip_type === "clinico" ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><p className="text-xs text-slate-500">Paciente</p><p className="font-medium">{selectedReq.patient_name}</p></div>
-                    {selectedReq.rut && <div><p className="text-xs text-slate-500">RUT</p><p className="font-medium">{selectedReq.rut}</p></div>}
-                    <div><p className="text-xs text-slate-500">Servicio/Unidad</p><p className="font-medium">{selectedReq.patient_unit}</p></div>
-                    {selectedReq.appointment_time && <div><p className="text-xs text-slate-500">Hora Citación</p><p className="font-medium text-red-600 font-bold">{selectedReq.appointment_time}</p></div>}
-                  </div>
-                  {selectedReq.required_personnel?.length > 0 && <div><p className="text-xs text-slate-500">Personal</p><p className="font-medium">{selectedReq.required_personnel.join(", ")}</p></div>}
-                  {selectedReq.patient_requirements?.length > 0 && <div><p className="text-xs text-slate-500">Requerimientos</p><p className="font-medium">{selectedReq.patient_requirements.join(", ")}</p></div>}
-                </>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2"><p className="text-xs text-slate-500">Cometido</p><p className="font-medium">{selectedReq.task_details}</p></div>
-                  <div><p className="text-xs text-slate-500">Funcionarios</p><p className="font-medium">{selectedReq.staff_count}</p></div>
-                </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{selectedReq.trip_type === "clinico" ? "Paciente" : "Cometido"}</p>
+                 <p className="font-black text-xl text-slate-900 leading-tight">{selectedReq.trip_type === "clinico" ? selectedReq.patient_name : selectedReq.task_details}</p>
+                 
+                 {selectedReq.trip_type === "clinico" && (
+                    <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200">
+                      <p className="text-xs"><span className="font-bold text-slate-500">RUT:</span> {selectedReq.rut || "-"}</p>
+                      <p className="text-xs"><span className="font-bold text-slate-500">Servicio/Unidad:</span> {selectedReq.patient_unit}</p>
+                      <p className="text-xs"><span className="font-bold text-slate-500">Hora Citación:</span> <span className="text-red-600 font-bold">{selectedReq.appointment_time || "-"}</span></p>
+                    </div>
+                 )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3"><MapPin className="w-5 h-5 text-teal-500"/><div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p><p className="font-bold text-slate-800 text-base">{selectedReq.origin}</p></div></div>
+                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3"><ArrowRight className="w-5 h-5 text-blue-500"/><div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p><p className="font-bold text-slate-800 text-base">{selectedReq.destination}</p></div></div>
+              </div>
+              
+              {selectedReq.trip_type === "clinico" && (
+                 <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                  {selectedReq.required_personnel?.length > 0 && <div className="mb-2"><p className="text-[10px] text-teal-800 font-bold uppercase tracking-widest mb-1">Personal</p><p className="font-medium text-teal-900">{selectedReq.required_personnel.join(", ")}</p></div>}
+                  {selectedReq.patient_requirements?.length > 0 && <div><p className="text-[10px] text-teal-800 font-bold uppercase tracking-widest mb-1 mt-3">Requerimientos</p><p className="font-medium text-teal-900 bg-white inline-block px-2 py-1 rounded shadow-sm border border-teal-100">{selectedReq.patient_requirements.join(", ")}</p></div>}
+                 </div>
               )}
               
-              {selectedReq.notes && <div><p className="text-xs text-slate-500">Notas</p><p className="bg-amber-50 p-2 rounded">{selectedReq.notes}</p></div>}
+              {selectedReq.trip_type === "no_clinico" && (
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
+                      <p className="font-bold text-slate-500 text-xs uppercase">Cantidad de Funcionarios</p>
+                      <p className="font-black text-lg text-slate-900 bg-white w-8 h-8 flex items-center justify-center rounded-md shadow-sm border border-slate-200">{selectedReq.staff_count}</p>
+                  </div>
+              )}
+
+              {selectedReq.notes && (
+                  <div className="border-t border-slate-200 pt-4"><p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas Adicionales</p><p className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-slate-800">{selectedReq.notes}</p></div>
+              )}
             </div>
           )}
         </DialogContent>
