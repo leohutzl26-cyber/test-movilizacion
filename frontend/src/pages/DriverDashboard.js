@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, Camera, ShieldAlert, AlertTriangle, Activity, User } from "lucide-react";
+import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User } from "lucide-react";
 import api from "@/lib/api";
 
 export default function DriverDashboard() {
@@ -110,7 +110,6 @@ function TripPoolSection({ onNavigate }) {
         )}
       </div>
 
-      {/* Modal de Detalles del Viaje en la Bolsa */}
       <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{selectedTrip?.tracking_number}</Badge></DialogTitle></DialogHeader>
@@ -184,6 +183,9 @@ function MyTripsSection() {
   const [cancelReason, setCancelReason] = useState("");
   const [detailsDialog, setDetailsDialog] = useState(null);
 
+  // Nuevo estado para la advertencia "Anti-Dedo Gordo" (>700km)
+  const [showWarning, setShowWarning] = useState(false);
+
   const fetchAll = useCallback(async () => {
     try {
       const [t, v] = await Promise.all([api.get("/trips"), api.get("/vehicles")]);
@@ -194,12 +196,29 @@ function MyTripsSection() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Autocompletado Mágico de Kilometraje Inicial
+  useEffect(() => {
+    if (actionType === "start" && selectedVehicle) {
+      const veh = vehicles.find(v => v.id === selectedVehicle);
+      if (veh) setMileage(veh.mileage.toString());
+    }
+  }, [selectedVehicle, actionType, vehicles]);
+
   const handleAction = async () => {
     if (actionType === "start" && !selectedVehicle) { toast.error("Seleccione un vehículo"); return; }
     if (actionType === "start" && !mileage) { toast.error("Ingrese kilometraje inicial"); return; }
     if (actionType === "end" && !mileage) { toast.error("Ingrese kilometraje final"); return; }
     if (actionType === "cancel" && !cancelReason) { toast.error("Debe ingresar un motivo"); return; }
     
+    // Alerta Anti-Dedo Gordo (>700km)
+    if (actionType === "end" && actionDialog?.start_mileage) {
+      const distance = parseFloat(mileage) - actionDialog.start_mileage;
+      if (distance > 700 && !showWarning) {
+        setShowWarning(true);
+        return; // Detiene el guardado y muestra la advertencia
+      }
+    }
+
     try {
       let payload = {};
       if (actionType === "start") payload = { status: "en_curso", vehicle_id: selectedVehicle, mileage: parseFloat(mileage) };
@@ -208,8 +227,11 @@ function MyTripsSection() {
       
       await api.put(`/trips/${actionDialog.id}/status`, payload);
       toast.success(actionType === "start" ? "Viaje iniciado" : actionType === "end" ? "Viaje finalizado" : "Viaje devuelto");
-      setActionDialog(null); setSelectedVehicle(""); setMileage(""); setCancelReason(""); fetchAll();
-    } catch (e) { toast.error("Error al procesar la acción"); }
+      setActionDialog(null); setSelectedVehicle(""); setMileage(""); setCancelReason(""); setShowWarning(false); fetchAll();
+    } catch (e) { 
+      toast.error(e.response?.data?.detail || "Error al procesar la acción"); 
+      setShowWarning(false);
+    }
   };
 
   const statusColors = { asignado: "bg-teal-100 text-teal-800 border-teal-200", en_curso: "bg-blue-100 text-blue-800 border-blue-200", completado: "bg-emerald-100 text-emerald-800 border-emerald-200" };
@@ -269,7 +291,7 @@ function MyTripsSection() {
       </div>
 
       {/* Modal de Acción (Iniciar, Finalizar, Cancelar) */}
-      <Dialog open={!!actionDialog} onOpenChange={() => { setActionDialog(null); setSelectedVehicle(""); setMileage(""); setCancelReason(""); }}>
+      <Dialog open={!!actionDialog} onOpenChange={() => { setActionDialog(null); setSelectedVehicle(""); setMileage(""); setCancelReason(""); setShowWarning(false); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl flex items-center gap-2">
@@ -278,28 +300,52 @@ function MyTripsSection() {
           </DialogHeader>
           {actionDialog && (
             <div className="space-y-6 pt-4">
+              
+              {showWarning && (
+                <div className="bg-red-100 border-l-4 border-red-600 p-4 rounded-r-lg">
+                  <p className="font-bold text-red-800 text-lg flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> ¡Alerta de Distancia!</p>
+                  <p className="text-red-700 font-medium text-sm mt-1">El kilometraje ingresado indica que recorrió más de 700km en este viaje. ¿Está seguro de que el kilometraje final ({mileage}) es correcto?</p>
+                </div>
+              )}
+
               {actionType === "start" && (
                 <>
                   <div className="space-y-2"><Label className="font-bold text-slate-700 text-sm">1. Seleccione Vehículo</Label><Select value={selectedVehicle} onValueChange={setSelectedVehicle}><SelectTrigger className="h-12 text-base border-slate-300 font-medium"><SelectValue placeholder="Seleccione patente" /></SelectTrigger><SelectContent>{vehicles.map(v => (<SelectItem key={v.id} value={v.id} className="py-2.5 font-bold">{v.plate} - {v.brand}</SelectItem>))}</SelectContent></Select></div>
-                  <div className="space-y-2"><Label className="font-bold text-slate-700 text-sm">2. Kilometraje Inicial</Label><Input type="number" placeholder="Ej: 120500" value={mileage} onChange={e => setMileage(e.target.value)} className="h-14 text-2xl font-black text-center border-slate-300 shadow-inner" /></div>
+                  <div className="space-y-2">
+                    <Label className="font-bold text-slate-700 text-sm">2. Kilometraje Inicial</Label>
+                    <Input type="number" placeholder="Ej: 120500" value={mileage} onChange={e => setMileage(e.target.value)} className="h-14 text-2xl font-black text-center border-slate-300 shadow-inner text-blue-800" />
+                    <p className="text-xs text-slate-500 font-medium mt-1">Sugerido automáticamente de la última lectura.</p>
+                  </div>
                 </>
               )}
+
               {actionType === "end" && (
-                <div className="space-y-2"><Label className="font-bold text-slate-700 text-sm">Kilometraje Final</Label><Input type="number" placeholder="Ej: 120545" value={mileage} onChange={e => setMileage(e.target.value)} className="h-14 text-2xl font-black text-center border-slate-300 shadow-inner" /></div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200 mb-2">
+                    <span className="text-xs font-bold text-slate-500">KM INICIAL:</span>
+                    <span className="font-mono font-bold text-slate-700">{actionDialog.start_mileage} km</span>
+                  </div>
+                  <Label className="font-bold text-slate-700 text-sm">Kilometraje Final</Label>
+                  <Input type="number" placeholder="Ej: 120545" value={mileage} onChange={e => {setMileage(e.target.value); setShowWarning(false);}} className={`h-14 text-2xl font-black text-center border-slate-300 shadow-inner ${showWarning ? 'border-red-400 text-red-700 bg-red-50' : 'text-emerald-800'}`} />
+                </div>
               )}
+
               {actionType === "cancel" && (
                 <div className="space-y-2"><Label className="font-bold text-red-700 text-sm">Motivo de la devolución</Label><textarea className="w-full min-h-[100px] p-3 rounded-xl border border-red-200 text-sm font-medium focus:ring-2 focus:ring-red-400 outline-none shadow-sm" placeholder="Indique el motivo por el cual no puede realizar este viaje..." value={cancelReason} onChange={e => setCancelReason(e.target.value)} /></div>
               )}
+              
               <DialogFooter className="mt-6">
-                <Button variant="outline" className="h-12 w-full sm:w-auto font-bold" onClick={() => setActionDialog(null)}>Volver</Button>
-                <Button className={`h-12 w-full sm:w-auto text-base font-bold text-white shadow-md ${actionType === "start" ? "bg-blue-600 hover:bg-blue-700" : actionType === "end" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`} onClick={handleAction}>Confirmar</Button>
+                <Button variant="outline" className="h-12 w-full sm:w-auto font-bold" onClick={() => {setActionDialog(null); setShowWarning(false);}}>Volver</Button>
+                <Button className={`h-12 w-full sm:w-auto text-base font-bold text-white shadow-md ${showWarning ? "bg-red-600 hover:bg-red-700 animate-pulse" : actionType === "start" ? "bg-blue-600 hover:bg-blue-700" : actionType === "end" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`} onClick={handleAction}>
+                  {showWarning ? "SÍ, CONFIRMO EL KILOMETRAJE" : "Confirmar"}
+                </Button>
               </DialogFooter>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Detalles del Viaje Asignado (Con todos los datos) */}
+      {/* Modal de Detalles del Viaje Asignado */}
       <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{detailsDialog?.tracking_number}</Badge></DialogTitle></DialogHeader>
