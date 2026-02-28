@@ -271,6 +271,7 @@ function AssignSection() {
 function CalendarSection() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [trips, setTrips] = useState([]);
+  const [selectedTrip, setSelectedTrip] = useState(null); // Nuevo estado para el modal
 
   const getWeekDates = (offset) => {
     const today = new Date();
@@ -294,6 +295,10 @@ function CalendarSection() {
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
   const statusColors = { pendiente: "bg-amber-100 border-amber-200 text-amber-900", asignado: "bg-teal-100 border-teal-200 text-teal-900", en_curso: "bg-blue-100 border-blue-200 text-blue-900", completado: "bg-emerald-100 border-emerald-200 text-emerald-900" };
   const today = new Date().toISOString().split("T")[0];
+
+  // Etiquetas y colores para el modal de detalles
+  const sLabels = { pendiente: "Pendiente", asignado: "Asignado", en_curso: "En Curso", completado: "Completado", cancelado: "Cancelado" };
+  const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
 
   return (
     <div className="animate-slide-up">
@@ -320,7 +325,9 @@ function CalendarSection() {
               </div>
               <div className="space-y-2 overflow-y-auto max-h-[400px] custom-scrollbar pr-1">
                 {dayTrips.map(t => (
-                  <div key={t.id} className={`p-2.5 rounded-lg border shadow-sm transition-all hover:shadow-md cursor-pointer ${statusColors[t.status] || "bg-slate-50 border-slate-200 text-slate-700"}`}>
+                  <div key={t.id} 
+                       onClick={() => setSelectedTrip(t)} 
+                       className={`p-2.5 rounded-lg border shadow-sm transition-all hover:shadow-md hover:ring-2 hover:ring-teal-400 cursor-pointer ${statusColors[t.status] || "bg-slate-50 border-slate-200 text-slate-700"}`}>
                     <p className="font-bold text-[11px] leading-tight mb-1">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
                     <p className="text-[10px] opacity-80 leading-tight flex items-center gap-1"><MapPin className="w-2.5 h-2.5 shrink-0"/> <span className="truncate">{t.origin}</span></p>
                     <p className="text-[10px] opacity-80 leading-tight flex items-center gap-1 mt-0.5"><ArrowRight className="w-2.5 h-2.5 shrink-0"/> <span className="truncate">{t.destination}</span></p>
@@ -332,10 +339,72 @@ function CalendarSection() {
           );
         })}
       </div>
+
+      {/* Modal de Detalle (Reutilizado del Historial) */}
+      <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2">Detalle del Traslado</DialogTitle></DialogHeader>
+          {selectedTrip && (
+            <div className="space-y-5 text-sm pt-2">
+              <div className="flex gap-2 mb-2">
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${sColors[selectedTrip.status]}`}>{sLabels[selectedTrip.status]}</span>
+                <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">{selectedTrip.trip_type==="clinico"?"Traslado Clínico":"Traslado No Clínico"}</span>
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${selectedTrip.priority === "urgente" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{selectedTrip.priority}</span>
+              </div>
+              
+              {selectedTrip.trip_type === "clinico" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div className="col-span-2 md:col-span-4 border-b border-slate-200 pb-2 mb-2"><p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Paciente</p><p className="font-black text-lg text-slate-900">{selectedTrip.patient_name}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">RUT</p><p className="font-medium text-slate-800">{selectedTrip.rut || "-"}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">Edad / Peso</p><p className="font-medium text-slate-800">{selectedTrip.age || "-"} / {selectedTrip.weight || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Diagnóstico</p><p className="font-medium text-slate-800">{selectedTrip.diagnosis || "-"}</p></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div><p className="text-xs text-slate-500 font-bold">Motivo Clínico</p><p className="font-medium text-slate-800">{selectedTrip.transfer_reason}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">Médico Tratante</p><p className="font-medium text-slate-800">{selectedTrip.attending_physician || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Solicitante</p><p className="font-medium text-slate-800">{selectedTrip.requester_person}</p></div>
+                  </div>
+                  <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                    {selectedTrip.required_personnel?.length > 0 && <div className="mb-3"><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Personal Requerido</p><p className="text-teal-900 font-medium">{selectedTrip.required_personnel.join(", ")}</p></div>}
+                    {selectedTrip.patient_requirements?.length > 0 && <div><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Requerimientos Paciente</p><p className="text-teal-900 font-medium">{selectedTrip.patient_requirements.join(", ")}</p></div>}
+                    {selectedTrip.accompaniment && selectedTrip.accompaniment !== "ninguno" && <div className="mt-3 pt-3 border-t border-teal-200"><p className="text-xs text-teal-800 font-bold">Acompañamiento: <span className="text-teal-900">{selectedTrip.accompaniment}</span></p></div>}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="col-span-1 md:col-span-2"><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Cometido</p><p className="font-black text-lg text-slate-900">{selectedTrip.task_details}</p></div>
+                  <div><p className="text-xs text-slate-500 font-bold">Cantidad de Funcionarios</p><p className="font-medium text-slate-800">{selectedTrip.staff_count}</p></div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5">
+                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/> Origen</p><p className="font-bold text-slate-900">{selectedTrip.origin}</p><p className="text-xs text-slate-500 mt-1">{selectedTrip.patient_unit||""} {selectedTrip.bed?`(Cama ${selectedTrip.bed})`:""}</p></div>
+                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><ArrowRight className="w-3.5 h-3.5"/> Destino</p><p className="font-bold text-slate-900">{selectedTrip.destination}</p></div>
+                <div className="bg-red-50 p-3 rounded-lg border border-red-100"><p className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> Horarios</p><p className="font-bold text-red-900 text-sm">Citación: {selectedTrip.appointment_time||"-"} | Salida: {selectedTrip.departure_time||"-"}</p><p className="text-xs text-red-700 mt-1">Fecha Prog: {selectedTrip.scheduled_date}</p></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-5">
+                <div><p className="text-xs text-slate-500 font-bold mb-1">Conductor Asignado</p><p className="font-bold text-teal-700 flex items-center gap-1.5"><User className="w-4 h-4"/>{selectedTrip.driver_name || "Sin asignar"}</p></div>
+                <div><p className="text-xs text-slate-500 font-bold mb-1">Vehículo Asignado</p><p className="font-bold text-slate-800 flex items-center gap-1.5"><Truck className="w-4 h-4"/>{selectedTrip.vehicle_plate || "Sin asignar"}</p></div>
+              </div>
+
+              {(selectedTrip.start_mileage != null || selectedTrip.end_mileage != null) && (
+                <div className="grid grid-cols-3 gap-3 border-t border-slate-200 pt-5">
+                  <div className="text-center p-2"><p className="text-xs text-slate-500">KM Inicio</p><p className="font-bold">{selectedTrip.start_mileage != null ? selectedTrip.start_mileage.toLocaleString() : "-"}</p></div>
+                  <div className="text-center p-2"><p className="text-xs text-slate-500">KM Final</p><p className="font-bold">{selectedTrip.end_mileage != null ? selectedTrip.end_mileage.toLocaleString() : "-"}</p></div>
+                  <div className="text-center p-2 bg-emerald-50 rounded-lg"><p className="text-xs text-emerald-700 font-bold">KM Recorridos</p><p className="font-black text-emerald-800">{(selectedTrip.start_mileage != null && selectedTrip.end_mileage != null) ? (selectedTrip.end_mileage - selectedTrip.start_mileage).toLocaleString() : "-"}</p></div>
+                </div>
+              )}
+
+              {selectedTrip.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 border border-amber-100">{selectedTrip.notes}</p></div>)}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
 function ByVehicleSection() {
   const [data, setData] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
