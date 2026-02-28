@@ -263,7 +263,7 @@ async def login(data: UserLogin):
             if expiry.tzinfo is None:
                 expiry = expiry.replace(tzinfo=timezone.utc)
             if expiry < datetime.now(timezone.utc):
-                raise HTTPException(status_code=403, detail="Licencia de conducir vencida.")
+                raise HTTPException(status_code=403, detail="Licencia de conducir vencida. Contacte al administrador.")
         except (ValueError, TypeError):
             pass
 
@@ -415,12 +415,21 @@ async def ocr_odometer(vehicle_id: str, file: UploadFile = File(...), user=Depen
 
 @api_router.post("/trips")
 async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "coordinador", "admin"))):
-    # Generador de Folio Único (Ej: TR-854932)
-    while True:
-        folio = f"TR-{random.randint(100000, 999999)}"
-        exists = await db.trips.find_one({"tracking_number": folio})
-        if not exists:
-            break
+    # --- GENERADOR DE FOLIO CORRELATIVO POR FECHA ---
+    # Formato: TR-AAMMDD-001 (Ejemplo: TR-260228-001)
+    today_str = datetime.now(timezone.utc).strftime("%y%m%d")
+    today_prefix = f"TR-{today_str}-"
+    
+    # Contamos cuántos viajes existen que empiecen con el prefijo de hoy
+    count_today = await db.trips.count_documents({"tracking_number": {"$regex": f"^{today_prefix}"}})
+    sequential = count_today + 1
+    folio = f"{today_prefix}{sequential:03d}"
+    
+    # Validación extra de seguridad por si hay algún choque
+    while await db.trips.find_one({"tracking_number": folio}):
+        sequential += 1
+        folio = f"{today_prefix}{sequential:03d}"
+    # ------------------------------------------------
 
     trip = {
         "id": str(uuid.uuid4()),
@@ -447,6 +456,7 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None,
         
+        # NUEVOS CAMPOS
         "rut": data.rut,
         "age": data.age,
         "diagnosis": data.diagnosis,
