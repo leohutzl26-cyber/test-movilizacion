@@ -28,6 +28,7 @@ export default function DriverDashboard() {
 function TripPoolSection({ onNavigate }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTrip, setSelectedTrip] = useState(null);
 
   const fetchPool = useCallback(async () => {
     try { const r = await api.get("/trips/pool"); setTrips(r.data); } 
@@ -42,6 +43,8 @@ function TripPoolSection({ onNavigate }) {
   };
 
   const priorityColors = { urgente: "bg-red-500 text-white shadow-red-200", alta: "bg-orange-400 text-white shadow-orange-200", normal: "bg-slate-200 text-slate-700 shadow-slate-200" };
+  const sLabels = { pendiente: "Pendiente", asignado: "Asignado", en_curso: "En Curso", completado: "Completado", cancelado: "Cancelado" };
+  const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
 
   if (loading) return <div className="flex flex-col items-center justify-center py-20 text-slate-400"><Clock className="w-10 h-10 animate-spin text-teal-600 mb-4"/><p>Buscando viajes disponibles...</p></div>;
 
@@ -71,25 +74,22 @@ function TripPoolSection({ onNavigate }) {
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 space-y-2.5">
                 <div className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
-                  <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p><p className="text-sm font-bold text-slate-900 leading-snug">{t.origin}</p><p className="text-xs text-slate-500 font-medium">{t.patient_unit || ""}</p></div>
+                  <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p><p className="text-sm font-bold text-slate-900 leading-snug">{t.origin}</p></div>
                 </div>
-                <div className="ml-2 pl-3 border-l-2 border-dashed border-slate-200 py-0.5"></div>
-                <div className="flex items-start gap-2.5">
+                <div className="flex items-start gap-2.5 mt-1 pt-1 border-t border-slate-200">
                   <Navigation className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p><p className="text-sm font-bold text-slate-900 leading-snug">{t.destination}</p></div>
                 </div>
               </div>
 
-              {t.trip_type === "clinico" && t.patient_requirements?.length > 0 && (
-                <div className="mb-4 bg-amber-50 p-3 rounded-lg border border-amber-200 shadow-sm">
-                  <p className="text-[10px] font-black text-amber-800 uppercase flex items-center gap-1.5 mb-1"><ShieldAlert className="w-3.5 h-3.5"/>Requerimientos Especiales</p>
-                  <p className="text-xs text-amber-900 font-bold">{t.patient_requirements.join(", ")}</p>
-                </div>
-              )}
-
-              <Button onClick={() => handleTakeTrip(t.id)} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-md rounded-xl text-base">
-                Tomar este Viaje
-              </Button>
+              <div className="flex gap-2 mt-4">
+                <Button variant="outline" onClick={() => setSelectedTrip(t)} className="flex-1 border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-12 rounded-xl text-xs sm:text-sm">
+                  <FileText className="w-4 h-4 mr-1.5"/>Detalles
+                </Button>
+                <Button onClick={() => handleTakeTrip(t.id)} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-sm rounded-xl text-xs sm:text-sm">
+                  <Truck className="w-4 h-4 mr-1.5"/>Tomar Viaje
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -101,6 +101,60 @@ function TripPoolSection({ onNavigate }) {
           </div>
         )}
       </div>
+
+      {/* Modal de Detalles del Viaje en la Bolsa */}
+      <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-sm px-2 py-1">{selectedTrip?.tracking_number}</Badge></DialogTitle></DialogHeader>
+          {selectedTrip && (
+            <div className="space-y-5 text-sm pt-2">
+              <div className="flex gap-2 mb-2">
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${sColors[selectedTrip.status]}`}>{sLabels[selectedTrip.status]}</span>
+                <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">{selectedTrip.trip_type==="clinico"?"Traslado Clínico":"Traslado No Clínico"}</span>
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${selectedTrip.priority === "urgente" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{selectedTrip.priority}</span>
+              </div>
+              
+              {selectedTrip.trip_type === "clinico" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div className="col-span-2 md:col-span-4 border-b border-slate-200 pb-2 mb-2"><p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Paciente</p><p className="font-black text-lg text-slate-900">{selectedTrip.patient_name}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">RUT</p><p className="font-medium text-slate-800">{selectedTrip.rut || "-"}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">Edad / Peso</p><p className="font-medium text-slate-800">{selectedTrip.age || "-"} / {selectedTrip.weight || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Diagnóstico</p><p className="font-medium text-slate-800">{selectedTrip.diagnosis || "-"}</p></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div><p className="text-xs text-slate-500 font-bold">Motivo Clínico</p><p className="font-medium text-slate-800">{selectedTrip.transfer_reason}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">Médico Tratante</p><p className="font-medium text-slate-800">{selectedTrip.attending_physician || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Solicitante</p><p className="font-medium text-slate-800">{selectedTrip.requester_person}</p></div>
+                  </div>
+                  <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                    {selectedTrip.required_personnel?.length > 0 && <div className="mb-3"><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Personal Requerido</p><p className="text-teal-900 font-medium">{selectedTrip.required_personnel.join(", ")}</p></div>}
+                    {selectedTrip.patient_requirements?.length > 0 && <div><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Requerimientos Paciente</p><p className="text-teal-900 font-medium">{selectedTrip.patient_requirements.join(", ")}</p></div>}
+                    {selectedTrip.accompaniment && selectedTrip.accompaniment !== "ninguno" && <div className="mt-3 pt-3 border-t border-teal-200"><p className="text-xs text-teal-800 font-bold">Acompañamiento: <span className="text-teal-900">{selectedTrip.accompaniment}</span></p></div>}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="col-span-1 md:col-span-2"><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Cometido</p><p className="font-black text-lg text-slate-900">{selectedTrip.task_details}</p></div>
+                  <div><p className="text-xs text-slate-500 font-bold">Cantidad de Funcionarios</p><p className="font-medium text-slate-800">{selectedTrip.staff_count}</p></div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5">
+                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/> Origen</p><p className="font-bold text-slate-900">{selectedTrip.origin}</p><p className="text-xs text-slate-500 mt-1">{selectedTrip.patient_unit||""} {selectedTrip.bed?`(Cama ${selectedTrip.bed})`:""}</p></div>
+                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><ArrowRight className="w-3.5 h-3.5"/> Destino</p><p className="font-bold text-slate-900">{selectedTrip.destination}</p></div>
+                <div className="bg-red-50 p-3 rounded-lg border border-red-100"><p className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> Horarios</p><p className="font-bold text-red-900 text-sm">Citación: {selectedTrip.appointment_time||"-"} | Salida: {selectedTrip.departure_time||"-"}</p><p className="text-xs text-red-700 mt-1">Fecha Prog: {selectedTrip.scheduled_date}</p></div>
+              </div>
+
+              {selectedTrip.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 border border-amber-100">{selectedTrip.notes}</p></div>)}
+
+              <Button onClick={() => { handleTakeTrip(selectedTrip.id); setSelectedTrip(null); }} className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold h-14 text-lg rounded-xl shadow-md">
+                Tomar este Viaje
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -145,7 +199,8 @@ function MyTripsSection() {
   };
 
   const statusColors = { asignado: "bg-teal-100 text-teal-800 border-teal-200", en_curso: "bg-blue-100 text-blue-800 border-blue-200", completado: "bg-emerald-100 text-emerald-800 border-emerald-200" };
-
+  const sLabels = { asignado: "Asignado", en_curso: "En Curso", completado: "Completado" };
+  
   if (loading) return <div className="flex justify-center py-20"><Clock className="w-10 h-10 animate-spin text-teal-600"/></div>;
 
   return (
@@ -159,9 +214,9 @@ function MyTripsSection() {
                 <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
                   <div className="flex flex-col gap-1.5">
                     <span className="bg-slate-800 text-white font-mono px-2.5 py-0.5 rounded text-[11px] font-bold self-start shadow-sm">{t.tracking_number || t.id.substring(0,6).toUpperCase()}</span>
-                    <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border shadow-sm ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                    <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setDetailsDialog(t)} className="h-9 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200"><FileText className="w-4 h-4 mr-1.5"/>Ver Detalle Completo</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDetailsDialog(t)} className="h-9 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200"><FileText className="w-4 h-4 mr-1.5"/>Ver Toda la Info</Button>
                 </div>
                 
                 <p className="font-black text-xl text-slate-900 leading-tight mb-4">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
@@ -180,7 +235,7 @@ function MyTripsSection() {
                 {t.status === "asignado" && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-slate-100">
                     <Button onClick={() => { setActionDialog(t); setActionType("start"); }} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><Play className="w-6 h-6 mr-2 fill-current"/> Iniciar Viaje</Button>
-                    <Button onClick={() => { setActionDialog(t); setActionType("cancel"); }} variant="outline" className="h-14 text-red-600 border-red-200 hover:bg-red-50 rounded-xl px-6 font-bold sm:w-auto w-full transition-colors">Retirar</Button>
+                    <Button onClick={() => { setActionDialog(t); setActionType("cancel"); }} variant="outline" className="h-14 text-red-600 border-red-200 hover:bg-red-50 rounded-xl px-6 font-bold sm:w-auto w-full transition-colors">Devolver</Button>
                   </div>
                 )}
                 
@@ -227,40 +282,51 @@ function MyTripsSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Detalles del Viaje */}
+      {/* Modal de Detalles del Viaje Asignado (Con todos los datos) */}
       <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-xl border-b pb-3 flex items-center justify-between">Detalles del Viaje <span className="bg-slate-800 text-white font-mono px-3 py-1 rounded-md text-sm shadow-sm">{detailsDialog?.tracking_number}</span></DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-sm px-2 py-1">{detailsDialog?.tracking_number}</Badge></DialogTitle></DialogHeader>
           {detailsDialog && (
             <div className="space-y-5 text-sm pt-2">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">{detailsDialog.trip_type === "clinico" ? "Paciente a Trasladar" : "Motivo del Cometido"}</p>
-                <p className="font-black text-xl text-slate-900 leading-tight">{detailsDialog.trip_type === "clinico" ? detailsDialog.patient_name : detailsDialog.task_details}</p>
-                {detailsDialog.trip_type === "clinico" && (
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
-                    <p><span className="font-bold text-slate-500 block text-xs uppercase mb-0.5">RUT</span> <span className="font-bold">{detailsDialog.rut || "-"}</span></p>
-                    <p><span className="font-bold text-slate-500 block text-xs uppercase mb-0.5">Edad</span> <span className="font-bold">{detailsDialog.age || "-"}</span></p>
-                    <p className="col-span-2"><span className="font-bold text-slate-500 block text-xs uppercase mb-0.5">Diagnóstico</span> <span className="font-bold">{detailsDialog.diagnosis || "-"}</span></p>
-                  </div>
-                )}
+              <div className="flex gap-2 mb-2">
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${statusColors[detailsDialog.status]}`}>{sLabels[detailsDialog.status] || detailsDialog.status}</span>
+                <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">{detailsDialog.trip_type==="clinico"?"Traslado Clínico":"Traslado No Clínico"}</span>
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${detailsDialog.priority === "urgente" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{detailsDialog.priority}</span>
               </div>
               
-              <div className="grid grid-cols-1 gap-3">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-4 h-4 text-teal-500"/> Origen</p><p className="font-black text-slate-900 text-base">{detailsDialog.origin}</p><p className="text-sm font-medium text-slate-500 mt-1">{detailsDialog.patient_unit||""} {detailsDialog.bed?`(Cama ${detailsDialog.bed})`:""}</p></div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-widest flex items-center gap-1"><Navigation className="w-4 h-4 text-blue-500"/> Destino</p><p className="font-black text-slate-900 text-base">{detailsDialog.destination}</p></div>
-              </div>
-
-              {detailsDialog.trip_type === "clinico" && (
-                <div className="bg-teal-50 p-4 rounded-xl border border-teal-200 shadow-sm">
-                  {detailsDialog.required_personnel?.length > 0 && <div className="mb-3"><p className="text-[10px] text-teal-800 font-black uppercase tracking-widest mb-1">Personal Acompañante</p><p className="font-bold text-teal-900 text-sm">{detailsDialog.required_personnel.join(", ")}</p></div>}
-                  {detailsDialog.patient_requirements?.length > 0 && <div className="mb-3"><p className="text-[10px] text-teal-800 font-black uppercase tracking-widest mb-1">Requerimientos (Preparar)</p><p className="font-bold text-teal-900 text-sm bg-white inline-block px-2 py-1 rounded border border-teal-100">{detailsDialog.patient_requirements.join(", ")}</p></div>}
-                  {detailsDialog.accompaniment && detailsDialog.accompaniment !== "ninguno" && <p className="text-xs font-black text-teal-800 uppercase pt-2 border-t border-teal-200 mt-2">Acompañamiento: <span className="text-teal-900">{detailsDialog.accompaniment}</span></p>}
+              {detailsDialog.trip_type === "clinico" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div className="col-span-2 md:col-span-4 border-b border-slate-200 pb-2 mb-2"><p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Paciente</p><p className="font-black text-lg text-slate-900">{detailsDialog.patient_name}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">RUT</p><p className="font-medium text-slate-800">{detailsDialog.rut || "-"}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">Edad / Peso</p><p className="font-medium text-slate-800">{detailsDialog.age || "-"} / {detailsDialog.weight || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Diagnóstico</p><p className="font-medium text-slate-800">{detailsDialog.diagnosis || "-"}</p></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div><p className="text-xs text-slate-500 font-bold">Motivo Clínico</p><p className="font-medium text-slate-800">{detailsDialog.transfer_reason}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold">Médico Tratante</p><p className="font-medium text-slate-800">{detailsDialog.attending_physician || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Solicitante</p><p className="font-medium text-slate-800">{detailsDialog.requester_person}</p></div>
+                  </div>
+                  <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                    {detailsDialog.required_personnel?.length > 0 && <div className="mb-3"><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Personal Requerido</p><p className="text-teal-900 font-medium">{detailsDialog.required_personnel.join(", ")}</p></div>}
+                    {detailsDialog.patient_requirements?.length > 0 && <div><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Requerimientos Paciente</p><p className="text-teal-900 font-medium">{detailsDialog.patient_requirements.join(", ")}</p></div>}
+                    {detailsDialog.accompaniment && detailsDialog.accompaniment !== "ninguno" && <div className="mt-3 pt-3 border-t border-teal-200"><p className="text-xs text-teal-800 font-bold">Acompañamiento: <span className="text-teal-900">{detailsDialog.accompaniment}</span></p></div>}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="col-span-1 md:col-span-2"><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Cometido</p><p className="font-black text-lg text-slate-900">{detailsDialog.task_details}</p></div>
+                  <div><p className="text-xs text-slate-500 font-bold">Cantidad de Funcionarios</p><p className="font-medium text-slate-800">{detailsDialog.staff_count}</p></div>
                 </div>
               )}
 
-              {detailsDialog.notes && (
-                <div className="border-t border-slate-200 pt-5"><p className="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Notas Adicionales / Instrucciones</p><p className="bg-amber-50 p-4 rounded-xl font-medium text-slate-800 border border-amber-200 shadow-inner">{detailsDialog.notes}</p></div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5">
+                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/> Origen</p><p className="font-bold text-slate-900">{detailsDialog.origin}</p><p className="text-xs text-slate-500 mt-1">{detailsDialog.patient_unit||""} {detailsDialog.bed?`(Cama ${detailsDialog.bed})`:""}</p></div>
+                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><ArrowRight className="w-3.5 h-3.5"/> Destino</p><p className="font-bold text-slate-900">{detailsDialog.destination}</p></div>
+                <div className="bg-red-50 p-3 rounded-lg border border-red-100"><p className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> Horarios</p><p className="font-bold text-red-900 text-sm">Citación: {detailsDialog.appointment_time||"-"} | Salida: {detailsDialog.departure_time||"-"}</p><p className="text-xs text-red-700 mt-1">Fecha Prog: {detailsDialog.scheduled_date}</p></div>
+              </div>
+
+              {detailsDialog.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 border border-amber-100">{detailsDialog.notes}</p></div>)}
             </div>
           )}
         </DialogContent>
