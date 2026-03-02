@@ -66,7 +66,16 @@ function LoginForm() {
     try {
       const user = await login(email, password);
       toast.success(`Bienvenido, ${user.name}`);
-      const routes = { admin: "/admin", coordinador: "/manager", solicitante: "/requester", conductor: "/driver" };
+      
+      // AQUÍ ESTABA EL ERROR: Agregamos la ruta para gestion_camas
+      const routes = { 
+        admin: "/admin", 
+        coordinador: "/manager", 
+        solicitante: "/requester", 
+        conductor: "/driver",
+        gestion_camas: "/gestion-camas" 
+      };
+      
       navigate(routes[user.role] || "/");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al iniciar sesion");
@@ -135,6 +144,7 @@ function RegisterForm({ onSuccess }) {
             <SelectItem value="solicitante">Solicitante</SelectItem>
             <SelectItem value="conductor">Conductor</SelectItem>
             <SelectItem value="coordinador">Coordinador</SelectItem>
+            <SelectItem value="gestion_camas">Gestión de Camas</SelectItem> {/* AQUÍ AGREGAMOS EL NUEVO ROL */}
           </SelectContent>
         </Select>
       </div>
@@ -181,7 +191,7 @@ function ForgotForm({ onSuccess }) {
       setEmail("");
       setToken("");
       setNewPassword("");
-      if (onSuccess) onSuccess(); // Esto vuelve al tab de "Ingresar"
+      if (onSuccess) onSuccess(); 
     } catch (err) {
       toast.error(err.response?.data?.detail || "Código incorrecto o expirado");
     } finally {
