@@ -32,17 +32,12 @@ SECRET_KEY = os.environ.get('JWT_SECRET', str(uuid.uuid4()))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = 24
 
-# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Resend config
 resend_api_key = os.environ.get('RESEND_API_KEY')
 if resend_api_key:
     resend.api_key = resend_api_key
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
-
-# Gemini Key
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 # FastAPI
 app = FastAPI()
@@ -97,7 +92,7 @@ class TripCreate(BaseModel):
     priority: str = "normal"
     notes: str = ""
     trip_type: str = "no_clinico"
-    clinical_team: str = ""
+    clinical_team: str = "" # Este es el campo que usará Gestión de Camas para los nombres
     contact_person: str = ""
     scheduled_date: str = ""
     rut: str = ""
@@ -138,6 +133,7 @@ class TripUpdate(BaseModel):
     notes: Optional[str] = None
     trip_type: Optional[str] = None
     scheduled_date: Optional[str] = None
+    clinical_team: Optional[str] = None
     rut: Optional[str] = None
     age: Optional[str] = None
     diagnosis: Optional[str] = None
@@ -162,10 +158,8 @@ class DestinationCreate(BaseModel):
     name: str
     address: str = ""
 
-class DestinationUpdate(BaseModel):
-    name: Optional[str] = None
-    address: Optional[str] = None
-    is_active: Optional[bool] = None
+class ClinicalTeamUpdate(BaseModel):
+    clinical_team: str
 
 class UserRoleUpdate(BaseModel):
     role: str
@@ -257,16 +251,6 @@ async def login(data: UserLogin):
     if user["status"] != "aprobado":
         raise HTTPException(status_code=403, detail="Cuenta pendiente de aprobacion")
         
-    if user.get("role") == "conductor" and user.get("license_expiry"):
-        try:
-            expiry = datetime.fromisoformat(user["license_expiry"])
-            if expiry.tzinfo is None:
-                expiry = expiry.replace(tzinfo=timezone.utc)
-            if expiry < datetime.now(timezone.utc):
-                raise HTTPException(status_code=403, detail="Licencia de conducir vencida. Contacte al administrador.")
-        except (ValueError, TypeError):
-            pass
-
     token = create_token({"sub": user["id"], "role": user["role"]})
     return {
         "token": token,
@@ -279,40 +263,6 @@ async def login(data: UserLogin):
             "extra_available": user.get("extra_available", False)
         }
     }
-
-@api_router.post("/auth/forgot-password")
-async def forgot_password(data: ForgotPassword):
-    user = await db.users.find_one({"email": data.email}, {"_id": 0})
-    if not user:
-        return {"message": "Si el correo existe, recibira instrucciones."}
-    reset_code = ''.join(random.choices(string.digits, k=6))
-    await db.users.update_one({"id": user["id"]}, {"$set": {"reset_token": reset_code}})
-    if resend_api_key:
-        try:
-            html_content = f"<h2>Recuperacion de Contrasena</h2><p>Codigo: <b>{reset_code}</b></p>"
-            params = {"from": SENDER_EMAIL, "to": [data.email], "subject": "Recuperacion de Contrasena", "html": html_content}
-            await asyncio.to_thread(resend.Emails.send, params)
-        except Exception as e:
-            logger.error(f"Error enviando email: {e}")
-    return {"message": "Instrucciones enviadas", "reset_token": reset_code}
-
-@api_router.post("/auth/reset-password")
-async def reset_password(data: ResetPassword):
-    user = await db.users.find_one({"reset_token": data.token})
-    if not user:
-        raise HTTPException(status_code=400, detail="Código inválido")
-    new_hash = pwd_context.hash(data.new_password)
-    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": new_hash, "reset_token": None}})
-    return {"message": "Contrasena actualizada"}
-
-@api_router.put("/auth/change-password")
-async def change_password(data: ChangePassword, user=Depends(get_current_user)):
-    db_user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
-    if not pwd_context.verify(data.current_password, db_user.get("password_hash", "")):
-        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
-    new_hash = pwd_context.hash(data.new_password)
-    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": new_hash}})
-    return {"message": "Contraseña actualizada exitosamente"}
 
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
@@ -328,36 +278,14 @@ async def approve_user(user_id: str, user=Depends(require_roles("admin"))):
     await db.users.update_one({"id": user_id}, {"$set": {"status": "aprobado"}})
     return {"message": "Aprobado"}
 
-@api_router.put("/users/{user_id}/reject")
-async def reject_user(user_id: str, user=Depends(require_roles("admin"))):
-    await db.users.update_one({"id": user_id}, {"$set": {"status": "rechazado"}})
-    return {"message": "Rechazado"}
-
 @api_router.put("/users/{user_id}/role")
 async def update_role(user_id: str, data: UserRoleUpdate, user=Depends(require_roles("admin"))):
     await db.users.update_one({"id": user_id}, {"$set": {"role": data.role}})
     return {"message": "Rol actualizado"}
 
-@api_router.delete("/users/{user_id}")
-async def delete_user(user_id: str, user=Depends(require_roles("admin"))):
-    await db.users.delete_one({"id": user_id})
-    return {"message": "Eliminado"}
-
 @api_router.get("/drivers")
 async def list_drivers(user=Depends(require_roles("admin", "coordinador"))):
     return await db.users.find({"role": "conductor"}, {"_id": 0, "password_hash": 0}).to_list(1000)
-
-@api_router.put("/drivers/{driver_id}/extra-availability")
-async def toggle_extra_availability(driver_id: str, user=Depends(get_current_user)):
-    driver = await db.users.find_one({"id": driver_id})
-    new_val = not driver.get("extra_available", False)
-    await db.users.update_one({"id": driver_id}, {"$set": {"extra_available": new_val}})
-    return {"message": "Ok", "extra_available": new_val}
-
-@api_router.put("/drivers/{driver_id}/license")
-async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends(require_roles("admin"))):
-    await db.users.update_one({"id": driver_id, "role": "conductor"}, {"$set": {"license_expiry": data.license_expiry}})
-    return {"message": "Ok"}
 
 @api_router.get("/vehicles")
 async def list_vehicles(user=Depends(get_current_user)):
@@ -374,28 +302,9 @@ async def create_vehicle(data: VehicleCreate, user=Depends(require_roles("admin"
     vehicle.pop("_id", None)
     return vehicle
 
-@api_router.put("/vehicles/{vehicle_id}")
-async def update_vehicle(vehicle_id: str, data: VehicleCreate, user=Depends(require_roles("admin"))):
-    await db.vehicles.update_one({"id": vehicle_id}, {"$set": data.model_dump()})
-    return {"message": "Ok"}
-
 @api_router.put("/vehicles/{vehicle_id}/status")
 async def update_vehicle_status(vehicle_id: str, data: VehicleStatusUpdate, user=Depends(require_roles("admin", "coordinador", "conductor"))):
     await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"status": data.status}})
-    return {"message": "Ok"}
-
-@api_router.put("/vehicles/{vehicle_id}/mileage")
-async def update_vehicle_mileage(vehicle_id: str, data: VehicleMileageUpdate, user=Depends(require_roles("admin", "conductor"))):
-    vehicle = await db.vehicles.find_one({"id": vehicle_id})
-    next_maint = vehicle.get("next_maintenance_km", 10000)
-    diff = next_maint - data.mileage
-    alert = "rojo" if diff <= 0 else "amarillo" if diff <= 1000 else None
-    await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": data.mileage, "maintenance_alert": alert}})
-    return {"message": "Ok"}
-
-@api_router.delete("/vehicles/{vehicle_id}")
-async def delete_vehicle(vehicle_id: str, user=Depends(require_roles("admin"))):
-    await db.vehicles.delete_one({"id": vehicle_id})
     return {"message": "Ok"}
 
 # ============ TRIP MANAGEMENT ============
@@ -453,6 +362,7 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
         "accompaniment": data.accompaniment,
         "task_details": data.task_details,
         "staff_count": data.staff_count,
+        "clinical_team": data.clinical_team, # <- Nombre asignado
     }
     await db.trips.insert_one(trip)
     trip.pop("_id", None)
@@ -467,46 +377,20 @@ async def list_trips(user=Depends(get_current_user)):
     return await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
 
 @api_router.get("/trips/pool")
-async def trip_pool(user=Depends(require_roles("conductor", "coordinador"))):
+async def trip_pool(user=Depends(require_roles("conductor", "coordinador", "gestion_camas"))):
     return await db.trips.find({"status": "pendiente", "driver_id": None}, {"_id": 0}).sort("created_at", -1).to_list(1000)
 
 @api_router.get("/trips/active")
-async def active_trips(user=Depends(require_roles("coordinador", "admin"))):
+async def active_trips(user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
     return await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
 
 @api_router.get("/trips/history")
-async def trips_history(user=Depends(require_roles("coordinador", "admin"))):
+async def trips_history(user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
     trips = await db.trips.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
     vehicle_ids = list(set(t.get("vehicle_id") for t in trips if t.get("vehicle_id")))
     vehicles_map = {v["id"]: v["plate"] for v in await db.vehicles.find({"id": {"$in": vehicle_ids}}, {"_id": 0, "id": 1, "plate": 1}).to_list(500)} if vehicle_ids else {}
     for t in trips: t["vehicle_plate"] = vehicles_map.get(t.get("vehicle_id"), "")
     return trips
-
-@api_router.get("/trips/calendar")
-async def trips_calendar(start_date: str = None, end_date: str = None, user=Depends(require_roles("coordinador", "admin"))):
-    query = {"status": {"$ne": "cancelado"}}
-    if start_date and end_date: query["scheduled_date"] = {"$gte": start_date, "$lte": end_date}
-    return await db.trips.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(1000)
-
-@api_router.put("/trips/reorder")
-async def reorder_trips(data: TripReorder, user=Depends(require_roles("coordinador", "admin"))):
-    for i, t_id in enumerate(data.trip_ids):
-        await db.trips.update_one({"id": t_id}, {"$set": {"order_in_group": i}})
-    return {"message": "Ok"}
-
-@api_router.get("/trips/by-vehicle")
-async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordinador", "admin"))):
-    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(500)
-    trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).sort("order_in_group", 1).to_list(5000)
-    res = [{"vehicle": v, "trips": [t for t in trips if t.get("vehicle_id") == v["id"]]} for v in vehicles]
-    unassigned = [t for t in trips if not t.get("vehicle_id")]
-    if unassigned: res.append({"vehicle": {"id": "unassigned", "plate": "Sin Vehiculo"}, "trips": unassigned})
-    return res
-
-@api_router.get("/trips/{trip_id}")
-async def get_trip_detail(trip_id: str, user=Depends(get_current_user)):
-    return await db.trips.find_one({"id": trip_id}, {"_id": 0})
 
 @api_router.put("/trips/{trip_id}")
 async def edit_trip(trip_id: str, data: TripUpdate, user=Depends(get_current_user)):
@@ -523,89 +407,54 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     return {"message": "Asignado"}
 
-@api_router.put("/trips/{trip_id}/unassign")
-async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin", "conductor"))): 
-    await db.trips.update_one({"id": trip_id}, {"$set": {"status": "pendiente", "driver_id": None, "driver_name": None, "vehicle_id": None}})
-    return {"message": "Desasignado"}
-    
 @api_router.put("/trips/{trip_id}/assign")
 async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
     await db.trips.update_one({"id": trip_id}, {"$set": {"driver_id": user["id"], "driver_name": user["name"], "status": "asignado"}})
     return {"message": "Asignado"}
 
-# --- AQUÍ ESTÁN LOS CANDADOS DE KILOMETRAJE ---
+# NUEVA FUNCIÓN PARA GESTIÓN DE CAMAS
+@api_router.put("/trips/{trip_id}/clinical-team")
+async def assign_clinical_team(trip_id: str, data: ClinicalTeamUpdate, user=Depends(require_roles("admin", "coordinador", "gestion_camas", "solicitante"))):
+    await db.trips.update_one({"id": trip_id}, {"$set": {"clinical_team": data.clinical_team, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Personal clínico asignado correctamente"}
+
 @api_router.put("/trips/{trip_id}/status")
 async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(get_current_user)):
     trip = await db.trips.find_one({"id": trip_id})
-    if not trip:
-        raise HTTPException(status_code=404, detail="Viaje no encontrado")
-
+    if not trip: raise HTTPException(status_code=404, detail="Viaje no encontrado")
     update_data = {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}
-    if data.status == "cancelado" and data.cancel_reason: 
-        update_data["cancel_reason"] = data.cancel_reason
-    if data.status == "completado": 
-        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
-    if data.vehicle_id: 
-        update_data["vehicle_id"] = data.vehicle_id
+    if data.status == "cancelado" and data.cancel_reason: update_data["cancel_reason"] = data.cancel_reason
+    if data.status == "completado": update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+    if data.vehicle_id: update_data["vehicle_id"] = data.vehicle_id
 
-    # CANDADO DE INICIO DE VIAJE
     if data.status == "en_curso" and data.mileage is not None: 
         if data.vehicle_id:
             vehicle = await db.vehicles.find_one({"id": data.vehicle_id})
             if vehicle and data.mileage < vehicle.get("mileage", 0):
-                raise HTTPException(status_code=400, detail=f"Error Crítico: El kilometraje inicial ({data.mileage} km) NO puede ser menor al actual registrado en el vehículo ({vehicle.get('mileage', 0)} km).")
-            # Actualizamos el vehículo al iniciar
+                raise HTTPException(status_code=400, detail=f"Error Crítico: El kilometraje inicial ({data.mileage} km) NO puede ser menor al actual registrado ({vehicle.get('mileage', 0)} km).")
             await db.vehicles.update_one({"id": data.vehicle_id}, {"$set": {"mileage": data.mileage}})
         update_data["start_mileage"] = data.mileage
         
-    # CANDADOS DE FIN DE VIAJE
     if data.status == "completado" and data.mileage is not None: 
         start_km = trip.get("start_mileage", 0)
-        
-        # Validación lógica: Fin > Inicio
         if data.mileage <= start_km:
-            raise HTTPException(status_code=400, detail=f"Error Crítico: El kilometraje final ({data.mileage} km) debe ser estrictamente mayor al inicial ({start_km} km).")
-            
-        # Validación límite máximo (1400 km)
+            raise HTTPException(status_code=400, detail=f"Error Crítico: El kilometraje final ({data.mileage} km) debe ser mayor al inicial ({start_km} km).")
         recorrido = data.mileage - start_km
         if recorrido > 1400:
-            raise HTTPException(status_code=400, detail=f"Alerta Anti-Error: Es imposible recorrer {recorrido} km en un solo viaje. Verifique los datos.")
-            
+            raise HTTPException(status_code=400, detail=f"Alerta Anti-Error: Es imposible recorrer {recorrido} km en un solo viaje.")
         update_data["end_mileage"] = data.mileage
-        
-        # Actualizamos el vehículo al finalizar
         veh_id = trip.get("vehicle_id") or data.vehicle_id
-        if veh_id:
-            await db.vehicles.update_one({"id": veh_id}, {"$set": {"mileage": data.mileage}})
+        if veh_id: await db.vehicles.update_one({"id": veh_id}, {"$set": {"mileage": data.mileage}})
 
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     return {"message": "Ok"}
-
-@api_router.put("/trips/{trip_id}/group")
-async def group_trip(trip_id: str, data: TripGroupUpdate, user=Depends(require_roles("conductor"))):
-    await db.trips.update_one({"id": trip_id}, {"$set": {"group_id": data.group_id, "order_in_group": data.order_in_group}})
-    return {"message": "Ok"}
-
-# ============ OTHER ENDPOINTS ============
 
 @api_router.get("/destinations")
 async def list_destinations(user=Depends(get_current_user)):
     return await db.destinations.find({}, {"_id": 0}).to_list(1000)
 
-@api_router.post("/destinations")
-async def create_destination(data: DestinationCreate, user=Depends(require_roles("admin", "coordinador"))):
-    dest = {"id": str(uuid.uuid4()), "name": data.name, "address": data.address, "is_active": True}
-    await db.destinations.insert_one(dest)
-    dest.pop("_id", None)
-    return dest
-
-@api_router.delete("/destinations/{dest_id}")
-async def delete_destination(dest_id: str, user=Depends(require_roles("admin"))):
-    await db.destinations.delete_one({"id": dest_id})
-    return {"message": "Ok"}
-
 @api_router.get("/stats")
-async def get_stats(user=Depends(require_roles("admin", "coordinador"))):
+async def get_stats(user=Depends(require_roles("admin", "coordinador", "gestion_camas"))):
     return {
         "total_trips": await db.trips.count_documents({}),
         "pending_trips": await db.trips.count_documents({"status": "pendiente"}),
@@ -617,16 +466,6 @@ async def get_stats(user=Depends(require_roles("admin", "coordinador"))):
         "pending_users": await db.users.count_documents({"status": "pendiente"})
     }
 
-@api_router.get("/audit-logs")
-async def get_audit_logs(user=Depends(require_roles("admin"))):
-    return await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(5000)
-
-@api_router.post("/seed-admin")
-async def seed_admin():
-    if not await db.users.find_one({"role": "admin"}):
-        await db.users.insert_one({"id": str(uuid.uuid4()), "email": "admin@hospital.cl", "password_hash": pwd_context.hash("admin123"), "name": "Administrador", "role": "admin", "status": "aprobado", "created_at": datetime.now(timezone.utc).isoformat()})
-    return {"message": "Ok"}
-
 app.include_router(api_router)
 
 app.add_middleware(
@@ -636,7 +475,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
