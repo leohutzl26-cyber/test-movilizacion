@@ -39,7 +39,6 @@ if resend_api_key:
     resend.api_key = resend_api_key
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
-# FastAPI
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
@@ -92,7 +91,7 @@ class TripCreate(BaseModel):
     priority: str = "normal"
     notes: str = ""
     trip_type: str = "no_clinico"
-    clinical_team: str = "" # Este es el campo que usará Gestión de Camas para los nombres
+    clinical_team: str = ""
     contact_person: str = ""
     scheduled_date: str = ""
     rut: str = ""
@@ -158,6 +157,11 @@ class DestinationCreate(BaseModel):
     name: str
     address: str = ""
 
+class DestinationUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class ClinicalTeamUpdate(BaseModel):
     clinical_team: str
 
@@ -166,6 +170,29 @@ class UserRoleUpdate(BaseModel):
 
 class DriverLicenseUpdate(BaseModel):
     license_expiry: str
+
+# --- MODELOS BITÁCORA ---
+class VehicleChecklist(BaseModel):
+    vehicle_id: str
+    fuel_level: str
+    lights_ok: bool
+    tires_ok: bool
+    siren_ok: bool
+    clean_interior: bool
+    observations: str = ""
+
+class FuelRecord(BaseModel):
+    vehicle_id: str
+    mileage: float
+    liters: float
+    amount: float
+    receipt_number: str = ""
+
+class IncidentRecord(BaseModel):
+    vehicle_id: str
+    incident_type: str
+    description: str
+    severity: str
 
 # ============ AUTH UTILITIES ============
 
@@ -220,13 +247,12 @@ async def log_action(user_id: str, user_name: str, user_role: str, action: str, 
     }
     await db.audit_logs.insert_one(entry)
 
-# ============ AUTH ENDPOINTS ============
+# ============ ENDPOINTS GENERALES ============
 
 @api_router.post("/auth/register")
 async def register(data: UserRegister):
     existing = await db.users.find_one({"email": data.email}, {"_id": 0})
-    if existing:
-        raise HTTPException(status_code=400, detail="El correo ya esta registrado")
+    if existing: raise HTTPException(status_code=400, detail="El correo ya esta registrado")
     user = {
         "id": str(uuid.uuid4()),
         "email": data.email,
@@ -241,7 +267,7 @@ async def register(data: UserRegister):
     }
     await db.users.insert_one(user)
     await log_action(user["id"], data.name, data.role, "registro", "usuario", user["id"], f"Nuevo usuario registrado: {data.email}")
-    return {"message": "Registro exitoso. Pendiente de aprobacion por administrador.", "user_id": user["id"]}
+    return {"message": "Registro exitoso. Pendiente de aprobacion.", "user_id": user["id"]}
 
 @api_router.post("/auth/login")
 async def login(data: UserLogin):
@@ -255,20 +281,46 @@ async def login(data: UserLogin):
     return {
         "token": token,
         "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "role": user["role"],
-            "shift_type": user.get("shift_type"),
-            "extra_available": user.get("extra_available", False)
+            "id": user["id"], "email": user["email"], "name": user["name"],
+            "role": user["role"], "shift_type": user.get("shift_type"), "extra_available": user.get("extra_available", False)
         }
     }
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: ForgotPassword):
+    user = await db.users.find_one({"email": data.email}, {"_id": 0})
+    if not user: return {"message": "Instrucciones enviadas."}
+    reset_code = ''.join(random.choices(string.digits, k=6))
+    await db.users.update_one({"id": user["id"]}, {"$set": {"reset_token": reset_code}})
+    if resend_api_key:
+        try:
+            html_content = f"<h2>Recuperacion de Contrasena</h2><p>Codigo: <b>{reset_code}</b></p>"
+            params = {"from": SENDER_EMAIL, "to": [data.email], "subject": "Recuperacion de Contrasena", "html": html_content}
+            await asyncio.to_thread(resend.Emails.send, params)
+        except Exception as e: pass
+    return {"message": "Instrucciones enviadas", "reset_token": reset_code}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: ResetPassword):
+    user = await db.users.find_one({"reset_token": data.token})
+    if not user: raise HTTPException(status_code=400, detail="Código inválido")
+    new_hash = pwd_context.hash(data.new_password)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": new_hash, "reset_token": None}})
+    return {"message": "Contrasena actualizada"}
+
+@api_router.put("/auth/change-password")
+async def change_password(data: ChangePassword, user=Depends(get_current_user)):
+    db_user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    if not pwd_context.verify(data.current_password, db_user.get("password_hash", "")):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+    new_hash = pwd_context.hash(data.new_password)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": new_hash}})
+    return {"message": "Contraseña actualizada exitosamente"}
 
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
     return {k: v for k, v in user.items() if k != "password_hash"}
 
-# ============ USER & VEHICLE ENDPOINTS ============
 @api_router.get("/users")
 async def list_users(user=Depends(require_roles("admin"))):
     return await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
@@ -278,14 +330,36 @@ async def approve_user(user_id: str, user=Depends(require_roles("admin"))):
     await db.users.update_one({"id": user_id}, {"$set": {"status": "aprobado"}})
     return {"message": "Aprobado"}
 
+@api_router.put("/users/{user_id}/reject")
+async def reject_user(user_id: str, user=Depends(require_roles("admin"))):
+    await db.users.update_one({"id": user_id}, {"$set": {"status": "rechazado"}})
+    return {"message": "Rechazado"}
+
 @api_router.put("/users/{user_id}/role")
 async def update_role(user_id: str, data: UserRoleUpdate, user=Depends(require_roles("admin"))):
     await db.users.update_one({"id": user_id}, {"$set": {"role": data.role}})
     return {"message": "Rol actualizado"}
 
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, user=Depends(require_roles("admin"))):
+    await db.users.delete_one({"id": user_id})
+    return {"message": "Eliminado"}
+
 @api_router.get("/drivers")
 async def list_drivers(user=Depends(require_roles("admin", "coordinador"))):
     return await db.users.find({"role": "conductor"}, {"_id": 0, "password_hash": 0}).to_list(1000)
+
+@api_router.put("/drivers/{driver_id}/extra-availability")
+async def toggle_extra_availability(driver_id: str, user=Depends(get_current_user)):
+    driver = await db.users.find_one({"id": driver_id})
+    new_val = not driver.get("extra_available", False)
+    await db.users.update_one({"id": driver_id}, {"$set": {"extra_available": new_val}})
+    return {"message": "Ok", "extra_available": new_val}
+
+@api_router.put("/drivers/{driver_id}/license")
+async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends(require_roles("admin"))):
+    await db.users.update_one({"id": driver_id, "role": "conductor"}, {"$set": {"license_expiry": data.license_expiry}})
+    return {"message": "Ok"}
 
 @api_router.get("/vehicles")
 async def list_vehicles(user=Depends(get_current_user)):
@@ -302,67 +376,57 @@ async def create_vehicle(data: VehicleCreate, user=Depends(require_roles("admin"
     vehicle.pop("_id", None)
     return vehicle
 
+@api_router.put("/vehicles/{vehicle_id}")
+async def update_vehicle(vehicle_id: str, data: VehicleCreate, user=Depends(require_roles("admin"))):
+    await db.vehicles.update_one({"id": vehicle_id}, {"$set": data.model_dump()})
+    return {"message": "Ok"}
+
 @api_router.put("/vehicles/{vehicle_id}/status")
 async def update_vehicle_status(vehicle_id: str, data: VehicleStatusUpdate, user=Depends(require_roles("admin", "coordinador", "conductor"))):
     await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"status": data.status}})
     return {"message": "Ok"}
 
-# ============ TRIP MANAGEMENT ============
+@api_router.put("/vehicles/{vehicle_id}/mileage")
+async def update_vehicle_mileage(vehicle_id: str, data: VehicleMileageUpdate, user=Depends(require_roles("admin", "conductor"))):
+    vehicle = await db.vehicles.find_one({"id": vehicle_id})
+    next_maint = vehicle.get("next_maintenance_km", 10000)
+    diff = next_maint - data.mileage
+    alert = "rojo" if diff <= 0 else "amarillo" if diff <= 1000 else None
+    await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"mileage": data.mileage, "maintenance_alert": alert}})
+    return {"message": "Ok"}
+
+@api_router.delete("/vehicles/{vehicle_id}")
+async def delete_vehicle(vehicle_id: str, user=Depends(require_roles("admin"))):
+    await db.vehicles.delete_one({"id": vehicle_id})
+    return {"message": "Ok"}
+
+# ============ TRIP MANAGEMENT (RESTORED COMPLETELY) ============
 
 @api_router.post("/trips")
 async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante", "coordinador", "admin"))):
     today_str = datetime.now(timezone.utc).strftime("%y%m%d")
     today_prefix = f"TR-{today_str}-"
-    
     count_today = await db.trips.count_documents({"tracking_number": {"$regex": f"^{today_prefix}"}})
     sequential = count_today + 1
     folio = f"{today_prefix}{sequential:03d}"
-    
     while await db.trips.find_one({"tracking_number": folio}):
         sequential += 1
         folio = f"{today_prefix}{sequential:03d}"
 
     trip = {
-        "id": str(uuid.uuid4()),
-        "tracking_number": folio,
-        "requester_id": user["id"],
-        "requester_name": user["name"],
-        "driver_id": None,
-        "driver_name": None,
-        "origin": data.origin,
-        "destination": data.destination,
-        "patient_name": data.patient_name,
-        "patient_unit": data.patient_unit,
-        "priority": data.priority,
-        "status": "pendiente",
-        "group_id": None,
-        "order_in_group": 0,
-        "notes": data.notes,
-        "trip_type": data.trip_type,
+        "id": str(uuid.uuid4()), "tracking_number": folio, "requester_id": user["id"], "requester_name": user["name"],
+        "driver_id": None, "driver_name": None, "origin": data.origin, "destination": data.destination,
+        "patient_name": data.patient_name, "patient_unit": data.patient_unit, "priority": data.priority,
+        "status": "pendiente", "group_id": None, "order_in_group": 0, "notes": data.notes, "trip_type": data.trip_type,
         "scheduled_date": data.scheduled_date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        "vehicle_id": None,
-        "start_mileage": None,
-        "end_mileage": None,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-        "completed_at": None,
-        
-        "rut": data.rut,
-        "age": data.age,
-        "diagnosis": data.diagnosis,
-        "weight": data.weight,
-        "bed": data.bed,
-        "transfer_reason": data.transfer_reason,
-        "requester_person": data.requester_person,
-        "attending_physician": data.attending_physician,
-        "appointment_time": data.appointment_time,
-        "departure_time": data.departure_time,
-        "required_personnel": data.required_personnel,
-        "patient_requirements": data.patient_requirements,
-        "accompaniment": data.accompaniment,
-        "task_details": data.task_details,
-        "staff_count": data.staff_count,
-        "clinical_team": data.clinical_team, # <- Nombre asignado
+        "vehicle_id": None, "start_mileage": None, "end_mileage": None,
+        "created_at": datetime.now(timezone.utc).isoformat(), "updated_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None, "rut": data.rut, "age": data.age, "diagnosis": data.diagnosis, "weight": data.weight,
+        "bed": data.bed, "transfer_reason": data.transfer_reason, "requester_person": data.requester_person,
+        "attending_physician": data.attending_physician, "appointment_time": data.appointment_time, "departure_time": data.departure_time,
+        "required_personnel": data.required_personnel, "patient_requirements": data.patient_requirements,
+        "accompaniment": data.accompaniment, "task_details": data.task_details, "staff_count": data.staff_count,
+        "clinical_team": data.clinical_team,
     }
     await db.trips.insert_one(trip)
     trip.pop("_id", None)
@@ -392,6 +456,33 @@ async def trips_history(user=Depends(require_roles("coordinador", "admin", "gest
     for t in trips: t["vehicle_plate"] = vehicles_map.get(t.get("vehicle_id"), "")
     return trips
 
+# --- RUTAS DE PIZARRA Y CALENDARIO (ESTAS ERAN LAS QUE ELIMINÉ POR ERROR) ---
+@api_router.get("/trips/calendar")
+async def trips_calendar(start_date: str = None, end_date: str = None, user=Depends(require_roles("coordinador", "admin"))):
+    query = {"status": {"$ne": "cancelado"}}
+    if start_date and end_date: query["scheduled_date"] = {"$gte": start_date, "$lte": end_date}
+    return await db.trips.find(query, {"_id": 0}).sort("scheduled_date", 1).to_list(1000)
+
+@api_router.put("/trips/reorder")
+async def reorder_trips(data: TripReorder, user=Depends(require_roles("coordinador", "admin"))):
+    for i, t_id in enumerate(data.trip_ids):
+        await db.trips.update_one({"id": t_id}, {"$set": {"order_in_group": i}})
+    return {"message": "Ok"}
+
+@api_router.get("/trips/by-vehicle")
+async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordinador", "admin"))):
+    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(500)
+    trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).sort("order_in_group", 1).to_list(5000)
+    res = [{"vehicle": v, "trips": [t for t in trips if t.get("vehicle_id") == v["id"]]} for v in vehicles]
+    unassigned = [t for t in trips if not t.get("vehicle_id")]
+    if unassigned: res.append({"vehicle": {"id": "unassigned", "plate": "Sin Vehiculo"}, "trips": unassigned})
+    return res
+
+@api_router.get("/trips/{trip_id}")
+async def get_trip_detail(trip_id: str, user=Depends(get_current_user)):
+    return await db.trips.find_one({"id": trip_id}, {"_id": 0})
+
 @api_router.put("/trips/{trip_id}")
 async def edit_trip(trip_id: str, data: TripUpdate, user=Depends(get_current_user)):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
@@ -407,17 +498,22 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     return {"message": "Asignado"}
 
+@api_router.put("/trips/{trip_id}/unassign")
+async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin", "conductor"))): 
+    await db.trips.update_one({"id": trip_id}, {"$set": {"status": "pendiente", "driver_id": None, "driver_name": None, "vehicle_id": None}})
+    return {"message": "Desasignado"}
+    
 @api_router.put("/trips/{trip_id}/assign")
 async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
     await db.trips.update_one({"id": trip_id}, {"$set": {"driver_id": user["id"], "driver_name": user["name"], "status": "asignado"}})
     return {"message": "Asignado"}
 
-# NUEVA FUNCIÓN PARA GESTIÓN DE CAMAS
 @api_router.put("/trips/{trip_id}/clinical-team")
 async def assign_clinical_team(trip_id: str, data: ClinicalTeamUpdate, user=Depends(require_roles("admin", "coordinador", "gestion_camas", "solicitante"))):
     await db.trips.update_one({"id": trip_id}, {"$set": {"clinical_team": data.clinical_team, "updated_at": datetime.now(timezone.utc).isoformat()}})
     return {"message": "Personal clínico asignado correctamente"}
 
+# --- CANDADOS DE KILOMETRAJE ---
 @api_router.put("/trips/{trip_id}/status")
 async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(get_current_user)):
     trip = await db.trips.find_one({"id": trip_id})
@@ -449,6 +545,73 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     return {"message": "Ok"}
 
+@api_router.put("/trips/{trip_id}/group")
+async def group_trip(trip_id: str, data: TripGroupUpdate, user=Depends(require_roles("conductor"))):
+    await db.trips.update_one({"id": trip_id}, {"$set": {"group_id": data.group_id, "order_in_group": data.order_in_group}})
+    return {"message": "Ok"}
+
+# ============ ENDPOINTS BITÁCORA ============
+
+@api_router.post("/logbook/checklist")
+async def create_checklist(data: VehicleChecklist, user=Depends(require_roles("conductor"))):
+    doc = data.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["driver_id"] = user["id"]
+    doc["driver_name"] = user["name"]
+    doc["timestamp"] = datetime.now(timezone.utc).isoformat()
+    doc["type"] = "checklist"
+    await db.logbook.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.post("/logbook/fuel")
+async def create_fuel_record(data: FuelRecord, user=Depends(require_roles("conductor"))):
+    doc = data.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["driver_id"] = user["id"]
+    doc["driver_name"] = user["name"]
+    doc["timestamp"] = datetime.now(timezone.utc).isoformat()
+    doc["type"] = "fuel"
+    
+    vehicle = await db.vehicles.find_one({"id": data.vehicle_id})
+    if vehicle and data.mileage < vehicle.get("mileage", 0):
+        raise HTTPException(status_code=400, detail=f"Error Crítico: Kilometraje ingresado ({data.mileage}) es menor al de la ambulancia ({vehicle.get('mileage', 0)}).")
+    
+    await db.vehicles.update_one({"id": data.vehicle_id}, {"$set": {"mileage": data.mileage}})
+    await db.logbook.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.post("/logbook/incident")
+async def create_incident(data: IncidentRecord, user=Depends(require_roles("conductor"))):
+    doc = data.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["driver_id"] = user["id"]
+    doc["driver_name"] = user["name"]
+    doc["timestamp"] = datetime.now(timezone.utc).isoformat()
+    doc["type"] = "incident"
+    await db.logbook.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/logbook/{vehicle_id}")
+async def get_vehicle_logbook(vehicle_id: str, date: str = None, user=Depends(get_current_user)):
+    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    trips = await db.trips.find({
+        "vehicle_id": vehicle_id, 
+        "scheduled_date": target_date,
+        "status": {"$ne": "cancelado"}
+    }, {"_id": 0}).to_list(100)
+    
+    logs = await db.logbook.find({
+        "vehicle_id": vehicle_id,
+        "timestamp": {"$regex": f"^{target_date}"}
+    }, {"_id": 0}).to_list(100)
+    
+    return {"trips": trips, "logs": logs}
+
+# ============ OTHER ENDPOINTS ============
+
 @api_router.get("/destinations")
 async def list_destinations(user=Depends(get_current_user)):
     return await db.destinations.find({}, {"_id": 0}).to_list(1000)
@@ -466,6 +629,16 @@ async def get_stats(user=Depends(require_roles("admin", "coordinador", "gestion_
         "pending_users": await db.users.count_documents({"status": "pendiente"})
     }
 
+@api_router.get("/audit-logs")
+async def get_audit_logs(user=Depends(require_roles("admin"))):
+    return await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(5000)
+
+@api_router.post("/seed-admin")
+async def seed_admin():
+    if not await db.users.find_one({"role": "admin"}):
+        await db.users.insert_one({"id": str(uuid.uuid4()), "email": "admin@hospital.cl", "password_hash": pwd_context.hash("admin123"), "name": "Administrador", "role": "admin", "status": "aprobado", "created_at": datetime.now(timezone.utc).isoformat()})
+    return {"message": "Ok"}
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -475,3 +648,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    client.close()
