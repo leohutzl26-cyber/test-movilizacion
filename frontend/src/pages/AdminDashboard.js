@@ -1,571 +1,214 @@
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, Truck, MapPin, ClipboardList, Plus, Check, X, Trash2, Edit, AlertTriangle, Shield, Search, TrendingUp, Activity } from "lucide-react";
+import { CheckCircle, XCircle, Shield, Trash2, Clock, MapPin, Search } from "lucide-react";
 import api from "@/lib/api";
-
-// Importamos Recharts para los gráficos
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function AdminDashboard() {
   const [section, setSection] = useState("dashboard");
+
   return (
-    <div className="min-h-screen bg-slate-50" data-testid="admin-dashboard">
+    <div className="min-h-screen bg-slate-50 flex">
       <Sidebar activeSection={section} onSectionChange={setSection} />
-      <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
-        <div className="p-4 md:p-8">
-          {section === "dashboard" && <DashboardSection />}
-          {section === "users" && <UsersSection />}
-          {section === "vehicles" && <VehiclesSection />}
-          {section === "destinations" && <DestinationsSection />}
-          {section === "drivers" && <DriversSection />}
-          {section === "audit" && <AuditSection />}
-        </div>
+      <main className="flex-1 lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw]">
+        {section === "dashboard" && <AdminOverview onNavigate={setSection} />}
+        {section === "users" && <UsersManager />}
+        {section === "destinations" && <DestinationsManager />}
+        {section === "logs" && <AuditLogs />}
       </main>
     </div>
   );
 }
 
-function DashboardSection() {
+function AdminOverview({ onNavigate }) {
   const [stats, setStats] = useState(null);
-  const [tripsTrend, setTripsTrend] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [statsRes, tripsRes] = await Promise.all([
-          api.get("/stats"),
-          api.get("/trips/history")
-        ]);
-        
-        setStats(statsRes.data);
-
-        // Procesar datos para el gráfico de los últimos 7 días
-        const last7Days = [...Array(7)].map((_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          return d.toISOString().split('T')[0];
-        }).reverse(); 
-
-        const trendData = last7Days.map(date => {
-          const dateObj = new Date(date + "T00:00:00");
-          const label = `${dateObj.getDate()} ${dateObj.toLocaleString('es-ES', { month: 'short' })}`;
-          
-          const count = tripsRes.data.filter(t => 
-            (t.scheduled_date === date) || 
-            (t.created_at && t.created_at.startsWith(date))
-          ).length;
-
-          return { name: label, traslados: count };
-        });
-
-        setTripsTrend(trendData);
-      } catch (error) {
-        console.error("Error cargando dashboard:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
+    api.get("/stats").then(res => setStats(res.data)).catch(() => {});
   }, []);
 
-  if (loading) return <div className="text-center py-12 text-slate-500 flex flex-col items-center"><Activity className="w-8 h-8 animate-spin text-teal-600 mb-2"/> Cargando panel analítico...</div>;
-
-  const cards = [
-    { label: "Viajes Pendientes", value: stats.pending_trips, icon: ClipboardList, color: "text-amber-600 bg-amber-50" },
-    { label: "Viajes Activos", value: stats.active_trips, icon: Truck, color: "text-blue-600 bg-blue-50" },
-    { label: "Completados", value: stats.completed_trips, icon: Check, color: "text-emerald-600 bg-emerald-50" },
-    { label: "Vehiculos Disp.", value: `${stats.vehicles_available}/${stats.total_vehicles}`, icon: Truck, color: "text-teal-600 bg-teal-50" },
-    { label: "Conductores", value: stats.total_drivers, icon: Users, color: "text-indigo-600 bg-indigo-50" },
-    { label: "Usuarios Pendientes", value: stats.pending_users, icon: Shield, color: stats.pending_users > 0 ? "text-red-600 bg-red-50" : "text-slate-600 bg-slate-50" },
-  ];
-
-  const pieData = [
-    { name: 'Pendientes', value: stats.pending_trips, color: '#f59e0b' },
-    { name: 'Activos', value: stats.active_trips, color: '#3b82f6' }, 
-    { name: 'Completados', value: stats.completed_trips, color: '#10b981' }, 
-  ].filter(item => item.value > 0); 
-
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-900" data-testid="dashboard-title">Panel Analítico</h1>
-      
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {cards.map((c) => (
-          <div key={c.label} className="stat-card card-hover animate-slide-up" data-testid={`stat-${c.label.toLowerCase().replace(/ /g,'-')}`}>
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${c.color}`}><c.icon className="w-5 h-5" /></div>
-            <p className="text-2xl font-bold text-slate-900">{c.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{c.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
-        
-        <Card className="lg:col-span-2 shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-teal-600" />
-              Traslados últimos 7 días
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={tripsTrend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <RechartsTooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    cursor={{ fill: '#f1f5f9' }}
-                  />
-                  <Bar dataKey="traslados" fill="#0d9488" radius={[4, 4, 0, 0]} name="Cantidad de Viajes" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Activity className="w-5 h-5 text-teal-600" />
-              Estado Actual
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center">
-            {pieData.length > 0 ? (
-              <div className="h-[240px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip 
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-[240px] flex items-center justify-center text-slate-400">Sin datos actuales</div>
-            )}
-            
-            <div className="flex flex-wrap justify-center gap-4 mt-2 w-full">
-              {pieData.map((entry, index) => (
-                <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                  <span>{entry.name} ({entry.value})</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
+    <div className="animate-slide-up max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Panel de Administración</h1>
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="shadow-sm border-l-4 border-l-amber-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("users")}>
+            <CardContent className="p-6 flex items-center justify-between">
+              <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Usuarios Pendientes</p><p className="text-4xl font-black text-slate-900">{stats.pending_users}</p></div>
+              <Clock className="w-12 h-12 text-amber-200" />
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("users")}>
+            <CardContent className="p-6 flex items-center justify-between">
+              <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Conductores</p><p className="text-4xl font-black text-slate-900">{stats.total_drivers}</p></div>
+              <Shield className="w-12 h-12 text-indigo-200" />
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm border-l-4 border-l-teal-500">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Viajes Históricos</p><p className="text-4xl font-black text-slate-900">{stats.total_trips}</p></div>
+              <CheckCircle className="w-12 h-12 text-teal-200" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
 
-function UsersSection() {
+function UsersManager() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const fetchUsers = useCallback(async () => { try { const r = await api.get("/users"); setUsers(r.data); } catch {} finally { setLoading(false); } }, []);
+
+  const fetchUsers = useCallback(async () => {
+    try { const res = await api.get("/users"); setUsers(res.data); } 
+    catch (error) {} finally { setLoading(false); }
+  }, []);
+
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const handleApprove = async (id) => { try { await api.put(`/users/${id}/approve`); toast.success("Usuario aprobado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
-  const handleReject = async (id) => { try { await api.put(`/users/${id}/reject`); toast.success("Usuario rechazado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
-  const handleDelete = async (id) => { try { await api.delete(`/users/${id}`); toast.success("Usuario eliminado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
-  const handleRoleChange = async (id, role) => { try { await api.put(`/users/${id}/role`, { role }); toast.success("Rol actualizado"); fetchUsers(); } catch (e) { toast.error("Error"); } };
+  const handleAction = async (id, action) => {
+    try {
+      if (action === "delete") {
+        if (window.confirm("¿Eliminar usuario definitivamente?")) {
+          await api.delete(`/users/${id}`); toast.success("Eliminado"); fetchUsers();
+        }
+      } else {
+        await api.put(`/users/${id}/${action}`); toast.success("Estado actualizado"); fetchUsers();
+      }
+    } catch (e) { toast.error("Error en la operación"); }
+  };
 
-  const roleLabels = { admin: "Admin", coordinador: "Coordinador", solicitante: "Solicitante", conductor: "Conductor" };
-  const statusColors = { pendiente: "bg-amber-100 text-amber-800", aprobado: "bg-emerald-100 text-emerald-800", rechazado: "bg-red-100 text-red-800" };
+  const handleRoleChange = async (id, role) => {
+    try { await api.put(`/users/${id}/role`, { role }); toast.success("Rol actualizado"); fetchUsers(); } 
+    catch (e) { toast.error("Error al cambiar rol"); }
+  };
 
-  if (loading) return <div className="text-center py-12 text-slate-500">Cargando usuarios...</div>;
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6" data-testid="users-title">Gestión de Usuarios</h1>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead><TableHead>Rol</TableHead><TableHead>Estado</TableHead><TableHead>Acciones</TableHead></TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((u) => (
-                <TableRow key={u.id} data-testid={`user-row-${u.id}`}>
-                  <TableCell className="font-medium">{u.name}</TableCell>
-                  <TableCell className="text-sm text-slate-500">{u.email}</TableCell>
-                  <TableCell>
-                    <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
-                      <SelectTrigger className="w-32 h-8 text-xs" data-testid={`role-select-${u.id}`}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColors[u.status]}`}>{u.status}</span></TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
+    <div className="max-w-6xl mx-auto animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Gestión de Usuarios</h1>
+      {loading ? <p className="text-slate-500 text-center py-10">Cargando usuarios...</p> : (
+        <Card className="shadow-sm">
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                <tr><th className="p-4">Nombre / Email</th><th className="p-4">Rol</th><th className="p-4 text-center">Estado</th><th className="p-4 text-right">Acciones</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map(u => (
+                  <tr key={u.id} className="hover:bg-slate-50">
+                    <td className="p-4"><p className="font-bold text-slate-900">{u.name}</p><p className="text-slate-500">{u.email}</p></td>
+                    <td className="p-4">
+                      <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
+                        <SelectTrigger className="w-40 h-8 text-xs font-bold"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="solicitante">Solicitante</SelectItem>
+                          <SelectItem value="conductor">Conductor</SelectItem>
+                          <SelectItem value="coordinador">Coordinador</SelectItem>
+                          <SelectItem value="gestion_camas">Gestión de Camas</SelectItem>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-4 text-center">
+                      <Badge className={u.status === "aprobado" ? "bg-emerald-100 text-emerald-800 border-emerald-200" : u.status === "pendiente" ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200"}>{u.status}</Badge>
+                    </td>
+                    <td className="p-4 text-right space-x-2">
                       {u.status === "pendiente" && (
-                        <>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleApprove(u.id)} data-testid={`approve-${u.id}`}><Check className="w-4 h-4" /></Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 hover:bg-red-50" onClick={() => handleReject(u.id)} data-testid={`reject-${u.id}`}><X className="w-4 h-4" /></Button>
-                        </>
+                        <><Button size="sm" onClick={() => handleAction(u.id, "approve")} className="bg-teal-600 text-white h-8"><CheckCircle className="w-4 h-4 mr-1"/>Aprobar</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleAction(u.id, "reject")} className="text-red-600 border-red-200 h-8"><XCircle className="w-4 h-4 mr-1"/>Rechazar</Button></>
                       )}
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => handleDelete(u.id)} data-testid={`delete-user-${u.id}`}><Trash2 className="w-4 h-4" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {users.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-400">Sin usuarios registrados</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                      <Button size="icon" variant="ghost" onClick={() => handleAction(u.id, "delete")} className="text-slate-400 hover:text-red-600 h-8 w-8"><Trash2 className="w-4 h-4"/></Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
 
-function VehiclesSection() {
-  const [vehicles, setVehicles] = useState([]);
-  const [showDialog, setShowDialog] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 });
-  const [loading, setLoading] = useState(true);
-  const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data); } catch {} finally { setLoading(false); } }, []);
-  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+function DestinationsManager() {
+  const [dests, setDests] = useState([]);
+  const [name, setName] = useState("");
+  const fetchDests = useCallback(async () => { try { const res = await api.get("/destinations"); setDests(res.data); } catch (e) {} }, []);
+  useEffect(() => { fetchDests(); }, [fetchDests]);
 
-  const handleStatusChange = async (id, status) => {
-    try { await api.put(`/vehicles/${id}/status`, { status }); toast.success("Estado actualizado"); fetchVehicles(); }
-    catch (e) { toast.error("Error"); }
+  const handleAdd = async (e) => {
+    e.preventDefault(); if(!name.trim()) return;
+    try { await api.post("/destinations", { name }); setName(""); fetchDests(); toast.success("Destino agregado"); } 
+    catch (e) { toast.error("Error al agregar"); }
   };
-
+  
   const handleDelete = async (id) => {
-    try { await api.delete(`/vehicles/${id}`); toast.success("Vehiculo eliminado"); fetchVehicles(); }
+    try { await api.delete(`/destinations/${id}`); fetchDests(); toast.success("Eliminado"); } 
     catch (e) { toast.error("Error al eliminar"); }
   };
 
-  const handleEdit = (v) => {
-    setForm({ plate: v.plate, brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, next_maintenance_km: v.next_maintenance_km });
-    setEditId(v.id);
-    setShowDialog(true);
-  };
-
-  const handleSave = async () => {
-    try {
-      if (editId) {
-        await api.put(`/vehicles/${editId}`, form);
-        toast.success("Vehiculo actualizado");
-      } else {
-        await api.post("/vehicles", form);
-        toast.success("Vehiculo creado");
-      }
-      setShowDialog(false); setEditId(null); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); fetchVehicles();
-    } catch (e) { toast.error("Error"); }
-  };
-
-  const statusOptions = ["disponible", "en_servicio", "en_limpieza", "en_taller", "fuera_de_servicio"];
-  const alertIcon = (alert) => {
-    if (alert === "rojo") return <AlertTriangle className="w-4 h-4 text-red-500" />;
-    if (alert === "amarillo") return <AlertTriangle className="w-4 h-4 text-amber-500" />;
-    return null;
-  };
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900" data-testid="vehicles-title">Gestión de Flota</h1>
-        <Button onClick={() => { setEditId(null); setForm({ plate: "", brand: "", model: "", year: 2024, mileage: 0, next_maintenance_km: 10000 }); setShowDialog(true); }} className="bg-teal-600 hover:bg-teal-700" data-testid="add-vehicle-btn"><Plus className="w-4 h-4 mr-2" />Agregar Vehiculo</Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {vehicles.map((v) => (
-          <Card key={v.id} className={`card-hover ${v.maintenance_alert === "rojo" ? "border-red-300 border-2 bg-red-50" : v.maintenance_alert === "amarillo" ? "border-amber-300 border-2 bg-amber-50" : ""}`} data-testid={`vehicle-${v.id}`}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{v.plate}</CardTitle>
-                <div className="flex items-center gap-1">{alertIcon(v.maintenance_alert)}<span className={`px-2 py-1 rounded-full text-xs font-semibold status-${v.status}`}>{v.status.replace(/_/g, ' ')}</span></div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600">{v.brand} {v.model} ({v.year})</p>
-              <div className="mt-3 flex items-center justify-between bg-white p-2 rounded border border-slate-100">
-                <div><p className="text-[10px] text-slate-500 uppercase tracking-wider">Kilometraje</p><p className="font-semibold text-slate-900">{(v.mileage || 0).toLocaleString()} km</p></div>
-                <div className="text-right"><p className="text-[10px] text-slate-500 uppercase tracking-wider">Próx. Mant.</p><p className="font-semibold text-slate-900">{(v.next_maintenance_km || 0).toLocaleString()} km</p></div>
-              </div>
-              <Select value={v.status} onValueChange={(val) => handleStatusChange(v.id, val)}>
-                <SelectTrigger className="mt-3 h-9 text-xs" data-testid={`vehicle-status-${v.id}`}><SelectValue /></SelectTrigger>
-                <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
-              </Select>
-              <div className="flex gap-2 mt-2">
-                <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => handleEdit(v)} data-testid={`edit-vehicle-${v.id}`}><Edit className="w-3 h-3 mr-1" />Editar</Button>
-                <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-xs" onClick={() => handleDelete(v.id)} data-testid={`delete-vehicle-${v.id}`}><Trash2 className="w-3 h-3 mr-1" />Eliminar</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {vehicles.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin vehiculos registrados</p>}
-      </div>
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent data-testid="add-vehicle-dialog">
-          <DialogHeader><DialogTitle>{editId ? "Editar Vehiculo" : "Agregar Vehiculo"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="space-y-2"><Label>Patente</Label><Input data-testid="vehicle-plate-input" value={form.plate} onChange={e => setForm({...form, plate: e.target.value})} placeholder="Ej: AB-CD-12" /></div>
-            <div className="space-y-2"><Label>Marca</Label><Input data-testid="vehicle-brand-input" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} placeholder="Ej: Ford" /></div>
-            <div className="space-y-2"><Label>Modelo</Label><Input data-testid="vehicle-model-input" value={form.model} onChange={e => setForm({...form, model: e.target.value})} placeholder="Ej: Transit" /></div>
-            <div className="space-y-2"><Label>Año</Label><Input data-testid="vehicle-year-input" type="number" value={form.year} onChange={e => setForm({...form, year: parseInt(e.target.value)})} /></div>
-            <div className="space-y-2"><Label>Kilometraje Actual</Label><Input data-testid="vehicle-mileage-input" type="number" value={form.mileage} onChange={e => setForm({...form, mileage: parseFloat(e.target.value)})} /></div>
-            <div className="space-y-2"><Label>Próxima Mantención</Label><Input data-testid="vehicle-maint-input" type="number" value={form.next_maintenance_km} onChange={e => setForm({...form, next_maintenance_km: parseFloat(e.target.value)})} /></div>
+    <div className="max-w-3xl mx-auto animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Puntos Frecuentes (Orígenes/Destinos)</h1>
+      <Card className="mb-6 shadow-sm"><CardContent className="p-5">
+        <form onSubmit={handleAdd} className="flex gap-3 items-end">
+          <div className="flex-1 space-y-2"><Label className="font-bold">Nombre del Destino</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Hospital Base, Cesfam X..." className="h-11" /></div>
+          <Button type="submit" className="h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold">Agregar a Lista</Button>
+        </form>
+      </CardContent></Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {dests.map(d => (
+          <div key={d.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center group hover:border-teal-300 transition-colors">
+            <span className="font-bold text-slate-700 flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-500"/> {d.name}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={()=>handleDelete(d.id)}><Trash2 className="w-4 h-4"/></Button>
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setShowDialog(false)} data-testid="cancel-vehicle-btn">Cancelar</Button>
-            <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700" data-testid="save-vehicle-btn">{editId ? "Actualizar" : "Guardar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        ))}
+      </div>
     </div>
   );
 }
 
-function DestinationsSection() {
-  const [destinations, setDestinations] = useState([]);
-  const [showDialog, setShowDialog] = useState(false);
-  const [form, setForm] = useState({ name: "", address: "" });
-  const [loading, setLoading] = useState(true);
-  const fetchDest = useCallback(async () => { try { const r = await api.get("/destinations"); setDestinations(r.data); } catch {} finally { setLoading(false); } }, []);
-  useEffect(() => { fetchDest(); }, [fetchDest]);
-
-  const handleCreate = async () => {
-    try { await api.post("/destinations", form); toast.success("Destino creado"); setShowDialog(false); setForm({ name: "", address: "" }); fetchDest(); }
-    catch (e) { toast.error("Error"); }
-  };
-  const handleDelete = async (id) => { try { await api.delete(`/destinations/${id}`); toast.success("Destino eliminado"); fetchDest(); } catch { toast.error("Error"); } };
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900" data-testid="destinations-title">Destinos Frecuentes</h1>
-        <Button onClick={() => setShowDialog(true)} className="bg-teal-600 hover:bg-teal-700" data-testid="add-destination-btn"><Plus className="w-4 h-4 mr-2" />Agregar Destino</Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {destinations.map((d) => (
-          <Card key={d.id} className="card-hover" data-testid={`destination-${d.id}`}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-600" /><p className="font-semibold text-slate-900">{d.name}</p></div>
-                {d.address && <p className="text-sm text-slate-500 mt-1 ml-6">{d.address}</p>}
-              </div>
-              <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => handleDelete(d.id)} data-testid={`delete-dest-${d.id}`}><Trash2 className="w-4 h-4" /></Button>
-            </CardContent>
-          </Card>
-        ))}
-        {destinations.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin destinos registrados</p>}
-      </div>
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent data-testid="add-destination-dialog">
-          <DialogHeader><DialogTitle>Agregar Destino</DialogTitle></DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2"><Label>Nombre del destino</Label><Input data-testid="dest-name-input" placeholder="Ej: Urgencias Adulto" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Ubicación / Detalles (opcional)</Label><Input data-testid="dest-address-input" placeholder="Ej: Piso 1, Ala Norte" value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></div>
-          </div>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} className="bg-teal-600 hover:bg-teal-700" data-testid="save-destination-btn">Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function AuditSection() {
+function AuditLogs() {
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterAction, setFilterAction] = useState("");
-  const [filterEntity, setFilterEntity] = useState("");
+  useEffect(() => { api.get("/audit-logs").then(r => setLogs(r.data)).catch(()=>{}); }, []);
 
-  useEffect(() => { api.get("/audit-logs").then(r => { setLogs(r.data); setLoading(false); }).catch(() => setLoading(false)); }, []);
-
-  const actionLabels = {
-    registro: "Registro", aprobar_usuario: "Aprobar Usuario", rechazar_usuario: "Rechazar Usuario",
-    cambiar_rol: "Cambiar Rol", eliminar_usuario: "Eliminar Usuario",
-    crear_vehiculo: "Crear Vehiculo", cambiar_estado_vehiculo: "Cambiar Estado Vehiculo", eliminar_vehiculo: "Eliminar Vehiculo",
-    crear_traslado: "Crear Traslado", asignar_traslado: "Asignar Traslado", tomar_traslado: "Tomar Traslado",
-    cambiar_estado_traslado: "Cambiar Estado Traslado"
-  };
-  const entityLabels = { usuario: "Usuario", vehiculo: "Vehículo", traslado: "Traslado" };
-  const actionColors = {
-    registro: "bg-blue-100 text-blue-700", aprobar_usuario: "bg-emerald-100 text-emerald-700",
-    rechazar_usuario: "bg-red-100 text-red-700", cambiar_rol: "bg-violet-100 text-violet-700",
-    eliminar_usuario: "bg-red-100 text-red-700", crear_vehiculo: "bg-teal-100 text-teal-700",
-    cambiar_estado_vehiculo: "bg-amber-100 text-amber-700", eliminar_vehiculo: "bg-red-100 text-red-700",
-    crear_traslado: "bg-teal-100 text-teal-700", asignar_traslado: "bg-blue-100 text-blue-700",
-    tomar_traslado: "bg-blue-100 text-blue-700", cambiar_estado_traslado: "bg-amber-100 text-amber-700"
-  };
-  const roleLabels = { admin: "Admin", coordinador: "Coordinador", solicitante: "Solicitante", conductor: "Conductor" };
-
-  const filtered = logs.filter(l => {
-    if (filterAction && l.action !== filterAction) return false;
-    if (filterEntity && l.entity_type !== filterEntity) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const fields = [l.user_name, l.action, l.entity_type, l.details].filter(Boolean);
-      if (!fields.some(f => f.toLowerCase().includes(q))) return false;
-    }
-    return true;
-  });
-
-  const formatTs = (iso) => {
-    if (!iso) return "-";
-    try { const d = new Date(iso); return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
-    catch { return iso; }
-  };
-
-  const uniqueActions = [...new Set(logs.map(l => l.action))];
-  const uniqueEntities = [...new Set(logs.map(l => l.entity_type))];
-
-  if (loading) return <div className="text-center py-12 text-slate-500">Cargando registro de auditoría...</div>;
+  const filtered = logs.filter(l => l.user_name.toLowerCase().includes(search.toLowerCase()) || l.action.toLowerCase().includes(search.toLowerCase()) || l.details.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-4" data-testid="audit-title">Registro de Actividad (Auditoría)</h1>
-
-      <div className="flex flex-wrap gap-3 mb-4 bg-white p-3 rounded-lg border shadow-sm">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input placeholder="Buscar por usuario, acción, detalle..." className="pl-10 h-10 bg-slate-50 border-transparent focus:bg-white focus:border-slate-300" value={search} onChange={e => setSearch(e.target.value)} data-testid="audit-search" />
-        </div>
-        <Select value={filterAction} onValueChange={v => setFilterAction(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-[200px] h-10" data-testid="audit-filter-action"><SelectValue placeholder="Todas las acciones" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las acciones</SelectItem>
-            {uniqueActions.map(a => <SelectItem key={a} value={a}>{actionLabels[a] || a}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterEntity} onValueChange={v => setFilterEntity(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-[160px] h-10" data-testid="audit-filter-entity"><SelectValue placeholder="Todas las entidades" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las entidades</SelectItem>
-            {uniqueEntities.map(e => <SelectItem key={e} value={e}>{entityLabels[e] || e}</SelectItem>)}
-          </SelectContent>
-        </Select>
+    <div className="max-w-6xl mx-auto animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Registro de Auditoría</h1>
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+        <Input placeholder="Buscar por usuario, acción o detalles..." className="pl-11 h-12 bg-white border-slate-300 shadow-sm" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
-
-      <p className="text-sm text-slate-500 mb-3">{filtered.length} registros encontrados</p>
-
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="text-xs font-semibold">Fecha y Hora</TableHead>
-                <TableHead className="text-xs font-semibold">Usuario</TableHead>
-                <TableHead className="text-xs font-semibold">Rol</TableHead>
-                <TableHead className="text-xs font-semibold">Acción</TableHead>
-                <TableHead className="text-xs font-semibold">Entidad</TableHead>
-                <TableHead className="text-xs font-semibold">Detalle del Evento</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.slice(0, 200).map(l => (
-                <TableRow key={l.id} data-testid={`audit-row-${l.id}`} className="hover:bg-slate-50">
-                  <TableCell className="text-xs whitespace-nowrap text-slate-500">{formatTs(l.timestamp)}</TableCell>
-                  <TableCell className="text-xs font-medium">{l.user_name}</TableCell>
-                  <TableCell><span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">{roleLabels[l.user_role] || l.user_role}</span></TableCell>
-                  <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${actionColors[l.action] || "bg-slate-100 text-slate-700"}`}>{actionLabels[l.action] || l.action}</span></TableCell>
-                  <TableCell className="text-xs capitalize font-medium text-slate-700">{entityLabels[l.entity_type] || l.entity_type}</TableCell>
-                  <TableCell className="text-xs text-slate-600 max-w-[250px] truncate">{l.details || "-"}</TableCell>
-                </TableRow>
+      <Card className="shadow-sm">
+        <CardContent className="p-0 max-h-[600px] overflow-y-auto custom-scrollbar">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider sticky top-0">
+              <tr><th className="p-4">Fecha/Hora</th><th className="p-4">Usuario</th><th className="p-4">Acción</th><th className="p-4">Detalle del Sistema</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map(l => (
+                <tr key={l.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="p-4 text-slate-500 font-medium whitespace-nowrap">{new Date(l.timestamp).toLocaleString()}</td>
+                  <td className="p-4"><p className="font-bold text-slate-900">{l.user_name}</p><p className="text-[10px] uppercase font-bold text-teal-600">{l.user_role.replace(/_/g, " ")}</p></td>
+                  <td className="p-4"><Badge variant="outline" className="bg-white">{l.action}</Badge></td>
+                  <td className="p-4 text-slate-600 max-w-md truncate">{l.details}</td>
+                </tr>
               ))}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-12 text-slate-400">Sin registros de actividad</TableCell></TableRow>}
-            </TableBody>
-          </Table>
+              {filtered.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-slate-400">No se encontraron registros de auditoría.</td></tr>}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function DriversSection() {
-  const [drivers, setDrivers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  const fetchDrivers = useCallback(async () => { 
-    try { const r = await api.get("/drivers"); setDrivers(r.data); } 
-    catch {} finally { setLoading(false); } 
-  }, []);
-  
-  useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
-
-  const handleLicenseUpdate = async (id, date) => {
-    try { 
-      await api.put(`/drivers/${id}/license`, { license_expiry: date }); 
-      toast.success("Licencia actualizada exitosamente"); 
-      fetchDrivers(); 
-    } catch (e) { toast.error("Error al actualizar licencia"); }
-  };
-
-  const isLicenseExpired = (expiry) => {
-    if (!expiry) return false;
-    try { return new Date(expiry) < new Date(); } catch { return false; }
-  };
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Gestión de Conductores y Licencias</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {drivers.map(d => (
-          <Card key={d.id} className={`card-hover ${isLicenseExpired(d.license_expiry) ? "border-red-300 border-2 bg-red-50" : ""}`}>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="font-semibold text-slate-900 text-lg">{d.name}</p>
-                  <p className="text-xs text-slate-500">{d.email}</p>
-                </div>
-                {d.extra_available && <Badge className="bg-teal-100 text-teal-700 border-0">Disponible Extra</Badge>}
-              </div>
-              {isLicenseExpired(d.license_expiry) && (
-                <div className="flex items-center gap-2 mb-3 p-2 bg-red-100 rounded-lg border border-red-200 text-red-800">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Licencia vencida</span>
-                </div>
-              )}
-              <div className="space-y-2 mt-4">
-                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Fecha Vencimiento Licencia</p>
-                <Input
-                  type="date"
-                  className="w-full h-10 font-medium"
-                  value={d.license_expiry ? d.license_expiry.split("T")[0] : ""}
-                  onChange={(e) => handleLicenseUpdate(d.id, e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {drivers.length === 0 && !loading && <p className="text-slate-400 col-span-full text-center py-12">Sin conductores registrados</p>}
-      </div>
     </div>
   );
 }
