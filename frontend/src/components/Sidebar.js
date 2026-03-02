@@ -1,120 +1,195 @@
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, Users, PlusCircle, LogOut, FileText, Truck, MapPin, CalendarDays, BedDouble } from "lucide-react"; // Añadido BedDouble
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import api from "@/lib/api";
 
 export default function Sidebar({ activeSection, onSectionChange }) {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // Estados para el modal de cambio de contraseña
+  const [passwordDialog, setPasswordDialog] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
+  const [loading, setLoading] = useState(false);
 
-  const handleLogout = () => { logout(); navigate("/"); };
-
-  const menuItems = {
+  const navItems = {
     admin: [
-      { id: "dashboard", label: "Panel Principal", icon: Home },
+      { id: "dashboard", label: "Panel Analítico", icon: Home },
       { id: "users", label: "Usuarios", icon: Users },
+      { id: "vehicles", label: "Flota", icon: Truck },
       { id: "destinations", label: "Destinos", icon: MapPin },
-      { id: "logs", label: "Auditoría", icon: FileText }
+      { id: "drivers", label: "Conductores", icon: ClipboardList },
+      { id: "audit", label: "Auditoría", icon: Shield },
     ],
     coordinador: [
-      { id: "dispatch", label: "Consola de Despacho", icon: Home },
-      { id: "new", label: "Nuevo Traslado", icon: PlusCircle },
-      { id: "assign", label: "Asignación Rápida", icon: FileText },
-      { id: "byvehicle", label: "Pizarra Kanban", icon: Truck },
+      { id: "dispatch", label: "Despacho en Vivo", icon: Clock },
+      { id: "new", label: "Nueva Solicitud", icon: Plus },
+      { id: "assign", label: "Asignar", icon: ClipboardList },
+      { id: "byvehicle", label: "Pizarra", icon: MapPin },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
+      { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "drivers", label: "Conductores", icon: Users },
-      { id: "vehicles", label: "Flota de Vehículos", icon: Truck },
-      { id: "history", label: "Historial y Reportes", icon: FileText }
+      { id: "history", label: "Historial", icon: Home },
     ],
     conductor: [
-      { id: "pool", label: "Bolsa de Viajes", icon: FileText },
-      { id: "trips", label: "Mis Viajes Asignados", icon: Home },
-      { id: "vehicle", label: "Mi Vehículo", icon: Truck }
+      { id: "pool", label: "Bolsa de Viajes", icon: Clock },
+      { id: "trips", label: "Mis Viajes", icon: Truck },
+      { id: "vehicle", label: "Mi Vehículo", icon: ClipboardList },
     ],
     solicitante: [
-      { id: "new", label: "Solicitar Traslado", icon: PlusCircle },
-      { id: "list", label: "Mis Solicitudes", icon: FileText }
+      { id: "new", label: "Nueva Solicitud", icon: Plus },
+      { id: "list", label: "Mis Solicitudes", icon: ClipboardList },
     ],
-    gestion_camas: [ // NUEVO MENÚ PARA GESTIÓN DE CAMAS
+    gestion_camas: [
       { id: "assign", label: "Asignar Personal Clínico", icon: BedDouble }
     ]
   };
 
-  const items = menuItems[user?.role] || [];
+  const links = user ? navItems[user.role] || [] : [];
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (pwdForm.new_password !== pwdForm.confirm_password) {
+      toast.error("Las contraseñas nuevas no coinciden");
+      return;
+    }
+    if (pwdForm.new_password.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.put("/auth/change-password", {
+        current_password: pwdForm.current_password,
+        new_password: pwdForm.new_password
+      });
+      toast.success("Contraseña actualizada exitosamente");
+      setPasswordDialog(false);
+      setPwdForm({ current_password: "", new_password: "", confirm_password: "" });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Error al actualizar contraseña");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
-      <div className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen fixed left-0 top-0 border-r border-slate-800 z-50">
-        <div className="p-6 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-             <div className="w-8 h-8 bg-teal-500 rounded flex items-center justify-center font-bold text-lg">M</div>
-             <div>
-                <h2 className="text-xl font-bold tracking-tight">Movili<span className="text-teal-400">APP</span></h2>
-             </div>
-          </div>
-          <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-            <p className="text-sm font-medium truncate">{user?.name}</p>
-            <p className="text-[10px] text-teal-400 uppercase tracking-widest font-bold mt-1">{user?.role.replace(/_/g, " ")}</p>
-          </div>
-        </div>
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          {items.map((item) => (
-            <Button
-              key={item.id}
-              variant={activeSection === item.id ? "secondary" : "ghost"}
-              className={`w-full justify-start h-11 transition-all ${
-                activeSection === item.id 
-                  ? "bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 hover:text-teal-300" 
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
-              }`}
-              onClick={() => onSectionChange(item.id)}
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              {item.label}
-            </Button>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-slate-800">
-          <Button variant="ghost" className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10 h-11" onClick={handleLogout}>
-            <LogOut className="mr-3 h-5 w-5" /> Cerrar Sesión
-          </Button>
-        </div>
-      </div>
-      
-      {/* Mobile Topbar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 z-50">
+      <div className="lg:hidden fixed top-0 left-0 w-full h-14 bg-teal-700 flex items-center justify-between px-4 z-50 shadow-md">
         <div className="flex items-center gap-2">
-           <div className="w-6 h-6 bg-teal-500 rounded flex items-center justify-center font-bold text-xs text-white">M</div>
-           <span className="font-bold text-white tracking-tight">Movili<span className="text-teal-400">APP</span></span>
+          <img src="/logo.png" alt="Hospital de Curicó" className="h-8 object-contain" />
         </div>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="text-slate-300 h-8 w-8" onClick={() => {}}>
-            <Home className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-red-400 h-8 w-8" onClick={handleLogout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
-        </div>
+        <button onClick={() => setIsOpen(!isOpen)} className="text-white touch-target p-2 -mr-2">
+          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
       </div>
-      
-      {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex justify-around p-2 pb-safe z-50">
-        {items.slice(0, 4).map((item) => (
-          <Button
-            key={item.id}
-            variant="ghost"
-            className={`flex-col h-14 w-full rounded-lg ${
-              activeSection === item.id 
-                ? "text-teal-400 bg-slate-800" 
-                : "text-slate-400 hover:text-slate-300"
-            }`}
-            onClick={() => onSectionChange(item.id)}
+
+      {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />}
+
+      <div className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"} lg:translate-x-0`}>
+        
+        <div className="h-20 flex items-center justify-center border-b border-slate-100 shrink-0 px-4 bg-slate-50/50">
+          <img src="/logo.png" alt="Hospital de Curicó" className="h-14 object-contain" />
+        </div>
+
+        <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+          {links.map((link) => {
+            const isActive = activeSection === link.id;
+            return (
+              <button
+                key={link.id}
+                onClick={() => { onSectionChange(link.id); setIsOpen(false); }}
+                data-testid={`nav-${link.id}`}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium touch-target
+                  ${isActive 
+                    ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-100" 
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100"}`}
+              >
+                <link.icon className={`w-5 h-5 ${isActive ? "text-teal-600" : "text-slate-400"}`} />
+                {link.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
+          <div className="mb-4 px-2">
+            <p className="text-sm font-bold text-slate-900 truncate" data-testid="user-name">{user?.name}</p>
+            <p className="text-xs text-slate-500 truncate mb-1" data-testid="user-email">{user?.email}</p>
+            <span className="inline-block px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase tracking-wider" data-testid="user-role">
+              {user?.role.replace(/_/g, " ")}
+            </span>
+          </div>
+
+          <button 
+            onClick={() => setPasswordDialog(true)} 
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2"
           >
-            <item.icon className="h-5 w-5 mb-1" />
-            <span className="text-[10px] font-medium truncate w-full text-center">{item.label}</span>
-          </Button>
-        ))}
+            <Key className="w-4 h-4" /> Cambiar Contraseña
+          </button>
+
+          <button 
+            onClick={logout} 
+            data-testid="logout-btn"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+          >
+            <LogOut className="w-4 h-4" /> Cerrar Sesión
+          </button>
+        </div>
       </div>
+
+      <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cambiar Contraseña</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handlePasswordChange} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Contraseña Actual</Label>
+              <Input 
+                type="password" 
+                placeholder="Ingrese su contraseña actual" 
+                value={pwdForm.current_password}
+                onChange={(e) => setPwdForm({...pwdForm, current_password: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nueva Contraseña</Label>
+              <Input 
+                type="password" 
+                placeholder="Mínimo 6 caracteres" 
+                value={pwdForm.new_password}
+                onChange={(e) => setPwdForm({...pwdForm, new_password: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirmar Nueva Contraseña</Label>
+              <Input 
+                type="password" 
+                placeholder="Repita la nueva contraseña" 
+                value={pwdForm.confirm_password}
+                onChange={(e) => setPwdForm({...pwdForm, confirm_password: e.target.value})}
+                required
+              />
+            </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setPasswordDialog(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>
+                {loading ? "Actualizando..." : "Actualizar Contraseña"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
