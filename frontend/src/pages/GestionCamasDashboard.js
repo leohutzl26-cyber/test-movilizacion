@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock } from "lucide-react";
 import api from "@/lib/api";
 
 export default function GestionCamasDashboard() {
-  const [section, setSection] = useState("dashboard"); // Inicia en el nuevo Dashboard
+  const [section, setSection] = useState("dashboard");
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -28,7 +28,7 @@ export default function GestionCamasDashboard() {
 }
 
 // ==========================================
-// NUEVO COMPONENTE: TORRE DE CONTROL (RESUMEN)
+// SECCIÓN 1: TORRE DE CONTROL (RESUMEN)
 // ==========================================
 function ClinicalOverviewSection({ onNavigate }) {
   const [stats, setStats] = useState({ pendingDriver: 0, pendingStaff: 0, activeTrips: 0 });
@@ -37,15 +37,16 @@ function ClinicalOverviewSection({ onNavigate }) {
   const fetchStats = useCallback(async () => {
     try {
       const [pool, active] = await Promise.all([api.get("/trips/pool"), api.get("/trips/active")]);
-      const allClinicos = [...pool.data, ...active.data].filter(t => t.trip_type === "clinico");
+      
+      // FILTRO ANTI-CLONES: Evitamos que un viaje aparezca duplicado si viene en ambas listas
+      const uniqueMap = new Map();
+      pool.data.forEach(t => uniqueMap.set(t.id, t));
+      active.data.forEach(t => uniqueMap.set(t.id, t));
+      
+      const allClinicos = Array.from(uniqueMap.values()).filter(t => t.trip_type === "clinico");
 
-      // Faltan asignar Vehículo o Conductor (están en la bolsa)
       const pendingDriver = allClinicos.filter(t => t.status === "pendiente").length;
-      
-      // Falta escribir el nombre del personal (puede estar en la bolsa o asignado, pero sin nombres)
-      const pendingStaff = allClinicos.filter(t => !t.clinical_team || t.clinical_team.trim() === "").length;
-      
-      // Viajes que actualmente se están moviendo
+      const pendingStaff = allClinicos.filter(t => !t.clinical_team || String(t.clinical_team).trim() === "").length;
       const activeTrips = allClinicos.filter(t => t.status === "en_curso" || t.status === "asignado").length;
 
       setStats({ pendingDriver, pendingStaff, activeTrips });
@@ -71,8 +72,6 @@ function ClinicalOverviewSection({ onNavigate }) {
 
       {loading ? <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-teal-600"/></div> : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          
-          {/* TARJETA 1: FALTA PERSONAL */}
           <Card className={`shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-all ${stats.pendingStaff > 0 ? "border-l-red-500 bg-red-50/30" : "border-l-emerald-500"}`} onClick={() => onNavigate("assign")}>
             <CardContent className="p-6 flex items-center justify-between">
               <div>
@@ -87,7 +86,6 @@ function ClinicalOverviewSection({ onNavigate }) {
             </CardContent>
           </Card>
 
-          {/* TARJETA 2: FALTA VEHICULO */}
           <Card className={`shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-all ${stats.pendingDriver > 0 ? "border-l-amber-500 bg-amber-50/30" : "border-l-emerald-500"}`} onClick={() => onNavigate("byvehicle")}>
             <CardContent className="p-6 flex items-center justify-between">
               <div>
@@ -102,7 +100,6 @@ function ClinicalOverviewSection({ onNavigate }) {
             </CardContent>
           </Card>
 
-          {/* TARJETA 3: ACTIVOS */}
           <Card className="shadow-sm border-l-4 border-l-blue-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("byvehicle")}>
             <CardContent className="p-6 flex items-center justify-between">
               <div>
@@ -130,9 +127,8 @@ function ClinicalOverviewSection({ onNavigate }) {
 }
 
 // ==========================================
-// COMPONENTES EXISTENTES (No se modificaron, se mantienen igual)
+// SECCIÓN 2: ASIGNACIÓN DE PERSONAL
 // ==========================================
-
 function AssignPersonnelSection() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,8 +138,13 @@ function AssignPersonnelSection() {
   const fetchTrips = useCallback(async () => {
     try {
       const [pool, active] = await Promise.all([api.get("/trips/pool"), api.get("/trips/active")]);
-      const allTrips = [...pool.data, ...active.data];
-      setTrips(allTrips.filter(t => t.trip_type === "clinico"));
+      
+      // FILTRO ANTI-CLONES
+      const uniqueMap = new Map();
+      pool.data.forEach(t => uniqueMap.set(t.id, t));
+      active.data.forEach(t => uniqueMap.set(t.id, t));
+      
+      setTrips(Array.from(uniqueMap.values()).filter(t => t.trip_type === "clinico"));
     } catch {} finally { setLoading(false); }
   }, []);
 
@@ -158,8 +159,8 @@ function AssignPersonnelSection() {
     } catch (e) { toast.error("Error al asignar personal"); }
   };
 
-  const pendingTrips = trips.filter(t => !t.clinical_team || t.clinical_team.trim() === "");
-  const assignedTrips = trips.filter(t => t.clinical_team && t.clinical_team.trim() !== "");
+  const pendingTrips = trips.filter(t => !t.clinical_team || String(t.clinical_team).trim() === "");
+  const assignedTrips = trips.filter(t => t.clinical_team && String(t.clinical_team).trim() !== "");
 
   if (loading) return <div className="flex justify-center py-20"><Activity className="w-10 h-10 animate-spin text-teal-600"/></div>;
 
@@ -167,15 +168,15 @@ function AssignPersonnelSection() {
     <Card className={`shadow-sm border-l-4 ${isPending ? "border-l-red-500" : "border-l-teal-500"}`}>
       <CardContent className="p-5">
         <div className="flex justify-between items-start mb-3">
-          <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm">{t.tracking_number}</span>
-          <span className="text-xs font-bold text-slate-500">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
+          <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm">{t.tracking_number || t.id?.substring(0,6)?.toUpperCase()}</span>
+          <span className="text-xs font-bold text-slate-500">{t.scheduled_date || new Date(t.created_at || Date.now()).toLocaleDateString()}</span>
         </div>
-        <p className="font-black text-xl text-slate-900 mb-1">{t.patient_name}</p>
-        <p className="text-xs text-slate-500 mb-4 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason}</p>
+        <p className="font-black text-xl text-slate-900 mb-1">{t.patient_name || "Paciente no especificado"}</p>
+        <p className="text-xs text-slate-500 mb-4 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason || "Sin especificar"}</p>
 
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 space-y-2">
-          <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-600"/> <span className="text-sm font-bold text-slate-800">{t.origin} <span className="font-medium text-slate-500 text-xs">({t.patient_unit})</span></span></div>
-          <div className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-blue-600"/> <span className="text-sm font-bold text-slate-800">{t.destination}</span></div>
+          <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-600"/> <span className="text-sm font-bold text-slate-800">{t.origin || "-"} <span className="font-medium text-slate-500 text-xs">({t.patient_unit || ""})</span></span></div>
+          <div className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-blue-600"/> <span className="text-sm font-bold text-slate-800">{t.destination || "-"}</span></div>
         </div>
 
         {t.required_personnel?.length > 0 && (
@@ -186,14 +187,14 @@ function AssignPersonnelSection() {
         )}
 
         {isPending ? (
-          <Button onClick={() => { setAssignDialog(t); setClinicalTeam(""); }} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold h-12 text-sm shadow-sm rounded-xl">
+          <Button onClick={() => { setAssignDialog(t); setClinicalTeam(t.clinical_team || ""); }} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold h-12 text-sm shadow-sm rounded-xl">
             Asignar Nombres del Equipo
           </Button>
         ) : (
           <div className="bg-teal-50 p-3 rounded-xl border border-teal-200 shadow-sm">
             <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest mb-1">Personal Asignado:</p>
             <p className="text-sm font-black text-teal-900">{t.clinical_team}</p>
-            <Button variant="ghost" onClick={() => { setAssignDialog(t); setClinicalTeam(t.clinical_team); }} className="w-full mt-3 h-9 text-xs font-bold border border-teal-300 text-teal-700 hover:bg-teal-100">
+            <Button variant="ghost" onClick={() => { setAssignDialog(t); setClinicalTeam(t.clinical_team || ""); }} className="w-full mt-3 h-9 text-xs font-bold border border-teal-300 text-teal-700 hover:bg-teal-100">
               Editar Nombres
             </Button>
           </div>
@@ -237,7 +238,7 @@ function AssignPersonnelSection() {
             <div className="space-y-6 pt-3">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
                 <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Paciente a Trasladar</p>
-                <p className="text-xl font-black text-slate-900">{assignDialog.patient_name}</p>
+                <p className="text-xl font-black text-slate-900">{assignDialog.patient_name || "No especificado"}</p>
                 <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
                   <p className="text-xs font-bold text-slate-600">Roles Solicitados:</p>
                   <Badge className="bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">{assignDialog.required_personnel?.join(", ") || "No especificado"}</Badge>
@@ -262,6 +263,9 @@ function AssignPersonnelSection() {
   );
 }
 
+// ==========================================
+// SECCIÓN 3: PIZARRA CLÍNICA
+// ==========================================
 function ByVehicleSection() {
   const [data, setData] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
@@ -363,7 +367,7 @@ function ByVehicleSection() {
                   <div><h3 className="font-black text-slate-900 text-lg leading-none">{item.vehicle.plate}</h3>{item.vehicle.brand && <p className="text-xs text-slate-500 font-medium mt-1">{item.vehicle.brand} {item.vehicle.model}</p>}</div>
                 </div>
                 <div className="text-right flex flex-col items-end">
-                  {item.vehicle.status && <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider block mb-1.5 border ${vehicleStatusColors[item.vehicle.status] || "bg-slate-100"}`}>{item.vehicle.status.replace(/_/g, " ")}</span>}
+                  {item.vehicle.status && <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider block mb-1.5 border ${vehicleStatusColors[item.vehicle.status] || "bg-slate-100"}`}>{(item.vehicle.status || "disponible").replace(/_/g, " ")}</span>}
                   <span className="text-[11px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-full">{item.trips.length} viajes clínicos</span>
                 </div>
               </div>
@@ -376,22 +380,22 @@ function ByVehicleSection() {
                     
                     <div className="flex items-center justify-between mb-2.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="bg-slate-200 text-slate-700 font-mono px-1.5 py-0.5 rounded text-[10px] font-bold">{t.tracking_number || t.id.substring(0,6).toUpperCase()}</span>
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status]}`}>{t.status.replace(/_/g, " ")}</span>
+                        <span className="bg-slate-200 text-slate-700 font-mono px-1.5 py-0.5 rounded text-[10px] font-bold">{t.tracking_number || t.id?.substring(0,6)?.toUpperCase()}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status || "pendiente"]}`}>{(t.status || "pendiente").replace(/_/g, " ")}</span>
                       </div>
                       {t.status !== "completado" && t.status !== "pendiente" && (<Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setTripToUnassign(t.id); }} className="h-6 px-2 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200">Retirar</Button>)}
                     </div>
                     
-                    <p className="font-bold text-sm text-slate-900 mb-1.5 leading-tight">{t.patient_name}</p>
+                    <p className="font-bold text-sm text-slate-900 mb-1.5 leading-tight">{t.patient_name || "Sin Nombre"}</p>
                     
                     <div className="flex items-center gap-1.5 mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
                       <MapPin className="w-3.5 h-3.5 text-teal-500 shrink-0" />
-                      <p className="text-xs text-slate-600 font-medium truncate">{t.origin} <ArrowRight className="w-3 h-3 inline text-slate-400 mx-0.5" /> {t.destination}</p>
+                      <p className="text-xs text-slate-600 font-medium truncate">{t.origin || "-"} <ArrowRight className="w-3 h-3 inline text-slate-400 mx-0.5" /> {t.destination || "-"}</p>
                     </div>
                     
                     <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
                       <span className="text-xs text-teal-700 font-bold flex items-center gap-1 bg-teal-50 px-2 py-1 rounded-md"><User className="w-3.5 h-3.5"/> {t.driver_name || "Sin asignar"}</span>
-                      <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${t.priority === "urgente" ? "bg-red-100 text-red-700" : t.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"}`}>{t.priority}</span>
+                      <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${t.priority === "urgente" ? "bg-red-100 text-red-700" : t.priority === "alta" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"}`}>{t.priority || "Normal"}</span>
                     </div>
 
                     {t.clinical_team && (
@@ -418,7 +422,7 @@ function ByVehicleSection() {
           {assignModal && (
             <div className="space-y-5 pt-2">
               <div className="bg-teal-50 p-4 rounded-xl border border-teal-100 flex items-center justify-between"><span className="text-sm text-teal-800 font-bold">Vehículo seleccionado:</span><Badge className="bg-teal-600 text-sm py-1 px-3 shadow-sm">{assignModal.plate}</Badge></div>
-              <div className="space-y-2"><Label className="font-bold text-slate-700">1. Seleccionar Viaje de la Bolsa</Label><Select value={selectedTripId} onValueChange={setSelectedTripId}><SelectTrigger className="h-12 border-slate-300"><SelectValue placeholder="Elija un viaje clínico pendiente" /></SelectTrigger><SelectContent>{pendingTrips.length === 0 ? (<SelectItem value="none" disabled>No hay viajes clínicos pendientes</SelectItem>) : (pendingTrips.map(t => (<SelectItem key={t.id} value={t.id} className="py-2 font-medium"><span className="font-mono text-teal-600 mr-2">[{t.tracking_number || t.id.substring(0,4).toUpperCase()}]</span>{t.patient_name} | {t.origin} → {t.destination}</SelectItem>)))}</SelectContent></Select></div>
+              <div className="space-y-2"><Label className="font-bold text-slate-700">1. Seleccionar Viaje de la Bolsa</Label><Select value={selectedTripId} onValueChange={setSelectedTripId}><SelectTrigger className="h-12 border-slate-300"><SelectValue placeholder="Elija un viaje clínico pendiente" /></SelectTrigger><SelectContent>{pendingTrips.length === 0 ? (<SelectItem value="none" disabled>No hay viajes clínicos pendientes</SelectItem>) : (pendingTrips.map(t => (<SelectItem key={t.id} value={t.id} className="py-2 font-medium"><span className="font-mono text-teal-600 mr-2">[{t.tracking_number || t.id?.substring(0,4)?.toUpperCase()}]</span>{t.patient_name || "Sin Nombre"} | {t.origin} → {t.destination}</SelectItem>)))}</SelectContent></Select></div>
               <div className="space-y-2"><Label className="font-bold text-slate-700">2. Asignar Conductor</Label><Select value={selectedDriverId} onValueChange={setSelectedDriverId}><SelectTrigger className="h-12 border-slate-300"><SelectValue placeholder="Elija un conductor" /></SelectTrigger><SelectContent>{drivers.map(d => (<SelectItem key={d.id} value={d.id} className="py-2 font-medium">{d.name} {d.extra_available ? "(Extra)" : ""}</SelectItem>))}</SelectContent></Select></div>
               <DialogFooter className="mt-6"><Button variant="outline" className="h-11" onClick={() => setAssignModal(null)}>Cancelar</Button><Button className="bg-teal-600 hover:bg-teal-700 text-white h-11 font-bold" onClick={handleAssign}>Guardar Programación</Button></DialogFooter>
             </div>
