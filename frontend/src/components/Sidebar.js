@@ -12,7 +12,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   
-  // Estados para el modal de cambio de contraseña
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [loading, setLoading] = useState(false);
@@ -46,9 +45,10 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "list", label: "Mis Solicitudes", icon: ClipboardList },
     ],
     gestion_camas: [
-      { id: "dashboard", label: "Resumen Clínico", icon: Home }, // NUEVA SECCIÓN AGREGADA
+      { id: "dashboard", label: "Resumen Clínico", icon: Home },
       { id: "assign", label: "Asignar Personal", icon: BedDouble },
-      { id: "byvehicle", label: "Pizarra Clínica", icon: MapPin }
+      { id: "byvehicle", label: "Pizarra Clínica", icon: MapPin },
+      { id: "calendar", label: "Calendario", icon: CalendarDays } // <- EL CALENDARIO HA SIDO AGREGADO
     ]
   };
 
@@ -56,39 +56,22 @@ export default function Sidebar({ activeSection, onSectionChange }) {
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    if (pwdForm.new_password !== pwdForm.confirm_password) {
-      toast.error("Las contraseñas nuevas no coinciden");
-      return;
-    }
-    if (pwdForm.new_password.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres");
-      return;
-    }
+    if (pwdForm.new_password !== pwdForm.confirm_password) { toast.error("Las contraseñas nuevas no coinciden"); return; }
+    if (pwdForm.new_password.length < 6) { toast.error("La contraseña debe tener al menos 6 caracteres"); return; }
     setLoading(true);
     try {
-      await api.put("/auth/change-password", {
-        current_password: pwdForm.current_password,
-        new_password: pwdForm.new_password
-      });
+      await api.put("/auth/change-password", { current_password: pwdForm.current_password, new_password: pwdForm.new_password });
       toast.success("Contraseña actualizada exitosamente");
-      setPasswordDialog(false);
-      setPwdForm({ current_password: "", new_password: "", confirm_password: "" });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Error al actualizar contraseña");
-    } finally {
-      setLoading(false);
-    }
+      setPasswordDialog(false); setPwdForm({ current_password: "", new_password: "", confirm_password: "" });
+    } catch (error) { toast.error(error.response?.data?.detail || "Error al actualizar contraseña"); } 
+    finally { setLoading(false); }
   };
 
   return (
     <>
       <div className="lg:hidden fixed top-0 left-0 w-full h-14 bg-teal-700 flex items-center justify-between px-4 z-50 shadow-md">
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Hospital de Curicó" className="h-8 object-contain" />
-        </div>
-        <button onClick={() => setIsOpen(!isOpen)} className="text-white touch-target p-2 -mr-2">
-          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2"><img src="/logo.png" alt="Hospital de Curicó" className="h-8 object-contain" /></div>
+        <button onClick={() => setIsOpen(!isOpen)} className="text-white touch-target p-2 -mr-2">{isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}</button>
       </div>
 
       {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />}
@@ -103,17 +86,10 @@ export default function Sidebar({ activeSection, onSectionChange }) {
           {links.map((link) => {
             const isActive = activeSection === link.id;
             return (
-              <button
-                key={link.id}
-                onClick={() => { onSectionChange(link.id); setIsOpen(false); }}
-                data-testid={`nav-${link.id}`}
+              <button key={link.id} onClick={() => { onSectionChange(link.id); setIsOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium touch-target
-                  ${isActive 
-                    ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-100" 
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100"}`}
-              >
-                <link.icon className={`w-5 h-5 ${isActive ? "text-teal-600" : "text-slate-400"}`} />
-                {link.label}
+                  ${isActive ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100"}`}>
+                <link.icon className={`w-5 h-5 ${isActive ? "text-teal-600" : "text-slate-400"}`} /> {link.label}
               </button>
             );
           })}
@@ -121,25 +97,14 @@ export default function Sidebar({ activeSection, onSectionChange }) {
 
         <div className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
           <div className="mb-4 px-2">
-            <p className="text-sm font-bold text-slate-900 truncate" data-testid="user-name">{user?.name}</p>
-            <p className="text-xs text-slate-500 truncate mb-1" data-testid="user-email">{user?.email}</p>
-            <span className="inline-block px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase tracking-wider" data-testid="user-role">
-              {user?.role.replace(/_/g, " ")}
-            </span>
+            <p className="text-sm font-bold text-slate-900 truncate">{user?.name}</p>
+            <p className="text-xs text-slate-500 truncate mb-1">{user?.email}</p>
+            <span className="inline-block px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase tracking-wider">{user?.role.replace(/_/g, " ")}</span>
           </div>
-
-          <button 
-            onClick={() => setPasswordDialog(true)} 
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2"
-          >
+          <button onClick={() => setPasswordDialog(true)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2">
             <Key className="w-4 h-4" /> Cambiar Contraseña
           </button>
-
-          <button 
-            onClick={logout} 
-            data-testid="logout-btn"
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
-          >
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
             <LogOut className="w-4 h-4" /> Cerrar Sesión
           </button>
         </div>
@@ -147,48 +112,12 @@ export default function Sidebar({ activeSection, onSectionChange }) {
 
       <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cambiar Contraseña</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Cambiar Contraseña</DialogTitle></DialogHeader>
           <form onSubmit={handlePasswordChange} className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Contraseña Actual</Label>
-              <Input 
-                type="password" 
-                placeholder="Ingrese su contraseña actual" 
-                value={pwdForm.current_password}
-                onChange={(e) => setPwdForm({...pwdForm, current_password: e.target.value})}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nueva Contraseña</Label>
-              <Input 
-                type="password" 
-                placeholder="Mínimo 6 caracteres" 
-                value={pwdForm.new_password}
-                onChange={(e) => setPwdForm({...pwdForm, new_password: e.target.value})}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Confirmar Nueva Contraseña</Label>
-              <Input 
-                type="password" 
-                placeholder="Repita la nueva contraseña" 
-                value={pwdForm.confirm_password}
-                onChange={(e) => setPwdForm({...pwdForm, confirm_password: e.target.value})}
-                required
-              />
-            </div>
-            <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => setPasswordDialog(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>
-                {loading ? "Actualizando..." : "Actualizar Contraseña"}
-              </Button>
-            </DialogFooter>
+            <div className="space-y-2"><Label>Contraseña Actual</Label><Input type="password" value={pwdForm.current_password} onChange={(e) => setPwdForm({...pwdForm, current_password: e.target.value})} required/></div>
+            <div className="space-y-2"><Label>Nueva Contraseña</Label><Input type="password" value={pwdForm.new_password} onChange={(e) => setPwdForm({...pwdForm, new_password: e.target.value})} required/></div>
+            <div className="space-y-2"><Label>Confirmar Nueva Contraseña</Label><Input type="password" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({...pwdForm, confirm_password: e.target.value})} required/></div>
+            <DialogFooter className="mt-6"><Button type="button" variant="outline" onClick={() => setPasswordDialog(false)}>Cancelar</Button><Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>{loading ? "Actualizando..." : "Actualizar Contraseña"}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
