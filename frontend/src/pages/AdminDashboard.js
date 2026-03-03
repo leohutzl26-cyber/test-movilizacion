@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; // IMPORTACIÓN CORREGIDA AQUÍ
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -107,7 +108,6 @@ function UsersManager() {
                   <tr key={u.id} className="hover:bg-slate-50">
                     <td className="p-4"><p className="font-bold text-slate-900">{u.name}</p><p className="text-slate-500">{u.email}</p></td>
                     <td className="p-4">
-                      {/* Agregado fallback (|| "") para evitar crashes si el rol es nulo */}
                       <Select value={u.role || ""} onValueChange={(val) => handleRoleChange(u.id, val)}>
                         <SelectTrigger className="w-40 h-8 text-xs font-bold"><SelectValue placeholder="Seleccione Rol"/></SelectTrigger>
                         <SelectContent>
@@ -183,7 +183,6 @@ function AuditLogs() {
   const [search, setSearch] = useState("");
   useEffect(() => { api.get("/audit-logs").then(r => setLogs(r.data)).catch(()=>{}); }, []);
 
-  // Agregado el fallback (|| "") para evitar Crash si la base de datos tiene campos vacíos
   const filtered = logs.filter(l => 
     (l.user_name || "").toLowerCase().includes(search.toLowerCase()) || 
     (l.action || "").toLowerCase().includes(search.toLowerCase()) || 
@@ -221,7 +220,6 @@ function AuditLogs() {
   );
 }
 
-// NUEVA SECCIÓN: Para que el Admin pueda ver la flota sin que crashee la app
 function VehiclesManager() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -272,7 +270,6 @@ function VehiclesManager() {
   );
 }
 
-// NUEVA SECCIÓN: Para que el Admin pueda ver a los conductores
 function DriversManager() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
