@@ -36,7 +36,6 @@ function AssignPersonnelSection() {
     try {
       const [pool, active] = await Promise.all([api.get("/trips/pool"), api.get("/trips/active")]);
       const allTrips = [...pool.data, ...active.data];
-      // FILTRO: Solo vemos los traslados clínicos
       setTrips(allTrips.filter(t => t.trip_type === "clinico"));
     } catch {} finally { setLoading(false); }
   }, []);
