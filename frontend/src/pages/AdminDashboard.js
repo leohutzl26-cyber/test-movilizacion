@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Shield, Trash2, Clock, MapPin, Search } from "lucide-react";
+import { CheckCircle, XCircle, Shield, Trash2, Clock, MapPin, Search, Truck, Users } from "lucide-react";
 import api from "@/lib/api";
 
 export default function AdminDashboard() {
@@ -16,11 +16,13 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <Sidebar activeSection={section} onSectionChange={setSection} />
-      <main className="flex-1 lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw]">
+      <main className="flex-1 lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
         {section === "dashboard" && <AdminOverview onNavigate={setSection} />}
         {section === "users" && <UsersManager />}
         {section === "destinations" && <DestinationsManager />}
-        {section === "logs" && <AuditLogs />}
+        {section === "audit" && <AuditLogs />}
+        {section === "vehicles" && <VehiclesManager />}
+        {section === "drivers" && <DriversManager />}
       </main>
     </div>
   );
@@ -44,16 +46,16 @@ function AdminOverview({ onNavigate }) {
               <Clock className="w-12 h-12 text-amber-200" />
             </CardContent>
           </Card>
-          <Card className="shadow-sm border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("users")}>
+          <Card className="shadow-sm border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("drivers")}>
             <CardContent className="p-6 flex items-center justify-between">
               <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Conductores</p><p className="text-4xl font-black text-slate-900">{stats.total_drivers}</p></div>
               <Shield className="w-12 h-12 text-indigo-200" />
             </CardContent>
           </Card>
-          <Card className="shadow-sm border-l-4 border-l-teal-500">
+          <Card className="shadow-sm border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("vehicles")}>
             <CardContent className="p-6 flex items-center justify-between">
-              <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Viajes Históricos</p><p className="text-4xl font-black text-slate-900">{stats.total_trips}</p></div>
-              <CheckCircle className="w-12 h-12 text-teal-200" />
+              <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Vehículos Disponibles</p><p className="text-4xl font-black text-slate-900">{stats.vehicles_available}</p></div>
+              <Truck className="w-12 h-12 text-teal-200" />
             </CardContent>
           </Card>
         </div>
@@ -105,8 +107,9 @@ function UsersManager() {
                   <tr key={u.id} className="hover:bg-slate-50">
                     <td className="p-4"><p className="font-bold text-slate-900">{u.name}</p><p className="text-slate-500">{u.email}</p></td>
                     <td className="p-4">
-                      <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
-                        <SelectTrigger className="w-40 h-8 text-xs font-bold"><SelectValue /></SelectTrigger>
+                      {/* Agregado fallback (|| "") para evitar crashes si el rol es nulo */}
+                      <Select value={u.role || ""} onValueChange={(val) => handleRoleChange(u.id, val)}>
+                        <SelectTrigger className="w-40 h-8 text-xs font-bold"><SelectValue placeholder="Seleccione Rol"/></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="solicitante">Solicitante</SelectItem>
                           <SelectItem value="conductor">Conductor</SelectItem>
@@ -121,8 +124,8 @@ function UsersManager() {
                     </td>
                     <td className="p-4 text-right space-x-2">
                       {u.status === "pendiente" && (
-                        <><Button size="sm" onClick={() => handleAction(u.id, "approve")} className="bg-teal-600 text-white h-8"><CheckCircle className="w-4 h-4 mr-1"/>Aprobar</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleAction(u.id, "reject")} className="text-red-600 border-red-200 h-8"><XCircle className="w-4 h-4 mr-1"/>Rechazar</Button></>
+                        <><Button size="sm" onClick={() => handleAction(u.id, "approve")} className="bg-teal-600 hover:bg-teal-700 text-white h-8"><CheckCircle className="w-4 h-4 mr-1"/>Aprobar</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleAction(u.id, "reject")} className="text-red-600 border-red-200 hover:bg-red-50 h-8"><XCircle className="w-4 h-4 mr-1"/>Rechazar</Button></>
                       )}
                       <Button size="icon" variant="ghost" onClick={() => handleAction(u.id, "delete")} className="text-slate-400 hover:text-red-600 h-8 w-8"><Trash2 className="w-4 h-4"/></Button>
                     </td>
@@ -155,7 +158,7 @@ function DestinationsManager() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-slide-up">
+    <div className="max-w-4xl mx-auto animate-slide-up">
       <h1 className="text-2xl font-bold text-slate-900 mb-6">Puntos Frecuentes (Orígenes/Destinos)</h1>
       <Card className="mb-6 shadow-sm"><CardContent className="p-5">
         <form onSubmit={handleAdd} className="flex gap-3 items-end">
@@ -180,7 +183,12 @@ function AuditLogs() {
   const [search, setSearch] = useState("");
   useEffect(() => { api.get("/audit-logs").then(r => setLogs(r.data)).catch(()=>{}); }, []);
 
-  const filtered = logs.filter(l => l.user_name.toLowerCase().includes(search.toLowerCase()) || l.action.toLowerCase().includes(search.toLowerCase()) || l.details.toLowerCase().includes(search.toLowerCase()));
+  // Agregado el fallback (|| "") para evitar Crash si la base de datos tiene campos vacíos
+  const filtered = logs.filter(l => 
+    (l.user_name || "").toLowerCase().includes(search.toLowerCase()) || 
+    (l.action || "").toLowerCase().includes(search.toLowerCase()) || 
+    (l.details || "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
@@ -199,7 +207,7 @@ function AuditLogs() {
               {filtered.map(l => (
                 <tr key={l.id} className="hover:bg-slate-50 transition-colors">
                   <td className="p-4 text-slate-500 font-medium whitespace-nowrap">{new Date(l.timestamp).toLocaleString()}</td>
-                  <td className="p-4"><p className="font-bold text-slate-900">{l.user_name}</p><p className="text-[10px] uppercase font-bold text-teal-600">{l.user_role.replace(/_/g, " ")}</p></td>
+                  <td className="p-4"><p className="font-bold text-slate-900">{l.user_name || "Sistema"}</p><p className="text-[10px] uppercase font-bold text-teal-600">{(l.user_role || "").replace(/_/g, " ")}</p></td>
                   <td className="p-4"><Badge variant="outline" className="bg-white">{l.action}</Badge></td>
                   <td className="p-4 text-slate-600 max-w-md truncate">{l.details}</td>
                 </tr>
@@ -209,6 +217,98 @@ function AuditLogs() {
           </table>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// NUEVA SECCIÓN: Para que el Admin pueda ver la flota sin que crashee la app
+function VehiclesManager() {
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchVehicles = useCallback(async () => {
+    try { const r = await api.get("/vehicles"); setVehicles(r.data); }
+    catch (e) {} finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+
+  const handleDelete = async (id) => {
+    if (window.confirm("¿Eliminar vehículo definitivamente?")) {
+      try { await api.delete(`/vehicles/${id}`); toast.success("Eliminado"); fetchVehicles(); }
+      catch (e) { toast.error("Error al eliminar"); }
+    }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Visualización de Flota</h1>
+      {loading ? <p className="text-slate-500">Cargando...</p> : (
+        <Card className="shadow-sm">
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                <tr><th className="p-4">Patente</th><th className="p-4">Marca/Modelo</th><th className="p-4">Año</th><th className="p-4">Kilometraje</th><th className="p-4">Estado</th><th className="p-4 text-right">Acciones</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {vehicles.map(v => (
+                  <tr key={v.id} className="hover:bg-slate-50">
+                    <td className="p-4 font-bold text-slate-900">{v.plate}</td>
+                    <td className="p-4 text-slate-600">{v.brand} {v.model}</td>
+                    <td className="p-4 text-slate-600">{v.year}</td>
+                    <td className="p-4 font-bold text-slate-700">{v.mileage?.toLocaleString()} km</td>
+                    <td className="p-4"><Badge variant="outline" className="uppercase text-[10px]">{v.status.replace(/_/g, " ")}</Badge></td>
+                    <td className="p-4 text-right">
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(v.id)} className="text-slate-400 hover:text-red-600 h-8 w-8"><Trash2 className="w-4 h-4"/></Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// NUEVA SECCIÓN: Para que el Admin pueda ver a los conductores
+function DriversManager() {
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDrivers = useCallback(async () => {
+    try { const r = await api.get("/drivers"); setDrivers(r.data); }
+    catch (e) {} finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
+
+  return (
+    <div className="max-w-6xl mx-auto animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Conductores Registrados</h1>
+      {loading ? <p className="text-slate-500">Cargando...</p> : (
+        <Card className="shadow-sm">
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                <tr><th className="p-4">Nombre / Email</th><th className="p-4 text-center">Estado de Cuenta</th><th className="p-4 text-center">Vencimiento Licencia</th><th className="p-4 text-center">Disp. Horas Extra</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {drivers.map(d => (
+                  <tr key={d.id} className="hover:bg-slate-50">
+                    <td className="p-4"><p className="font-bold text-slate-900">{d.name}</p><p className="text-xs text-slate-500">{d.email}</p></td>
+                    <td className="p-4 text-center"><Badge className="bg-emerald-100 text-emerald-800">{d.status}</Badge></td>
+                    <td className="p-4 text-center text-slate-600 font-medium">{d.license_expiry ? new Date(d.license_expiry).toLocaleDateString() : "No registrada"}</td>
+                    <td className="p-4 text-center">{d.extra_available ? <CheckCircle className="w-5 h-5 text-teal-500 mx-auto" /> : <XCircle className="w-5 h-5 text-slate-300 mx-auto" />}</td>
+                  </tr>
+                ))}
+                {drivers.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-slate-400">No hay conductores registrados.</td></tr>}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
