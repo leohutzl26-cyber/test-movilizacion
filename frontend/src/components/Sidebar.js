@@ -46,8 +46,9 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "list", label: "Mis Solicitudes", icon: ClipboardList },
     ],
     gestion_camas: [
+      { id: "dashboard", label: "Resumen Clínico", icon: Home }, // NUEVA SECCIÓN AGREGADA
       { id: "assign", label: "Asignar Personal", icon: BedDouble },
-      { id: "byvehicle", label: "Pizarra Clínica", icon: MapPin } // NUEVA SECCIÓN
+      { id: "byvehicle", label: "Pizarra Clínica", icon: MapPin }
     ]
   };
 
