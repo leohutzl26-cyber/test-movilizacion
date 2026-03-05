@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble } from "lucide-react";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,8 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "dashboard", label: "Resumen Clínico", icon: Home },
       { id: "assign", label: "Asignar Personal", icon: BedDouble },
       { id: "byvehicle", label: "Pizarra Clínica", icon: MapPin },
-      { id: "calendar", label: "Calendario", icon: CalendarDays } // <- EL CALENDARIO HA SIDO AGREGADO
+      { id: "calendar", label: "Calendario", icon: CalendarDays },
+      { id: "history", label: "Histórico y Reportes", icon: FileText } // <- NUEVA SECCIÓN AGREGADA
     ]
   };
 
