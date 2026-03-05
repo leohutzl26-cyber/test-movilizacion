@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter } from "lucide-react";
 import api from "@/lib/api";
 
 export default function GestionCamasDashboard() {
@@ -23,6 +23,7 @@ export default function GestionCamasDashboard() {
         {section === "assign" && <AssignPersonnelSection />}
         {section === "byvehicle" && <ByVehicleSection />}
         {section === "calendar" && <ClinicalCalendarSection />}
+        {section === "history" && <ClinicalHistorySection />}
       </main>
     </div>
   );
@@ -327,20 +328,6 @@ function ByVehicleSection() {
           ))}
         </div>
       )}
-
-      {/* Dialogs omitidos por espacio, son los mismos de arriba */}
-      <Dialog open={!!assignModal} onOpenChange={() => { setAssignModal(null); setSelectedTripId(""); setSelectedDriverId(""); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="text-xl">Programar Viaje</DialogTitle></DialogHeader>
-          {assignModal && (
-            <div className="space-y-5 pt-2">
-              <div className="space-y-2"><Label className="font-bold text-slate-700">1. Seleccionar Viaje</Label><Select value={selectedTripId} onValueChange={setSelectedTripId}><SelectTrigger className="h-12 border-slate-300"><SelectValue placeholder="Elija un viaje clínico pendiente" /></SelectTrigger><SelectContent>{pendingTrips.map(t => (<SelectItem key={t.id} value={t.id}>{t.patient_name} | {t.origin} → {t.destination}</SelectItem>))}</SelectContent></Select></div>
-              <div className="space-y-2"><Label className="font-bold text-slate-700">2. Asignar Conductor</Label><Select value={selectedDriverId} onValueChange={setSelectedDriverId}><SelectTrigger className="h-12 border-slate-300"><SelectValue placeholder="Elija un conductor" /></SelectTrigger><SelectContent>{drivers.map(d => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}</SelectContent></Select></div>
-              <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setAssignModal(null)}>Cancelar</Button><Button className="bg-teal-600 text-white font-bold" onClick={handleAssign}>Guardar</Button></DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
       <Dialog open={!!tripToUnassign} onOpenChange={() => setTripToUnassign(null)}>
         <DialogContent className="max-w-sm"><DialogHeader><DialogTitle className="text-red-600 text-xl">¿Desasignar?</DialogTitle></DialogHeader><DialogFooter><Button onClick={confirmUnassignAction} className="bg-red-600 text-white">Sí, retirar</Button></DialogFooter></DialogContent>
       </Dialog>
@@ -349,7 +336,7 @@ function ByVehicleSection() {
 }
 
 // ==========================================
-// SECCIÓN 4: CALENDARIO CLÍNICO (NUEVO)
+// SECCIÓN 4: CALENDARIO CLÍNICO
 // ==========================================
 function ClinicalCalendarSection() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
@@ -360,7 +347,6 @@ function ClinicalCalendarSection() {
     setLoading(true);
     try {
       const res = await api.get(`/trips/calendar?start_date=${selectedDate}&end_date=${selectedDate}`);
-      // Solo mostramos traslados de tipo clínico
       setTrips(res.data.filter(t => t.trip_type === "clinico"));
     } catch(e) {} finally { setLoading(false); }
   }, [selectedDate]);
@@ -379,7 +365,6 @@ function ClinicalCalendarSection() {
         <div className="flex items-center gap-3 bg-white p-2 rounded-xl border shadow-sm">
           <CalendarDays className="w-5 h-5 text-teal-600 ml-1" />
           <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto h-9 border-0 bg-transparent focus-visible:ring-0 p-0 font-bold text-slate-700" />
-          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])} className="h-8">Ver Hoy</Button>
         </div>
       </div>
 
@@ -389,11 +374,10 @@ function ClinicalCalendarSection() {
             <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200">
               <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <p className="text-lg font-bold text-slate-500">No hay traslados clínicos para este día</p>
-              <p className="text-sm text-slate-400 mt-1">Pruebe seleccionando otra fecha en el calendario superior.</p>
             </div>
           ) : (
             trips.map(t => (
-              <Card key={t.id} className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-teal-500">
+              <Card key={t.id} className="shadow-sm border-l-4 border-l-teal-500">
                 <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[80px]">
@@ -406,16 +390,12 @@ function ClinicalCalendarSection() {
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
                       </div>
                       <p className="font-bold text-lg text-slate-900">{t.patient_name || "Paciente no especificado"}</p>
-                      <div className="flex items-center gap-2 mt-1 text-sm text-slate-600 font-medium">
-                        <MapPin className="w-4 h-4 text-teal-500" /> {t.origin || "-"} <ArrowRight className="w-3 h-3 text-slate-400" /> {t.destination || "-"}
-                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-slate-600 font-medium"><MapPin className="w-4 h-4 text-teal-500" /> {t.origin || "-"} <ArrowRight className="w-3 h-3 text-slate-400" /> {t.destination || "-"}</div>
                     </div>
                   </div>
-                  <div className="text-left md:text-right bg-slate-50 p-3 rounded-lg border border-slate-100 w-full md:w-auto min-w-[200px]">
+                  <div className="text-left md:text-right bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Personal Acompañante</p>
                     <p className="text-sm font-black text-teal-800">{t.clinical_team || "Falta asignar personal"}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 mb-1">Conductor / Vehículo</p>
-                    <p className="text-sm font-bold text-slate-700">{t.driver_name || "Sin conductor"} / {t.vehicle_id ? "Asignado" : "Sin vehículo"}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -423,6 +403,183 @@ function ClinicalCalendarSection() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ==========================================
+// SECCIÓN 5: HISTÓRICO Y REPORTES EXCEL (NUEVO)
+// ==========================================
+function ClinicalHistorySection() {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/trips/history");
+      setHistory(res.data.filter(t => t.trip_type === "clinico"));
+    } catch (e) {
+      toast.error("Error al cargar el historial");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  const filteredHistory = history.filter(t => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = 
+      (t.patient_name || "").toLowerCase().includes(term) ||
+      (t.tracking_number || "").toLowerCase().includes(term) ||
+      (t.origin || "").toLowerCase().includes(term) ||
+      (t.destination || "").toLowerCase().includes(term);
+    
+    const matchesStatus = statusFilter === "all" || t.status === statusFilter;
+    
+    const tripDate = new Date(t.scheduled_date || t.created_at);
+    const matchesDateFrom = dateFrom ? tripDate >= new Date(dateFrom) : true;
+    const matchesDateTo = dateTo ? tripDate <= new Date(dateTo + "T23:59:59") : true;
+
+    return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
+  });
+
+  const handleExportExcel = () => {
+    if (filteredHistory.length === 0) {
+      toast.error("No hay datos para exportar con estos filtros.");
+      return;
+    }
+
+    const headers = ["Folio", "Fecha Programada", "Paciente", "RUT", "Origen", "Destino", "Motivo", "Personal Acompañante", "Conductor", "Patente Vehiculo", "Estado"];
+    
+    const csvRows = filteredHistory.map(t => [
+      t.tracking_number || "",
+      t.scheduled_date || "",
+      `"${(t.patient_name || "").replace(/"/g, '""')}"`,
+      t.rut || "",
+      `"${(t.origin || "").replace(/"/g, '""')}"`,
+      `"${(t.destination || "").replace(/"/g, '""')}"`,
+      `"${(t.transfer_reason || "").replace(/"/g, '""')}"`,
+      `"${(t.clinical_team || "No asignado").replace(/"/g, '""')}"`,
+      `"${(t.driver_name || "Sin conductor").replace(/"/g, '""')}"`,
+      t.vehicle_plate || "Sin vehículo",
+      t.status || ""
+    ].join(";")); // Usamos punto y coma para que Excel en español lo separe bien por columnas
+
+    const csvContent = [headers.join(";"), ...csvRows].join("\n");
+    // Añadimos BOM (\uFEFF) para que Excel lea perfectamente los tildes y acentos (UTF-8)
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); 
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Reporte_Traslados_Clinicos_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+
+  return (
+    <div className="max-w-6xl mx-auto animate-slide-up">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900">Histórico de Traslados Clínicos</h1>
+          <p className="text-slate-500 font-medium mt-1">Busque pacientes pasados y exporte reportes a Excel.</p>
+        </div>
+        <Button onClick={handleExportExcel} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 shadow-md flex items-center gap-2">
+          <Download className="w-4 h-4" /> Exportar a Excel
+        </Button>
+      </div>
+
+      <Card className="mb-6 shadow-sm border-slate-200">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"><Search className="w-3 h-3"/> Buscar Paciente</Label>
+            <Input placeholder="Nombre, RUT o Folio..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="h-10 bg-slate-50" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"><Filter className="w-3 h-3"/> Estado del Traslado</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-10 bg-slate-50"><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendientes</SelectItem>
+                <SelectItem value="asignado">Asignados</SelectItem>
+                <SelectItem value="en_curso">En Curso</SelectItem>
+                <SelectItem value="completado">Completados</SelectItem>
+                <SelectItem value="cancelado">Cancelados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha Desde</Label>
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-10 bg-slate-50" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha Hasta</Label>
+            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-10 bg-slate-50" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm">
+        <CardContent className="p-0 overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400"><RefreshCw className="w-8 h-8 animate-spin mb-4 text-teal-600"/>Cargando registros...</div>
+          ) : (
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider sticky top-0 shadow-sm z-10">
+                <tr>
+                  <th className="p-4 whitespace-nowrap">Folio / Fecha</th>
+                  <th className="p-4">Paciente</th>
+                  <th className="p-4">Ruta</th>
+                  <th className="p-4">Equipo Acompañante</th>
+                  <th className="p-4 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredHistory.map(t => (
+                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-4 whitespace-nowrap">
+                      <span className="font-mono text-slate-700 font-bold text-xs bg-slate-200 px-1.5 py-0.5 rounded">{t.tracking_number}</span>
+                      <p className="text-xs text-slate-500 mt-1">{t.scheduled_date}</p>
+                    </td>
+                    <td className="p-4">
+                      <p className="font-bold text-slate-900">{t.patient_name || "Sin nombre"}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">RUT: {t.rut || "-"}</p>
+                    </td>
+                    <td className="p-4 text-xs font-medium text-slate-600">
+                      <div className="flex items-center gap-1 mb-1"><MapPin className="w-3 h-3 text-teal-500"/> {t.origin}</div>
+                      <div className="flex items-center gap-1"><ArrowRight className="w-3 h-3 text-slate-400"/> {t.destination}</div>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2 py-1 rounded-md border border-teal-100">
+                        {t.clinical_team || "No asignado"}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <Badge className={`${statusColors[t.status]} text-[10px] uppercase font-bold tracking-wider`}>{(t.status || "").replace(/_/g, " ")}</Badge>
+                    </td>
+                  </tr>
+                ))}
+                {filteredHistory.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-slate-400 font-medium">No se encontraron registros con los filtros actuales.</td></tr>}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+      
+      <div className="mt-4 text-right">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-full">
+          Mostrando {filteredHistory.length} registros
+        </span>
+      </div>
     </div>
   );
 }
