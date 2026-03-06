@@ -26,8 +26,8 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     ],
     coordinador: [
       { id: "dispatch", label: "Consola de Despacho", icon: Clock },
-      { id: "new", label: "Nueva Solicitud", icon: Plus },
-      { id: "vehicles", label: "Vehículos", icon: Truck },
+      { id: "new", label: "Nuevo Traslado Directo", icon: Plus },
+      { id: "vehicles", label: "Estado de Flota", icon: Truck },
       { id: "drivers", label: "Conductores", icon: Users },
       { id: "history", label: "Historial", icon: FileText },
     ],
@@ -60,7 +60,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       await api.put("/auth/change-password", { current_password: pwdForm.current_password, new_password: pwdForm.new_password });
       toast.success("Contraseña actualizada exitosamente");
       setPasswordDialog(false); setPwdForm({ current_password: "", new_password: "", confirm_password: "" });
-    } catch (error) { toast.error(error.response?.data?.detail || "Error al actualizar contraseña"); } 
+    } catch (error) { toast.error("Error al actualizar contraseña"); } 
     finally { setLoading(false); }
   };
 
@@ -70,42 +70,20 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         <div className="flex items-center gap-2"><img src="/logo.png" alt="Hospital de Curicó" className="h-8 object-contain" /></div>
         <button onClick={() => setIsOpen(!isOpen)} className="text-white touch-target p-2 -mr-2">{isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}</button>
       </div>
-
       {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />}
-
       <div className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"} lg:translate-x-0`}>
-        <div className="h-20 flex items-center justify-center border-b border-slate-100 shrink-0 px-4 bg-slate-50/50">
-          <img src="/logo.png" alt="Hospital de Curicó" className="h-14 object-contain" />
-        </div>
-
+        <div className="h-20 flex items-center justify-center border-b border-slate-100 shrink-0 px-4 bg-slate-50/50"><img src="/logo.png" alt="Hospital de Curicó" className="h-14 object-contain" /></div>
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
-          {links.map((link) => {
-            const isActive = activeSection === link.id;
-            return (
-              <button key={link.id} onClick={() => { onSectionChange(link.id); setIsOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium touch-target
-                  ${isActive ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100"}`}>
-                <link.icon className={`w-5 h-5 ${isActive ? "text-teal-600" : "text-slate-400"}`} /> {link.label}
-              </button>
-            );
-          })}
+          {links.map((link) => (
+            <button key={link.id} onClick={() => { onSectionChange(link.id); setIsOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium touch-target ${activeSection === link.id ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100"}`}><link.icon className={`w-5 h-5 ${activeSection === link.id ? "text-teal-600" : "text-slate-400"}`} /> {link.label}</button>
+          ))}
         </nav>
-
         <div className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
-          <div className="mb-4 px-2">
-            <p className="text-sm font-bold text-slate-900 truncate">{user?.name}</p>
-            <p className="text-xs text-slate-500 truncate mb-1">{user?.email}</p>
-            <span className="inline-block px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase tracking-wider">{user?.role.replace(/_/g, " ")}</span>
-          </div>
-          <button onClick={() => setPasswordDialog(true)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2">
-            <Key className="w-4 h-4" /> Cambiar Clave
-          </button>
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
-            <LogOut className="w-4 h-4" /> Cerrar Sesión
-          </button>
+          <div className="mb-4 px-2"><p className="text-sm font-bold text-slate-900 truncate">{user?.name}</p><p className="text-xs text-slate-500 truncate mb-1">{user?.email}</p><span className="inline-block px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase tracking-wider">{user?.role.replace(/_/g, " ")}</span></div>
+          <button onClick={() => setPasswordDialog(true)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2"><Key className="w-4 h-4" /> Cambiar Clave</button>
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"><LogOut className="w-4 h-4" /> Cerrar Sesión</button>
         </div>
       </div>
-
       <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Cambiar Contraseña</DialogTitle></DialogHeader>
@@ -113,7 +91,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
             <div className="space-y-2"><Label>Contraseña Actual</Label><Input type="password" value={pwdForm.current_password} onChange={(e) => setPwdForm({...pwdForm, current_password: e.target.value})} required/></div>
             <div className="space-y-2"><Label>Nueva Contraseña</Label><Input type="password" value={pwdForm.new_password} onChange={(e) => setPwdForm({...pwdForm, new_password: e.target.value})} required/></div>
             <div className="space-y-2"><Label>Confirmar Nueva Contraseña</Label><Input type="password" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({...pwdForm, confirm_password: e.target.value})} required/></div>
-            <DialogFooter className="mt-6"><Button type="button" variant="outline" onClick={() => setPasswordDialog(false)}>Cancelar</Button><Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>{loading ? "Actualizando..." : "Actualizar Contraseña"}</Button></DialogFooter>
+            <DialogFooter className="mt-6"><Button type="button" variant="outline" onClick={() => setPasswordDialog(false)}>Cancelar</Button><Button type="submit" className="bg-teal-600 text-white" disabled={loading}>Actualizar</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
