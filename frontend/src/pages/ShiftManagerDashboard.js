@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, Clock, Activity, User, Truck, ShieldAlert, CheckCircle, Search, Download, Filter, RefreshCw } from "lucide-react";
+import { MapPin, ArrowRight, Clock, Activity, User, Truck, ShieldAlert, CheckCircle, Search, Download, Filter, RefreshCw, CalendarDays } from "lucide-react";
 import api from "@/lib/api";
 
 export default function ShiftManagerDashboard() {
@@ -21,6 +21,7 @@ export default function ShiftManagerDashboard() {
       <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
         {section === "dispatch" && <DispatchConsole />}
         {section === "new" && <NewDirectTripSection onSuccess={() => setSection("dispatch")} />}
+        {section === "calendar" && <GeneralCalendarSection />}
         {section === "vehicles" && <VehiclesStatusSection />}
         {section === "drivers" && <DriversListSection />}
         {section === "history" && <GeneralHistorySection />}
@@ -137,7 +138,7 @@ function DispatchConsole() {
 }
 
 // =====================================
-// 2. NUEVO TRASLADO DIRECTO A DESPACHO
+// 2. NUEVO TRASLADO DIRECTO
 // =====================================
 function NewDirectTripSection({ onSuccess }) {
   const [form, setForm] = useState({ trip_type: "clinico", origin: "", destination: "", patient_name: "", patient_unit: "", rut: "", transfer_reason: "", priority: "normal", clinical_team: "", task_details: "", staff_count: "1", notes: "" });
@@ -203,7 +204,90 @@ function NewDirectTripSection({ onSuccess }) {
 }
 
 // =====================================
-// 3. ESTADO DE FLOTA
+// 3. CALENDARIO GENERAL (COORDINADOR)
+// =====================================
+function GeneralCalendarSection() {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCalendar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/trips/calendar?start_date=${selectedDate}&end_date=${selectedDate}`);
+      setTrips(res.data); 
+    } catch(e) {} finally { setLoading(false); }
+  }, [selectedDate]);
+
+  useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
+
+  const statusColors = { pendiente_revision: "bg-red-100 text-red-800", pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-slate-200 text-slate-600" };
+
+  return (
+    <div className="max-w-6xl mx-auto animate-slide-up">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900">Calendario General de Operaciones</h1>
+          <p className="text-slate-500 font-medium mt-1">Revise la agenda diaria de todos los traslados (Clínicos y No Clínicos).</p>
+        </div>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border shadow-sm">
+          <CalendarDays className="w-5 h-5 text-teal-600 ml-1" />
+          <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto h-9 border-0 bg-transparent focus-visible:ring-0 p-0 font-bold text-slate-700" />
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])} className="h-8">Ver Hoy</Button>
+        </div>
+      </div>
+
+      {loading ? <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-teal-600"/></div> : (
+        <div className="space-y-4">
+          {trips.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+              <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-lg font-bold text-slate-500">Agenda Libre</p>
+              <p className="text-sm text-slate-400 mt-1">No hay operaciones registradas para este día.</p>
+            </div>
+          ) : (
+            trips.map(t => (
+              <Card key={t.id} className={`shadow-sm border-l-4 ${t.trip_type === "clinico" ? "border-l-teal-500" : "border-l-indigo-500"}`}>
+                <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[80px]">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase">Hora Cita</p>
+                      <p className="text-lg font-black text-slate-900">{t.appointment_time || "--:--"}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold">{t.tracking_number}</span>
+                        <Badge variant="outline" className="text-[10px] uppercase font-bold">{t.trip_type === "clinico" ? "Clínico" : "Cometido"}</Badge>
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
+                      </div>
+                      <p className="font-bold text-lg text-slate-900">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-slate-600 font-medium">
+                        <MapPin className="w-4 h-4 text-teal-500" /> {t.origin || "-"} <ArrowRight className="w-3 h-3 text-slate-400" /> {t.destination || "-"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-left md:text-right bg-slate-50 p-3 rounded-lg border border-slate-100 min-w-[200px]">
+                    {t.trip_type === "clinico" && (
+                      <div className="mb-2">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Personal Acompañante</p>
+                        <p className="text-sm font-black text-teal-800">{t.clinical_team || "Falta asignar personal"}</p>
+                      </div>
+                    )}
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conductor / Vehículo</p>
+                    <p className="text-sm font-bold text-slate-700">{t.driver_name || "Sin conductor"} / {t.vehicle_id ? "Ambulancia Asignada" : "Sin vehículo"}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =====================================
+// 4. ESTADO DE FLOTA
 // =====================================
 function VehiclesStatusSection() {
   const [vehicles, setVehicles] = useState([]);
@@ -257,7 +341,7 @@ function VehiclesStatusSection() {
 }
 
 // =====================================
-// 4. LISTA DE CONDUCTORES
+// 5. LISTA DE CONDUCTORES
 // =====================================
 function DriversListSection() {
   const [drivers, setDrivers] = useState([]);
@@ -284,7 +368,7 @@ function DriversListSection() {
 }
 
 // =====================================
-// 5. HISTORIAL MAESTRO (Todos los viajes)
+// 6. HISTORIAL MAESTRO (Todos los viajes)
 // =====================================
 function GeneralHistorySection() {
   const [history, setHistory] = useState([]);
