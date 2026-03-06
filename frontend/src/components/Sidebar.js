@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText } from "lucide-react";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import api from "@/lib/api";
 export default function Sidebar({ activeSection, onSectionChange }) {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [loading, setLoading] = useState(false);
@@ -26,14 +25,11 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "audit", label: "Auditoría", icon: Shield },
     ],
     coordinador: [
-      { id: "dispatch", label: "Despacho en Vivo", icon: Clock },
+      { id: "dispatch", label: "Consola de Despacho", icon: Clock },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
-      { id: "assign", label: "Asignar", icon: ClipboardList },
-      { id: "byvehicle", label: "Pizarra", icon: MapPin },
-      { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "drivers", label: "Conductores", icon: Users },
-      { id: "history", label: "Historial", icon: Home },
+      { id: "history", label: "Historial", icon: FileText },
     ],
     conductor: [
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },
@@ -46,10 +42,10 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     ],
     gestion_camas: [
       { id: "dashboard", label: "Resumen Clínico", icon: Home },
-      { id: "assign", label: "Asignar Personal", icon: BedDouble },
-      { id: "byvehicle", label: "Pizarra Clínica", icon: MapPin },
-      { id: "calendar", label: "Calendario", icon: CalendarDays },
-      { id: "history", label: "Histórico y Reportes", icon: FileText } // <- NUEVA SECCIÓN AGREGADA
+      { id: "review", label: "Bandeja de Revisión", icon: CheckCircle },
+      { id: "staff", label: "Personal de Apoyo", icon: Users },
+      { id: "new", label: "Nuevo Traslado", icon: Plus },
+      { id: "history", label: "Histórico", icon: FileText }
     ]
   };
 
@@ -78,7 +74,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />}
 
       <div className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"} lg:translate-x-0`}>
-        
         <div className="h-20 flex items-center justify-center border-b border-slate-100 shrink-0 px-4 bg-slate-50/50">
           <img src="/logo.png" alt="Hospital de Curicó" className="h-14 object-contain" />
         </div>
@@ -103,7 +98,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
             <span className="inline-block px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase tracking-wider">{user?.role.replace(/_/g, " ")}</span>
           </div>
           <button onClick={() => setPasswordDialog(true)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2">
-            <Key className="w-4 h-4" /> Cambiar Contraseña
+            <Key className="w-4 h-4" /> Cambiar Clave
           </button>
           <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
             <LogOut className="w-4 h-4" /> Cerrar Sesión
