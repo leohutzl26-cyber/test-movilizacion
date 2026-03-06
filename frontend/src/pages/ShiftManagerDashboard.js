@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+// AQUI ESTABA EL ERROR: Faltaba importar CalendarDays
 import { MapPin, ArrowRight, Clock, Activity, User, Truck, ShieldAlert, CheckCircle, Search, Download, Filter, RefreshCw, CalendarDays } from "lucide-react";
 import api from "@/lib/api";
 
