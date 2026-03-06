@@ -27,6 +27,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     coordinador: [
       { id: "dispatch", label: "Consola de Despacho", icon: Clock },
       { id: "new", label: "Nuevo Traslado Directo", icon: Plus },
+      { id: "calendar", label: "Calendario", icon: CalendarDays }, // <--- CALENDARIO RESTAURADO
       { id: "vehicles", label: "Estado de Flota", icon: Truck },
       { id: "drivers", label: "Conductores", icon: Users },
       { id: "history", label: "Historial", icon: FileText },
@@ -60,7 +61,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       await api.put("/auth/change-password", { current_password: pwdForm.current_password, new_password: pwdForm.new_password });
       toast.success("Contraseña actualizada exitosamente");
       setPasswordDialog(false); setPwdForm({ current_password: "", new_password: "", confirm_password: "" });
-    } catch (error) { toast.error("Error al actualizar contraseña"); } 
+    } catch (error) { toast.error(error.response?.data?.detail || "Error al actualizar contraseña"); } 
     finally { setLoading(false); }
   };
 
