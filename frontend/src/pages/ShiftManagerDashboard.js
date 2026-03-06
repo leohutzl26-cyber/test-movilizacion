@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge"; // <--- ESTA ERA LA LÍNEA QUE FALTABA
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, Clock, Activity, User, Truck, ShieldAlert, CheckCircle } from "lucide-react";
+import { MapPin, ArrowRight, Clock, Activity, User, Truck, ShieldAlert, CheckCircle, Wrench } from "lucide-react";
 import api from "@/lib/api";
 
 export default function ShiftManagerDashboard() {
@@ -17,6 +18,15 @@ export default function ShiftManagerDashboard() {
       <Sidebar activeSection={section} onSectionChange={setSection} />
       <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
         {section === "dispatch" && <DispatchConsole />}
+        
+        {/* Agregamos esto temporalmente para que no quede en blanco si tocas otro botón */}
+        {section !== "dispatch" && (
+          <div className="flex flex-col items-center justify-center py-32 text-slate-400 animate-slide-up">
+            <Wrench className="w-16 h-16 mb-4 text-slate-300" />
+            <h2 className="text-2xl font-bold text-slate-500">Sección en Construcción</h2>
+            <p className="text-slate-400 mt-2">Esta herramienta se conectará en el próximo paso.</p>
+          </div>
+        )}
       </main>
     </div>
   );
