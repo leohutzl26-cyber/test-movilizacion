@@ -1,0 +1,171 @@
+{
+  "identity": {
+    "persona": "E1: The Anti-AI Designer",
+    "mission": "Create a clinical, trustworthy, and high-efficiency interface for hospital transport management. Reject generic SaaS templates; embrace functional precision.",
+    "emotional_tone": "Clinical Precision. Trustworthy. Urgent but Calm. Professional.",
+    "theme_strategy": "Light Mode Primary (Hygiene/Clarity). Optional Dark Mode for Night Shift Drivers."
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl font-semibold tracking-tight",
+      "h3": "text-2xl font-semibold",
+      "h4": "text-xl font-medium",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-normal",
+      "body_sm": "text-sm leading-snug",
+      "caption": "text-xs uppercase tracking-wider text-muted-foreground"
+    },
+    "rules": [
+      "Headings must use 'Manrope'. NO Inter for Headings.",
+      "Use tight tracking for headings (-0.02em).",
+      "Use relaxed leading for body text to improve readability in high-stress environments.",
+      "Driver App: Minimum text size is 16px (text-base) to ensure legibility on mobile while driving/parked."
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#0F766E",
+        "foreground": "#FFFFFF",
+        "hover": "#115E59",
+        "light": "#CCFBF1"
+      },
+      "secondary": {
+        "DEFAULT": "#F1F5F9",
+        "foreground": "#0F172A",
+        "hover": "#E2E8F0"
+      },
+      "accent": {
+        "DEFAULT": "#0EA5E9",
+        "foreground": "#FFFFFF"
+      },
+      "destructive": {
+        "DEFAULT": "#EF4444",
+        "foreground": "#FFFFFF"
+      },
+      "success": {
+        "DEFAULT": "#10B981",
+        "foreground": "#FFFFFF"
+      },
+      "warning": {
+        "DEFAULT": "#F59E0B",
+        "foreground": "#FFFFFF"
+      },
+      "background": {
+        "DEFAULT": "#F8FAFC",
+        "paper": "#FFFFFF",
+        "subtle": "#F1F5F9"
+      },
+      "foreground": {
+        "DEFAULT": "#0F172A",
+        "muted": "#64748B",
+        "subtle": "#94A3B8"
+      },
+      "border": "#E2E8F0"
+    },
+    "gradients": {
+      "primary_subtle": "bg-gradient-to-br from-teal-50 to-slate-50",
+      "glass": "bg-white/80 backdrop-blur-md border border-white/20 shadow-sm"
+    },
+    "usage_rules": [
+      "NO GRADIENTS for text or primary buttons. Keep it solid and high-contrast.",
+      "Use 'Red' ONLY for critical errors or 'Stop' actions.",
+      "Use 'Yellow' for maintenance alerts or delays.",
+      "Use 'Teal' (Primary) for all primary actions and brand presence.",
+      "Driver App: Use high-contrast backgrounds (White vs Slate-900) for outdoor visibility."
+    ]
+  },
+  "layout": {
+    "spacing_system": {
+      "base": "4px",
+      "container_padding": "p-4 md:p-8 lg:p-12",
+      "section_gap": "gap-8 md:gap-12",
+      "component_gap": "gap-4"
+    },
+    "grid_system": {
+      "admin_dashboard": "grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-6",
+      "driver_stream": "flex flex-col gap-4 max-w-md mx-auto",
+      "form_layout": "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6"
+    },
+    "bento_grid_rules": [
+      "Admin/Manager Dashboard must use a Bento Grid.",
+      "Key Metrics (Active Trips, Available Drivers): col-span-2 or col-span-4.",
+      "Map View: col-span-full md:col-span-8 row-span-2.",
+      "Lists (Recent Requests): col-span-4 row-span-2 vertical list.",
+      "Never leave empty white space in the dashboard; fill with 'Quick Actions' or 'Status Summaries'."
+    ]
+  },
+  "components": {
+    "shadcn_customization": {
+      "radius": "rounded-md",
+      "shadows": "shadow-sm hover:shadow-md transition-shadow",
+      "inputs": "bg-white border-slate-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 h-10 md:h-12",
+      "buttons": "font-medium h-10 md:h-12 px-6 rounded-md tracking-wide"
+    },
+    "specific_components": {
+      "DriverCard": {
+        "description": "Large card for mobile drivers. Big buttons, clear status labels.",
+        "styles": "bg-white p-6 rounded-lg shadow-md border border-slate-100 touch-manipulation"
+      },
+      "StatusBadge": {
+        "description": "Pill-shaped badge for trip status.",
+        "styles": "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+      },
+      "DispatchMap": {
+        "description": "Interactive map component for managers.",
+        "styles": "w-full h-[500px] rounded-lg border border-slate-200 overflow-hidden relative"
+      }
+    }
+  },
+  "assets": {
+    "icons": {
+      "library": "lucide-react",
+      "style": "stroke-[1.5px] w-5 h-5 md:w-6 md:h-6"
+    },
+    "images": {
+      "ambulance_hero": "https://images.unsplash.com/photo-1599700403969-f77b3aa74837?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "driver_avatar_1": "https://images.unsplash.com/photo-1676552055618-22ec8cde399a?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "driver_avatar_2": "https://images.unsplash.com/photo-1758691462615-beafbf50bf3c?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "doctor_avatar": "https://images.pexels.com/photos/8460371/pexels-photo-8460371.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "map_placeholder": "https://images.unsplash.com/photo-1446776899648-aa78eefe8ed0?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "hospital_building": "https://images.unsplash.com/photo-1765233181361-a11f1e5b3c69?crop=entropy&cs=srgb&fm=jpg&q=85"
+    }
+  },
+  "motion": {
+    "principles": "Efficient, informative, not distracting.",
+    "transitions": "transition-all duration-200 ease-out",
+    "micro_interactions": {
+      "button_press": "active:scale-95",
+      "card_hover": "hover:-translate-y-1 hover:shadow-lg",
+      "list_entrance": "animate-in fade-in slide-in-from-bottom-4 duration-300 stagger-100"
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure 4.5:1 contrast ratio for all text.",
+    "touch_targets": "Minimum 44x44px for all interactive elements on mobile (Driver App).",
+    "focus_states": "Visible focus rings (teal-500) for keyboard navigation."
+  },
+  "universal_guidelines": {
+    "anti_slop_rules": [
+      "NO generic 'Welcome to...' hero sections. Start with Data/Action.",
+      "NO 'Inter' for Headings. Use 'Manrope'.",
+      "NO transparent backgrounds for dropdowns or modals.",
+      "Use 'sonner' for toasts.",
+      "All interactive elements MUST have 'data-testid'."
+    ],
+    "component_reuse": "Check /components/ui before building new ones. Customize Shadcn."
+  },
+  "instructions_to_main_agent": [
+    "Implement the Driver View as a Mobile-First PWA experience.",
+    "Use the provided image URLs for avatars and map placeholders.",
+    "Prioritize the 'Clinical Precision' aesthetic: Clean, White/Teal, Structured.",
+    "Ensure the Dispatch Console uses the full width of the screen (High Density).",
+    "For the 'Odometer OCR' feature, simulate the UI with a camera button and manual input fallback."
+  ]
+}
