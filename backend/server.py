@@ -863,7 +863,13 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["https://movilizacion-hcu.onrender.com", "http://localhost:3000", "https://test-movilizacion.onrender.com"], 
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001", 
+        "http://localhost:5173", 
+        "https://movilizacion-hcu.onrender.com",
+        "https://test-movilizacion.onrender.com"
+    ], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
