@@ -15,6 +15,7 @@ import * as XLSX from "xlsx";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
+import NewTripSection from "./NewTripSection";
 const COLORS = { pendiente: '#f59e0b', asignado: '#0d9488', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#ef4444', revision_gestor: '#8b5cf6' };
 const pColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
 const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
@@ -27,6 +28,7 @@ export default function ShiftManagerDashboard() {
             <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
                 {section === "dispatch" && <DispatchSection onNavigate={setSection} />}
                 {section === "drivers" && <DriversSection />}
+                {section === "new" && <NewTripSection onNavigate={setSection} />}
                 {section === "vehicles" && <VehiclesSection />}
                 {section === "assign" && <AssignSection />}
                 {section === "byvehicle" && <ByDriverSection />}
@@ -153,6 +155,9 @@ function AssignSection() {
     const [filter, setFilter] = useState("all");
     const [cancelDialog, setCancelDialog] = useState(null);
     const [cancelReason, setCancelReason] = useState("");
+    const [assignDialog, setAssignDialog] = useState(null);
+    const [selectedDriver, setSelectedDriver] = useState("");
+    const [selectedVehicle, setSelectedVehicle] = useState("");
 
     const confirmCancel = async () => {
         if (!cancelReason.trim()) { toast.error("Debe ingresar un motivo"); return; }
