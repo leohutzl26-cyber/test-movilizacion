@@ -1,4 +1,12 @@
-function ByDriverSection() {
+import { useState, useEffect, useCallback } from "react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import api from "@/lib/api";
+
+export default function ByDriverSection() {
     const [data, setData] = useState([]);
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [loading, setLoading] = useState(true);
@@ -33,7 +41,7 @@ function ByDriverSection() {
             newData[sDriverIndex].trips = sTrips;
             setData(newData);
             try {
-                await api.post("/trips/reorder", { trip_ids: sTrips.map(t => t.id) });
+                await api.put("/trips/reorder", { trip_ids: sTrips.map(t => t.id) });
             } catch (e) { toast.error("Error reordenando"); fetchBoard(); }
         } else {
             dTrips.splice(result.destination.index, 0, moved);
@@ -47,7 +55,7 @@ function ByDriverSection() {
                 } else {
                     await api.put(`/trips/${moved.id}/manager-assign`, { driver_id: dId });
                 }
-                await api.post("/trips/reorder", { trip_ids: dTrips.map(t => t.id) });
+                await api.put("/trips/reorder", { trip_ids: dTrips.map(t => t.id) });
                 fetchBoard();
             } catch (e) { toast.error("Error modificando conductor"); fetchBoard(); }
         }

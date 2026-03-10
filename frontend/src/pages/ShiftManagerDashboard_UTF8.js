@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import * as XLSX from "xlsx";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import ByDriverSection from "./ByDriverSection";
 
 export default function ShiftManagerDashboard() {
     const [section, setSection] = useState("dispatch");
@@ -25,6 +26,7 @@ export default function ShiftManagerDashboard() {
                 {section === "drivers" && <DriversSection />}
                 {section === "vehicles" && <VehiclesSection />}
                 {section === "assign" && <AssignSection />}
+                {section === "byvehicle" && <ByDriverSection />}
                 {section === "calendar" && <CalendarSection />}
                 {section === "history" && <HistorySection />}
             </main>
