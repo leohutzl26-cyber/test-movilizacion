@@ -18,7 +18,7 @@ try {
 if (!API_BASE) {
   API_BASE = isLocal
     ? "http://localhost:8000"
-    : "https://movilizacion-hcu-backend.onrender.com";
+    : "https://test-movilizacion.onrender.com";
 }
 
 const api = axios.create({
