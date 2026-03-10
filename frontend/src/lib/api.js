@@ -1,7 +1,25 @@
 import axios from "axios";
 
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const API_BASE = process.env.REACT_APP_API_URL || (isLocal ? "http://localhost:8000" : "");
+
+// Detección segura de la URL del Backend
+let API_BASE = "";
+
+try {
+  // Primero intentamos usar la variable de entorno si existe
+  if (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_URL) {
+    API_BASE = process.env.REACT_APP_API_URL;
+  }
+} catch (e) {
+  // Silenciar errores de acceso a process
+}
+
+// Si no hay variable, usamos el fallback según el entorno
+if (!API_BASE) {
+  API_BASE = isLocal
+    ? "http://localhost:8000"
+    : "https://movilizacion-hcu-backend.onrender.com";
+}
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
