@@ -29,7 +29,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "dispatch", label: "Despacho en Vivo", icon: Clock },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
       { id: "assign", label: "Asignar", icon: ClipboardList },
-      { id: "byvehicle", label: "Pizarra", icon: BarChart3 },
+      { id: "byvehicle", label: "Pizarra (Conductores)", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "drivers", label: "Conductores", icon: Users },

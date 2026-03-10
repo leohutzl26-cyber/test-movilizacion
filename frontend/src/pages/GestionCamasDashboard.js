@@ -868,6 +868,37 @@ function GestorNewTripSection() {
   const [useCustomService, setUseCustomService] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [rutValid, setRutValid] = useState(true);
+
+  const validateRut = (value) => {
+    let clean = value.replace(/\./g, "").replace(/-/g, "").toUpperCase();
+    if (clean.length < 2) return { valid: false, formatted: value };
+    let body = clean.slice(0, -1);
+    let dv = clean.slice(-1);
+    if (!/^\d+$/.test(body)) return { valid: false, formatted: value };
+    let sum = 0; let mul = 2;
+    for (let i = body.length - 1; i >= 0; i--) {
+      sum += parseInt(body[i]) * mul;
+      mul = mul === 7 ? 2 : mul + 1;
+    }
+    let res = 11 - (sum % 11);
+    let expected = res === 11 ? "0" : res === 10 ? "K" : res.toString();
+    const formatted = body.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.") + "-" + dv;
+    return { valid: dv === expected, formatted };
+  };
+
+  const handleRutChange = (e) => {
+    const val = e.target.value;
+    if (!val) {
+      setForm({ ...form, rut: "" });
+      setRutValid(true);
+      return;
+    }
+    const { valid, formatted } = validateRut(val);
+    setForm({ ...form, rut: formatted });
+    setRutValid(valid);
+  };
+
   useEffect(() => {
     api.get("/destinations").then(r => setDestinations(r.data)).catch(() => { });
     api.get("/clinical-staff").then(r => setClinicalStaffOptions(r.data.filter(s => s.is_active))).catch(() => { });
@@ -894,6 +925,7 @@ function GestorNewTripSection() {
     e.preventDefault();
     if (tripType === "clinico") {
       if (!form.patient_name || !form.origin || !form.destination) { toast.error("Complete campos obligatorios"); return; }
+      if (!rutValid) { toast.error("El RUT ingresado no es válido"); return; }
       if (staffRows.length === 0) { toast.error("Añada al menos un personal clínico"); return; }
       if (staffRows.some(r => !r.type || !r.staff_id)) { toast.error("Complete todo el personal añadido"); return; }
     } else {
@@ -919,7 +951,15 @@ function GestorNewTripSection() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {tripType === "clinico" && (<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1"><Label>Nombre Paciente *</Label><Input value={form.patient_name} onChange={e => setForm({ ...form, patient_name: e.target.value })} /></div>
-            <div className="space-y-1"><Label>RUT</Label><Input value={form.rut} onChange={e => setForm({ ...form, rut: e.target.value })} placeholder="12345678-9" /></div>
+            <div className="space-y-1">
+              <Label className={!rutValid ? "text-red-600" : ""}>RUT {!rutValid && "(Inválido)"}</Label>
+              <Input
+                value={form.rut}
+                onChange={handleRutChange}
+                placeholder="12.345.678-9"
+                className={!rutValid ? "border-red-500 bg-red-50" : ""}
+              />
+            </div>
             <div className="space-y-1"><Label>Edad</Label><Input value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} /></div>
             <div className="space-y-1"><Label>Peso</Label><Input value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} /></div>
             <div className="space-y-1 md:col-span-2"><Label>Diagnóstico</Label><Input value={form.diagnosis} onChange={e => setForm({ ...form, diagnosis: e.target.value })} /></div>
