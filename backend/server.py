@@ -40,6 +40,27 @@ if resend_api_key:
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
 app = FastAPI()
+
+# ============ CORS CONFIGURATION (MUST BE TOP LEVEL) ============
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+        "https://movilizacion-hcu.onrender.com",
+        "https://test-movilizacion.onrender.com",
+        "https://movilizacion-hcu-backend.onrender.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "Movilizacion HCU Backend Running"}
+
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
@@ -857,22 +878,6 @@ async def dashboard_stats(user=Depends(require_roles("coordinador", "admin", "ge
         "busy_drivers": busy_drivers,
         "avg_km_per_trip": avg_km,
     }
-
-# ============ CORS CONFIGURATION ============
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:5173",
-        "https://movilizacion-hcu.onrender.com",
-        "https://test-movilizacion.onrender.com",
-        "https://movilizacion-hcu-backend.onrender.com",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 app.include_router(api_router)
 
