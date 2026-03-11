@@ -143,12 +143,10 @@ function AssignPersonnelSection() {
       }
 
       await api.put(`/trips/${assignDialog.id}/approve-gestor`, {
-        priority: priority,
-        accompaniment_staff_id: selectedStaffId === "none" ? null : selectedStaffId,
-        clinical_team: clinical_team_name
+        priority: priority
       });
       toast.success("Traslado visado y aprobado correctamente");
-      setAssignDialog(null); setSelectedStaffId(""); setPriority("normal"); fetchTripsAndStaff();
+      setAssignDialog(null); setPriority("normal"); fetchTripsAndStaff();
     } catch (e) { toast.error("Error al aprobar traslado"); }
   };
 
@@ -259,15 +257,8 @@ function AssignPersonnelSection() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-bold text-slate-700 text-sm">Personal Clínico Acompañante Específico (Opcional)</Label>
-                  <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                    <SelectTrigger className="h-12 border-slate-300"><SelectValue placeholder="Seleccione personal" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin asignación específica</SelectItem>
-                      {clinicalStaffOptions.map(staff => (<SelectItem key={staff.id} value={staff.id}>{staff.name} ({staff.role})</SelectItem>))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4 pt-2">
+                  <p className="text-xs text-slate-500 italic">El personal clínico asignado por el solicitante será notificado al aprobar.</p>
                 </div>
                 <DialogFooter className="mt-4">
                   <Button variant="outline" className="h-12 font-bold" onClick={() => setAssignDialog(null)}>Cancelar</Button>
@@ -859,7 +850,7 @@ function GestorNewTripSection() {
     scheduled_date: new Date().toISOString().split("T")[0],
     rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
     attending_physician: "", appointment_time: "", departure_time: "",
-    patient_requirements: [], accompaniment: "", accompaniment_staff_id: "none",
+    patient_requirements: [], accompaniment: "",
     task_details: "", staff_count: ""
   });
   const [staffRows, setStaffRows] = useState([]);
@@ -933,9 +924,9 @@ function GestorNewTripSection() {
     }
     setLoading(true);
     try {
-      await api.post("/trips", { ...form, trip_type: tripType, accompaniment_staff_id: form.accompaniment_staff_id === "none" ? null : form.accompaniment_staff_id, required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name}`), assigned_clinical_staff: staffRows });
+      await api.post("/trips", { ...form, trip_type: tripType, required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name}`), assigned_clinical_staff: staffRows });
       toast.success("Traslado creado exitosamente");
-      setForm({ origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "", scheduled_date: new Date().toISOString().split("T")[0], rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "", attending_physician: "", appointment_time: "", departure_time: "", patient_requirements: [], accompaniment: "", accompaniment_staff_id: "none", task_details: "", staff_count: "" });
+      setForm({ origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "", scheduled_date: new Date().toISOString().split("T")[0], rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "", attending_physician: "", appointment_time: "", departure_time: "", patient_requirements: [], accompaniment: "", task_details: "", staff_count: "" });
       setStaffRows([]);
     } catch { toast.error("Error al crear"); } finally { setLoading(false); }
   };
