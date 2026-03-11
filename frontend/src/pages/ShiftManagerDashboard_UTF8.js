@@ -690,6 +690,7 @@ function NewTripSection({ onNavigate }) {
     const [useCustomDest, setUseCustomDest] = useState(false);
     const [useCustomService, setUseCustomService] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         api.get("/destinations").then(r => setDestinations(r.data)).catch(() => { });
@@ -752,20 +753,43 @@ function NewTripSection({ onNavigate }) {
         const finalOrigin = useCustomOrigin ? form.origin : form.origin;
         const finalDest = useCustomDest ? form.destination : form.destination;
 
+        let newErrors = {};
+
         if (tripType === "clinico") {
-            if (!form.patient_name || !form.patient_unit || !form.transfer_reason || !form.appointment_time || !finalOrigin || !finalDest) {
+            if (!form.patient_name) newErrors.patient_name = true;
+            if (!form.patient_unit) newErrors.patient_unit = true;
+            if (!form.transfer_reason) newErrors.transfer_reason = true;
+            if (!form.appointment_time) newErrors.appointment_time = true;
+            if (!finalOrigin) newErrors.origin = true;
+            if (!finalDest) newErrors.destination = true;
+            
+            setErrors(newErrors);
+
+            if (Object.keys(newErrors).length > 0) {
                 toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
             }
-            if (staffRows.length === 0) { toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; }
-            if (staffRows.some(r => !r.type || !r.staff_id)) { toast.error("Complete tipo y nombre de todo el personal clínico añadido"); return; }
+            if (staffRows.length === 0) { 
+                setErrors(prev => ({ ...prev, staff: true }));
+                toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; 
+            }
+            if (staffRows.some(r => !r.type || !r.staff_id)) { 
+                toast.error("Complete tipo y nombre de todo el personal clínico añadido"); return; 
+            }
             if (form.patient_requirements.length === 0) { toast.error("Seleccione requerimientos del paciente"); return; }
         } else {
-            if (!finalOrigin || !finalDest || !form.task_details) {
+            if (!finalOrigin) newErrors.origin = true;
+            if (!finalDest) newErrors.destination = true;
+            if (!form.task_details) newErrors.task_details = true;
+            
+            setErrors(newErrors);
+
+            if (Object.keys(newErrors).length > 0) {
                 toast.error("Complete Origen, Destino y Cometido"); return;
             }
         }
 
         setLoading(true);
+        setErrors({});
         try {
             const submitData = {
                 ...form,
@@ -812,7 +836,7 @@ function NewTripSection({ onNavigate }) {
                                 <div className="space-y-4">
                                     <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><User className="w-5 h-5" /> Datos del Paciente</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1"><Label>Nombre Paciente *</Label><Input value={form.patient_name} onChange={e => setForm({ ...form, patient_name: e.target.value })} /></div>
+                                        <div className="space-y-1"><Label className={errors.patient_name ? "text-red-500" : ""}>Nombre Paciente *</Label><Input className={errors.patient_name ? "border-red-500 bg-red-50 shadow-inner" : ""} value={form.patient_name} onChange={e => { setForm({ ...form, patient_name: e.target.value }); if (errors.patient_name) setErrors(p => ({ ...p, patient_name: false })); }} /></div>
                                         <div className="space-y-1">
                                             <Label>RUT</Label>
                                             <div className="relative">
@@ -843,9 +867,9 @@ function NewTripSection({ onNavigate }) {
                                     <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><Activity className="w-5 h-5" /> Detalles Médicos</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1"><Label>Médico Tratante</Label><Input value={form.attending_physician} onChange={e => setForm({ ...form, attending_physician: e.target.value })} /></div>
-                                        <div className="space-y-1"><Label>Motivo Traslado *</Label>
-                                            <Select value={form.transfer_reason} onValueChange={v => setForm({ ...form, transfer_reason: v })}>
-                                                <SelectTrigger><SelectValue placeholder="Seleccione..." /></SelectTrigger>
+                                        <div className="space-y-1"><Label className={errors.transfer_reason ? "text-red-500" : ""}>Motivo Traslado *</Label>
+                                            <Select value={form.transfer_reason} onValueChange={v => { setForm({ ...form, transfer_reason: v }); if (errors.transfer_reason) setErrors(p => ({ ...p, transfer_reason: false })); }}>
+                                                <SelectTrigger className={errors.transfer_reason ? "border-red-500 bg-red-50" : ""}><SelectValue placeholder="Seleccione..." /></SelectTrigger>
                                                 <SelectContent>{reasonOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
@@ -858,7 +882,7 @@ function NewTripSection({ onNavigate }) {
                             <div className="space-y-4">
                                 <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><ClipboardList className="w-5 h-5" /> Detalle del Cometido</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1 md:col-span-2"><Label>Cometido (Motivo) *</Label><Input value={form.task_details} onChange={e => setForm({ ...form, task_details: e.target.value })} placeholder="Ej: Búsqueda de insumos" /></div>
+                                    <div className="space-y-1 md:col-span-2"><Label className={errors.task_details ? "text-red-500" : ""}>Cometido (Motivo) *</Label><Input className={errors.task_details ? "border-red-500 bg-red-50 shadow-inner" : ""} value={form.task_details} onChange={e => { setForm({ ...form, task_details: e.target.value }); if (errors.task_details) setErrors(p => ({ ...p, task_details: false })); }} placeholder="Ej: Búsqueda de insumos" /></div>
                                     <div className="space-y-1"><Label>Cantidad de Funcionarios</Label><Input type="number" min="0" value={form.staff_count} onChange={e => setForm({ ...form, staff_count: e.target.value })} /></div>
                                 </div>
                             </div>
@@ -867,36 +891,48 @@ function NewTripSection({ onNavigate }) {
                         <div className="space-y-4">
                             <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><MapPin className="w-5 h-5" /> Ubicación y Tiempos</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1"><Label>Origen *</Label>
+                                <div className="space-y-1"><Label className={errors.origin ? "text-red-500" : ""}>Origen *</Label>
                                     {!useCustomOrigin ? (
-                                        <Select onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
-                                    ) : <Input placeholder="Escriba origen" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}
+                                        <Select onValueChange={v => { 
+                                            if (v === "otro") { setUseCustomOrigin(true); } 
+                                            else { setForm({ ...form, origin: v }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }
+                                        }}>
+                                            <SelectTrigger className={errors.origin ? "border-red-500 bg-red-50" : ""}><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                                            <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
+                                        </Select>
+                                    ) : <Input className={errors.origin ? "border-red-500 bg-red-50" : ""} placeholder="Escriba origen" value={form.origin} onChange={e => { setForm({ ...form, origin: e.target.value }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }} onDoubleClick={() => setUseCustomOrigin(false)} />}
                                 </div>
-                                <div className="space-y-1"><Label>Destino *</Label>
+                                <div className="space-y-1"><Label className={errors.destination ? "text-red-500" : ""}>Destino *</Label>
                                     {!useCustomDest ? (
-                                        <Select onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
-                                    ) : <Input placeholder="Escriba destino" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}
+                                        <Select onValueChange={v => {
+                                            if (v === "otro") { setUseCustomDest(true); } 
+                                            else { setForm({ ...form, destination: v }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }
+                                        }}>
+                                            <SelectTrigger className={errors.destination ? "border-red-500 bg-red-50" : ""}><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                                            <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
+                                        </Select>
+                                    ) : <Input className={errors.destination ? "border-red-500 bg-red-50" : ""} placeholder="Escriba destino" value={form.destination} onChange={e => { setForm({ ...form, destination: e.target.value }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }} onDoubleClick={() => setUseCustomDest(false)} />}
                                 </div>
                                 {tripType === "clinico" && (
                                     <>
-                                        <div className="space-y-1"><Label>Servicio de Origen *</Label>
+                                        <div className="space-y-1"><Label className={errors.patient_unit ? "text-red-500" : ""}>Servicio de Origen *</Label>
                                             {!useCustomService ? (
                                                 <Select onValueChange={v => {
                                                     if (v === "otro") { setUseCustomService(true); }
-                                                    else { setForm({ ...form, patient_unit: v }); }
+                                                    else { setForm({ ...form, patient_unit: v }); if (errors.patient_unit) setErrors(p => ({ ...p, patient_unit: false })); }
                                                 }}>
-                                                    <SelectTrigger><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
+                                                    <SelectTrigger className={errors.patient_unit ? "border-red-500 bg-red-50" : ""}><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
                                                     <SelectContent>
                                                         {originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                                                         <SelectItem value="otro">Otro (escribir)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             ) : (
-                                                <Input placeholder="Escriba servicio" value={form.patient_unit} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />
+                                                <Input className={errors.patient_unit ? "border-red-500 bg-red-50 shadow-inner" : ""} placeholder="Escriba servicio" value={form.patient_unit} onChange={e => { setForm({ ...form, patient_unit: e.target.value }); if (errors.patient_unit) setErrors(p => ({ ...p, patient_unit: false })); }} onDoubleClick={() => setUseCustomService(false)} />
                                             )}
                                         </div>
                                         <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
-                                        <div className="space-y-1"><Label>Hora de Citación *</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
+                                        <div className="space-y-1"><Label className={errors.appointment_time ? "text-red-500" : ""}>Hora de Citación *</Label><Input className={errors.appointment_time ? "border-red-500 bg-red-50 shadow-inner" : ""} type="time" value={form.appointment_time} onChange={e => { setForm({ ...form, appointment_time: e.target.value }); if (errors.appointment_time) setErrors(p => ({ ...p, appointment_time: false })); }} /></div>
                                     </>
                                 )}
                                 <div className="space-y-1"><Label>Fecha del Traslado</Label><Input type="date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} /></div>
@@ -906,9 +942,9 @@ function NewTripSection({ onNavigate }) {
 
                         {tripType === "clinico" && (
                             <div className="space-y-4">
-                                <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><Plus className="w-5 h-5" /> Personal Clínico Requerido *</h3>
+                                <h3 className={`font-bold border-b pb-2 flex items-center gap-2 ${errors.staff ? "text-red-600 border-red-200" : "text-teal-800 border-teal-100"}`}><Plus className="w-5 h-5" /> Personal Clínico Requerido *</h3>
                                 
-                                <Button type="button" variant="outline" onClick={addStaffRow} className="border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-10 flex items-center gap-2">
+                                <Button type="button" variant="outline" onClick={() => { addStaffRow(); if (errors.staff) setErrors(p => ({ ...p, staff: false })); }} className={`font-bold h-10 flex items-center gap-2 ${errors.staff ? "border-red-500 text-red-700 bg-red-50" : "border-teal-200 text-teal-700 hover:bg-teal-50"}`}>
                                     <Plus className="w-4 h-4" /> Añadir Personal Clínico
                                 </Button>
 
