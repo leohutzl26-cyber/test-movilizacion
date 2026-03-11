@@ -49,17 +49,23 @@ function AssignPersonnelSection() {
   const [priority, setPriority] = useState("normal");
   const [editData, setEditData] = useState({});
   const [stats, setStats] = useState({ revision: 0, pendiente: 0, asignado: 0, en_curso: 0 });
+  const [destinations, setDestinations] = useState([]);
+  const [originServices, setOriginServices] = useState([]);
 
   const fetchTripsAndStaff = useCallback(async () => {
     try {
-      const [revTrips, staffInfo, allActive] = await Promise.all([
+      const [revTrips, staffInfo, allActive, dests, services] = await Promise.all([
         api.get("/trips/gestion_revision"),
         api.get("/clinical-staff"),
-        api.get("/trips/active")
+        api.get("/trips/active"),
+        api.get("/destinations"),
+        api.get("/origin-services")
       ]);
       
       setTrips(revTrips.data);
       setClinicalStaffOptions(staffInfo.data.filter(s => s.is_active));
+      setDestinations(dests.data);
+      setOriginServices(services.data.filter(s => s.is_active !== false));
       
       // Calcular estadísticas de estados específicos
       const clinicos = allActive.data.filter(t => t.trip_type === "clinico");
@@ -89,11 +95,23 @@ function AssignPersonnelSection() {
   const updateStaffRow = (index, field, value) => {
     const updated = [...staffRows];
     updated[index][field] = value;
+    if (field === "type") {
+      updated[index].staff_id = "";
+      updated[index].staff_name = "";
+    }
     if (field === "staff_id") {
       const staff = clinicalStaffOptions.find(s => s.id === value);
       updated[index].staff_name = staff ? staff.name : "";
     }
     setStaffRows(updated);
+  };
+
+  const addStaffRow = () => {
+    setStaffRows([...staffRows, { type: "", staff_id: "", staff_name: "" }]);
+  };
+
+  const removeStaffRow = (index) => {
+    setStaffRows(staffRows.filter((_, i) => i !== index));
   };
 
   const pendingTrips = trips;
@@ -215,7 +233,16 @@ function AssignPersonnelSection() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Motivo Traslado</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.transfer_reason || ""} onChange={e => setEditData({ ...editData, transfer_reason: e.target.value })} />
+                    <Select value={editData.transfer_reason || "none"} onValueChange={v => setEditData({...editData, transfer_reason: v})}>
+                      <SelectTrigger className="h-9 text-sm font-bold bg-white">
+                        <SelectValue placeholder="Seleccione motivo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["Examen", "Hospitalización", "Dialisis", "Rescate", "Alta", "Procedimiento"].map(r => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Médico Tratante</Label>
@@ -230,15 +257,42 @@ function AssignPersonnelSection() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Origen</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.origin || ""} onChange={e => setEditData({ ...editData, origin: e.target.value })} />
+                    <Select value={editData.origin || "none"} onValueChange={v => setEditData({...editData, origin: v})}>
+                      <SelectTrigger className="h-9 text-sm font-bold bg-white">
+                        <SelectValue placeholder="Seleccione origen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {destinations.map(d => (
+                          <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Destino</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.destination || ""} onChange={e => setEditData({ ...editData, destination: e.target.value })} />
+                    <Select value={editData.destination || "none"} onValueChange={v => setEditData({...editData, destination: v})}>
+                      <SelectTrigger className="h-9 text-sm font-bold bg-white">
+                        <SelectValue placeholder="Seleccione destino" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {destinations.map(d => (
+                          <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Servicio / Unidad</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.patient_unit || ""} onChange={e => setEditData({ ...editData, patient_unit: e.target.value })} />
+                    <Select value={editData.patient_unit || "none"} onValueChange={v => setEditData({...editData, patient_unit: v})}>
+                      <SelectTrigger className="h-9 text-sm font-bold bg-white">
+                        <SelectValue placeholder="Seleccione unidad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {originServices.map(s => (
+                          <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Hora Citación</Label>
@@ -257,9 +311,14 @@ function AssignPersonnelSection() {
 
               {/* ASIGNACIÓN DE PERSONAL (TABLA EDITABLE) */}
               <div className="space-y-3">
-                <h4 className="font-black text-teal-800 text-sm flex items-center gap-2"><Users className="w-4 h-4" /> Personal Clínico Asignado</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-black text-teal-800 text-sm flex items-center gap-2"><Users className="w-4 h-4" /> Personal Clínico Asignado</h4>
+                  <Button type="button" size="sm" onClick={addStaffRow} className="bg-teal-600 hover:bg-teal-700 h-8 gap-1 text-[10px] px-2">
+                    <Plus className="w-3 h-3" /> Añadir Personal
+                  </Button>
+                </div>
                 {staffRows.length === 0 ? (
-                  <p className="text-xs text-amber-600 italic font-bold">No hay personal solicitado por el origen.</p>
+                  <p className="text-xs text-amber-600 italic font-bold">No hay personal solicitado. Puede añadir personal arriba.</p>
                 ) : (
                   <div className="border rounded-xl overflow-hidden overflow-x-auto shadow-sm">
                     <table className="w-full text-xs">
@@ -267,24 +326,39 @@ function AssignPersonnelSection() {
                         <tr>
                           <th className="p-2 text-left">Función</th>
                           <th className="p-2 text-left">Funcionario Identificado</th>
+                          <th className="p-2 text-center w-10"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {staffRows.map((row, i) => (
                           <tr key={i} className="bg-white">
-                            <td className="p-2 font-black text-teal-700">{row.type}</td>
                             <td className="p-2">
-                              <Select value={row.staff_id || "none"} onValueChange={v => updateStaffRow(i, "staff_id", v === "none" ? "" : v)}>
-                                <SelectTrigger className={`h-9 ${!row.staff_id ? "border-amber-400 bg-amber-50" : "border-slate-200"}`}>
-                                  <SelectValue placeholder="Identificar funcionario..." />
+                              <Select value={row.type || "none"} onValueChange={v => updateStaffRow(i, "type", v)}>
+                                <SelectTrigger className="h-8 border-slate-200 text-[11px] font-bold">
+                                  <SelectValue placeholder="Tipo..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="none">Sin identificar todavía...</SelectItem>
+                                  {PERSONNEL_TYPES.map(p => (
+                                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="p-2">
+                              <Select value={row.staff_id || "none"} onValueChange={v => updateStaffRow(i, "staff_id", v === "none" ? "" : v)}>
+                                <SelectTrigger className={`h-8 ${!row.staff_id ? "border-amber-400 bg-amber-50" : "border-slate-200"} text-[11px]`}>
+                                  <SelectValue placeholder="Identificar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Sin identificar...</SelectItem>
                                   {clinicalStaffOptions.filter(s => s.role === row.type).map(s => (
                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
+                            </td>
+                            <td className="p-2 text-center">
+                              <Button variant="ghost" size="icon" onClick={() => removeStaffRow(i)} className="h-7 w-7 text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></Button>
                             </td>
                           </tr>
                         ))}
