@@ -556,7 +556,7 @@ async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordin
 @api_router.get("/trips/by-driver")
 async def trips_by_driver(date: str = None, user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
     target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    drivers = await db.users.find({"role": "conductor", "is_approved": True}, {"id": 1, "name": 1, "_id": 0}).to_list(500)
+    drivers = await db.users.find({"role": "conductor", "status": "aprobado"}, {"id": 1, "name": 1, "_id": 0}).to_list(500)
     trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).sort("order_in_group", 1).to_list(5000)
     
     res = []

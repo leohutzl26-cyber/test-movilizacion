@@ -47,7 +47,7 @@ export default function ShiftManagerDashboard_UTF8() {
 
     const fetchStats = useCallback(async () => {
         try {
-            const res = await api.get("/trips/stats");
+            const res = await api.get("/stats/dashboard");
             setStats(res.data);
         } catch (e) { }
     }, []);
@@ -70,6 +70,7 @@ export default function ShiftManagerDashboard_UTF8() {
                     {section === "by_driver" && <ByDriverSection />}
                     {section === "vehicles" && <VehiclesSection />}
                     {section === "drivers" && <DriversSection />}
+                    {section === "history" && <HistorySection />}
                 </div>
             </main>
         </div>
@@ -82,7 +83,7 @@ function DispatchSection() {
 
     const fetchTrips = useCallback(async () => {
         try {
-            const res = await api.get("/trips/all_active");
+            const res = await api.get("/trips/active");
             setTrips(res.data || []);
         } catch (e) { } finally { setLoading(false); }
     }, []);
@@ -158,7 +159,7 @@ function AssignSection() {
 
     const fetchAll = useCallback(async () => {
         try {
-            const [tRes, dRes] = await Promise.all([api.get("/trips/pool"), api.get("/drivers/available")]);
+            const [tRes, dRes] = await Promise.all([api.get("/trips/pool"), api.get("/drivers")]);
             setTrips(tRes.data || []); setDrivers(dRes.data || []);
         } catch (e) { } finally { setLoading(false); }
     }, []);
@@ -271,7 +272,7 @@ function CalendarSection() {
     const fetchBoard = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await api.get("/trips/all_active");
+            const res = await api.get("/trips/active");
             setTrips(res.data || []);
         } catch (e) { } finally { setLoading(false); }
     }, []);
@@ -703,3 +704,86 @@ function NewTripSection({ onNavigate }) {
         </div>
     );
 }
+
+function HistorySection() {
+    const [trips, setTrips] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchHistory = useCallback(async () => {
+        try {
+            const res = await api.get("/trips/history");
+            setTrips(res.data || []);
+        } catch (e) { toast.error("Error al cargar historial"); }
+        finally { setLoading(false); }
+    }, []);
+
+    useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+    if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
+
+    const sColorsLocal = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
+
+    return (
+        <div className="animate-slide-up">
+            <h1 className="text-2xl font-bold text-slate-900 mb-6 font-black tracking-tight">Historial de Traslados</h1>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden shadow-teal-900/5">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50/80 border-b border-slate-200">
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Folio</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Paciente / Motivo</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Origen / Destino</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Conductor / Móvil</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Estado</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {trips.map(t => (
+                                <tr key={t.id} className="hover:bg-teal-50/30 transition-colors">
+                                    <td className="p-4 font-mono text-xs font-bold text-slate-500">
+                                        <span className="bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">{t.tracking_number}</span>
+                                    </td>
+                                    <td className="p-4">
+                                        <p className="font-bold text-slate-900 text-sm leading-tight">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-tighter">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</p>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><MapPin className="w-3 h-3 text-teal-500" /> {t.origin}</p>
+                                            <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase ml-4 text-[9px] text-slate-400 tracking-tighter"><ArrowRight className="w-3 h-3 text-slate-300" /> {t.destination}</p>
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        {t.driver_name ? (
+                                            <>
+                                                <p className="text-xs font-black text-slate-800">{t.driver_name}</p>
+                                                <p className="text-[10px] text-teal-600 font-bold font-mono">{t.vehicle_plate || ""}</p>
+                                            </>
+                                        ) : (
+                                            <span className="text-xs text-slate-300 italic">No asignado</span>
+                                        )}
+                                    </td>
+                                    <td className="p-4">
+                                        <Badge className={`text-[9px] font-black uppercase tracking-widest border-none px-2 py-0.5 rounded-full ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600 font-bold"}`}>{t.status.replace(/_/g, " ")}</Badge>
+                                    </td>
+                                    <td className="p-4">
+                                        <p className="text-xs font-bold text-slate-600 whitespace-nowrap">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</p>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                {trips.length === 0 && (
+                    <div className="text-center py-20">
+                        <ClipboardList className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                        <p className="text-slate-400 font-medium">No hay registros históricos disponibles</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
