@@ -504,18 +504,13 @@ async def approve_trip_gestor(trip_id: str, data: TripUpdate, user=Depends(requi
     if trip.get("status") != "revision_gestor":
         raise HTTPException(status_code=400, detail="El viaje no está en revisión")
         
-    update_data = {
-        "status": "pendiente",
-        "priority": data.priority or trip.get("priority"),
-        "clinical_team": data.clinical_team or trip.get("clinical_team"),
-        "accompaniment_staff_id": data.accompaniment_staff_id or trip.get("accompaniment_staff_id"),
-        "assigned_clinical_staff": data.assigned_clinical_staff if data.assigned_clinical_staff is not None else trip.get("assigned_clinical_staff", []),
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["status"] = "pendiente"
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     # Si se actualizó la lista detallada, recalculamos el string de clinical_team
-    if data.assigned_clinical_staff:
-        staff_names = [f"{s.get('type')}: {s.get('staff_name') or 'N/A'}" for s in data.assigned_clinical_staff]
+    if "assigned_clinical_staff" in update_data and update_data["assigned_clinical_staff"]:
+        staff_names = [f"{s.get('type')}: {s.get('staff_name') or 'Por identificar'}" for s in update_data["assigned_clinical_staff"]]
         update_data["clinical_team"] = ", ".join(staff_names)
 
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
