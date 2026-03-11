@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ClipboardList, Plus, MapPin, ArrowRight, User, Stethoscope, Clock, Truck, Activity, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { ClipboardList, Plus, MapPin, ArrowRight, User, Stethoscope, Clock, Truck, Activity, CheckCircle, XCircle, Trash2, Filter } from "lucide-react";
 import api from "@/lib/api";
 
 // ========== RUT VALIDATION (MÓDULO 11) ==========
@@ -391,6 +391,7 @@ function MyRequestsSection() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReq, setSelectedReq] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchReqs = useCallback(async () => {
     try { const r = await api.get("/trips"); setRequests(r.data); } catch { } finally { setLoading(false); }
@@ -399,11 +400,36 @@ function MyRequestsSection() {
 
   const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
 
+  const filteredRequests = requests.filter(req => {
+    if (statusFilter === "all") return true;
+    return req.status === statusFilter;
+  });
+
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Mis Solicitudes</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-slate-900">Mis Solicitudes</h1>
+        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="border-0 shadow-none h-8 w-full md:w-[200px] focus:ring-0">
+              <SelectValue placeholder="Filtrar por estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="revision_gestor">Revisión Gestor</SelectItem>
+              <SelectItem value="pendiente">Pendientes</SelectItem>
+              <SelectItem value="asignado">Asignadas</SelectItem>
+              <SelectItem value="en_curso">En Curso</SelectItem>
+              <SelectItem value="completado">Completadas</SelectItem>
+              <SelectItem value="cancelado">Canceladas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        {requests.map(req => (
+        {filteredRequests.map(req => (
           <Card key={req.id} className="card-hover cursor-pointer border-l-4 border-l-teal-500" onClick={() => setSelectedReq(req)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
@@ -422,6 +448,7 @@ function MyRequestsSection() {
           </Card>
         ))}
         {requests.length === 0 && !loading && <p className="text-center py-12 text-slate-400">No tienes solicitudes registradas</p>}
+        {requests.length > 0 && filteredRequests.length === 0 && <p className="text-center py-12 text-slate-400">No hay solicitudes con ese estado</p>}
       </div>
 
       <Dialog open={!!selectedReq} onOpenChange={() => setSelectedReq(null)}>
