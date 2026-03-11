@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
@@ -39,7 +39,109 @@ function validateRut(rut) {
 
 const COLORS = { pendiente: '#f59e0b', asignado: '#0d9488', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#ef4444', revision_gestor: '#8b5cf6' };
 const pColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
-const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
+
+function TripDetailDialog({ trip, open, onOpenChange }) {
+    if (!trip) return null;
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl bg-white rounded-3xl overflow-hidden border-none shadow-2xl">
+                <DialogHeader>
+                    <div className="flex items-center gap-3 mb-2">
+                        <Badge className={`${sColors[trip.status] || "bg-slate-100"} border-none text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full`}>{(trip.status || "").replace(/_/g, " ")}</Badge>
+                        <Badge className={`${pColors[trip.priority] || pColors.normal} border-none text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full`}>{trip.priority}</Badge>
+                    </div>
+                    <DialogTitle className="text-3xl font-black text-slate-900 leading-tight">
+                        {trip.trip_type === "clinico" ? "Detalle Traslado Clínico" : "Detalle de Cometido"}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-8 pt-4">
+                    <div className="flex items-center justify-between bg-slate-900 text-white p-6 rounded-[2rem] shadow-xl">
+                        <div>
+                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Folio de Seguimiento</p>
+                            <p className="text-2xl font-mono font-black text-teal-400">{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Tipo</p>
+                            <p className="font-black text-xl uppercase italic">{trip.trip_type === "clinico" ? "Clínico" : "General"}</p>
+                        </div>
+                    </div>
+
+                    {trip.trip_type === "clinico" ? (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><User className="w-3 h-3" /> Paciente</p>
+                                    <p className="font-black text-slate-900 text-lg">{trip.patient_name}</p>
+                                    <p className="text-xs font-bold text-slate-500 mt-1">RUT: {trip.rut || "No registrado"}</p>
+                                </div>
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-3 h-3" /> Estado Clínico</p>
+                                    <p className="font-bold text-slate-800">{trip.transfer_reason || "Traslado programado"}</p>
+                                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{trip.diagnosis || "Sin diagnóstico detallado"}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-teal-50/50 p-5 rounded-3xl border border-teal-100/50">
+                                <p className="text-[10px] font-black text-teal-700 uppercase tracking-widest mb-3">Personal & Requerimientos</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[9px] font-bold text-teal-600/70 uppercase mb-1">Equipo Clínico</p>
+                                        <p className="text-sm font-black text-teal-900">{trip.required_personnel?.join(", ") || "No especificado"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-bold text-teal-600/70 uppercase mb-1">Equipamiento</p>
+                                        <p className="text-sm font-black text-teal-900">{trip.patient_requirements?.join(", ") || "Estándar"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ClipboardList className="w-3 h-3" /> Motivo del Cometido</p>
+                            <p className="text-xl font-black text-slate-900">{trip.task_details}</p>
+                            {trip.notes && <p className="text-sm text-slate-600 mt-3 italic">"{trip.notes}"</p>}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0 shadow-inner"><MapPin className="w-6 h-6 text-teal-600" /></div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Origen</p>
+                                <p className="font-black text-slate-900">{trip.origin}</p>
+                                {trip.patient_unit && <p className="text-[10px] font-bold text-teal-600">{trip.patient_unit}</p>}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 shadow-inner"><ArrowRight className="w-6 h-6 text-blue-600" /></div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Destino</p>
+                                <p className="font-black text-slate-900">{trip.destination}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-8 py-4 border-t border-slate-100">
+                        <div className="text-center">
+                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Fecha</p>
+                            <p className="text-sm font-black text-slate-700">{trip.scheduled_date || "Hoy"}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Hora Cita</p>
+                            <p className="text-sm font-black text-teal-700">{trip.appointment_time || "--:--"}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Prioridad</p>
+                            <p className={`text-sm font-black px-2 py-0.5 rounded ${pColors[trip.priority] || pColors.normal}`}>{trip.priority.toUpperCase()}</p>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function ShiftManagerDashboard_UTF8() {
     const [section, setSection] = useState("dispatch");
@@ -155,6 +257,7 @@ function AssignSection() {
     const [loading, setLoading] = useState(true);
     const [assignDialog, setAssignDialog] = useState(null);
     const [cancelDialog, setCancelDialog] = useState(null);
+    const [detailTrip, setDetailTrip] = useState(null);
     const [filter, setFilter] = useState("all");
 
     const fetchAll = useCallback(async () => {
@@ -197,14 +300,14 @@ function AssignSection() {
 
             <div className="space-y-4">
                 {filteredTrips.map(t => (
-                    <Card key={t.id} className="card-hover border-l-4 border-l-teal-500 shadow-sm overflow-hidden">
+                    <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm overflow-hidden cursor-pointer group">
                         <CardContent className="p-5">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                 <div className="flex-1 w-full">
                                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                        <span className="bg-slate-200 text-slate-800 font-mono px-2 py-0.5 rounded-md text-[10px] font-bold">{t.tracking_number || t.id.substring(0, 6).toUpperCase()}</span>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "pendiente").replace(/_/g, " ")}</span>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${priorityColors[t.priority] || priorityColors.normal}`}>{t.priority}</span>
+                                        <span className="bg-slate-200 text-slate-800 font-mono px-2 py-0.5 rounded-md text-[10px] font-bold group-hover:bg-teal-600 group-hover:text-white transition-colors">{t.tracking_number || t.id.substring(0, 6).toUpperCase()}</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sColors[t.status] || "bg-slate-100"}`}>{(t.status || "pendiente").replace(/_/g, " ")}</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pColors[t.priority] || pColors.normal}`}>{t.priority}</span>
                                         <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
                                         <span className="text-[10px] text-slate-400 font-medium">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
                                     </div>
@@ -222,8 +325,8 @@ function AssignSection() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2 w-full md:w-48">
-                                    <Button onClick={() => setAssignDialog(t)} className="h-12 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md rounded-xl w-full">{t.driver_id ? "Reasignar Conductor" : "Asignar Conductor"}</Button>
+                                <div className="flex flex-col gap-2 w-full md:w-48" onClick={e => e.stopPropagation()}>
+                                    <Button onClick={() => setAssignDialog(t)} className="h-12 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md rounded-xl w-full">{t.driver_id ? "Reasignar" : "Asignar Conductor"}</Button>
                                     {["pendiente", "asignado"].includes(t.status) && (
                                         <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-10 text-xs text-red-600 border-red-200 hover:bg-red-50 w-full font-medium">Cancelar</Button>
                                     )}
@@ -234,6 +337,9 @@ function AssignSection() {
                 ))}
                 {filteredTrips.length === 0 && !loading && <p className="text-center py-12 text-slate-400">Sin viajes en esta categoría</p>}
             </div>
+
+            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} />
+
 
             <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
                 <DialogContent>
@@ -269,6 +375,7 @@ function CalendarSection() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [detailTrip, setDetailTrip] = useState(null);
 
     const getDateRange = useCallback(() => {
         const d = new Date(currentDate);
@@ -374,19 +481,19 @@ function CalendarSection() {
                                     <p className="text-xl font-bold text-slate-400">No hay traslados programados</p>
                                 </div>
                             ) : trips.map(t => (
-                                <Card key={t.id} className="card-hover border-l-4 border-l-teal-500 shadow-sm">
+                                <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm cursor-pointer group">
                                     <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-6">
                                         <div className="flex items-center gap-5">
-                                            <div className="bg-teal-50 border border-teal-100 px-4 py-2 rounded-2xl text-center min-w-[100px] shadow-inner">
-                                                <p className="text-[10px] font-black text-teal-600 uppercase tracking-tighter">Hora Cita</p>
-                                                <p className="text-xl font-black text-slate-800">{t.appointment_time || "--:--"}</p>
+                                            <div className="bg-teal-50 border border-teal-100 px-4 py-2 rounded-2xl text-center min-w-[100px] shadow-inner group-hover:bg-teal-600 transition-colors">
+                                                <p className="text-[10px] font-black text-teal-600 uppercase tracking-tighter group-hover:text-teal-100">Hora Cita</p>
+                                                <p className="text-xl font-black text-slate-800 group-hover:text-white">{t.appointment_time || "--:--"}</p>
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Badge className="bg-slate-800 font-mono text-[10px]">{t.tracking_number}</Badge>
                                                     <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[9px] uppercase font-black`}>{t.status.replace(/_/g, " ")}</Badge>
                                                 </div>
-                                                <h3 className="font-black text-slate-900 text-lg">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
+                                                <h3 className="font-black text-slate-900 text-lg group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
                                                 <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-teal-500" /> {t.origin} <ArrowRight className="w-3.5 h-3.5 text-slate-300" /> {t.destination}</p>
                                             </div>
                                         </div>
@@ -412,7 +519,12 @@ function CalendarSection() {
                                             <p className={`text-xl font-black ${isToday ? "text-teal-700" : "text-slate-800"}`}>{dateStr.split("-")[2]}</p>
                                         </div>
                                         <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
-                                            {dayTrips.map(t => <TripCardInternal key={t.id} t={t} />)}
+                                            {dayTrips.map(t => (
+                                                <div key={t.id} onClick={() => setDetailTrip(t)} className={`p-2 rounded-lg border-l-2 mb-1 text-[10px] cursor-pointer hover:bg-teal-50 transition-all ${t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"}`}>
+                                                    <p className="font-bold text-slate-800 truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                                                    <p className="text-[9px] text-slate-500 font-mono">{t.appointment_time || "--:--"}</p>
+                                                </div>
+                                            ))}
                                             {dayTrips.length === 0 && <p className="text-[10px] text-slate-300 text-center mt-8 italic">Sin traslados</p>}
                                         </div>
                                     </div>
@@ -420,6 +532,7 @@ function CalendarSection() {
                             })}
                         </div>
                     )}
+
 
                     {viewMode === "monthly" && (
                         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden font-bold">
@@ -450,6 +563,7 @@ function CalendarSection() {
                     )}
                 </>
             )}
+            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} />
         </div>
     );
 }
