@@ -51,6 +51,8 @@ function AssignPersonnelSection() {
   const [stats, setStats] = useState({ revision: 0, pendiente: 0, asignado: 0, en_curso: 0 });
   const [destinations, setDestinations] = useState([]);
   const [originServices, setOriginServices] = useState([]);
+  const [filterStatus, setFilterStatus] = useState("revision_gestor");
+  const [allActiveTrips, setAllActiveTrips] = useState([]);
 
   const fetchTripsAndStaff = useCallback(async () => {
     try {
@@ -67,8 +69,10 @@ function AssignPersonnelSection() {
       setDestinations(dests.data);
       setOriginServices(services.data.filter(s => s.is_active !== false));
       
-      // Calcular estadísticas de estados específicos
+      // Filtrar solo clínicos para las estadísticas y el listado extendido
       const clinicos = allActive.data.filter(t => t.trip_type === "clinico");
+      setAllActiveTrips(clinicos);
+
       setStats({
         revision: revTrips.data.length,
         pendiente: clinicos.filter(t => t.status === "pendiente").length,
@@ -114,49 +118,72 @@ function AssignPersonnelSection() {
     setStaffRows(staffRows.filter((_, i) => i !== index));
   };
 
-  const pendingTrips = trips;
+  const displayedTrips = filterStatus === "revision_gestor" 
+    ? trips 
+    : allActiveTrips.filter(t => t.status === filterStatus);
 
   if (loading) return <div className="flex justify-center py-20"><Activity className="w-10 h-10 animate-spin text-teal-600" /></div>;
 
-  const TripCard = ({ t, isPending }) => (
-    <Card className={`shadow-sm border-l-4 ${isPending ? "border-l-red-500" : "border-l-teal-500"}`}>
-      <CardContent className="p-5">
-        <div className="flex justify-between items-start mb-3">
-          <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm">{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
-          <span className="text-xs font-bold text-slate-500">{t.scheduled_date || new Date(t.created_at || Date.now()).toLocaleDateString()}</span>
-        </div>
-        <div className="flex justify-between items-start">
-          <p className="font-black text-xl text-slate-900 mb-1">{t.patient_name || "Paciente no especificado"}</p>
-          <Badge className={t.priority === "alta" ? "bg-red-100 text-red-700" : t.priority === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"}>
-            {t.priority}
-          </Badge>
-        </div>
-        <p className="text-xs text-slate-500 mb-4 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason || "Sin especificar"}</p>
+  const TripCard = ({ t, isPending }) => {
+    const statusMap = {
+      revision_gestor: { label: "Por Visar", color: "bg-red-100 text-red-700", border: "border-l-red-500" },
+      pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-700", border: "border-l-amber-500" },
+      asignado: { label: "Asignado", color: "bg-blue-100 text-blue-700", border: "border-l-blue-500" },
+      en_curso: { label: "En Curso", color: "bg-emerald-100 text-emerald-700", border: "border-l-emerald-500" }
+    };
+    const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
 
-        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 space-y-2">
-          <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-600" /> <span className="text-sm font-bold text-slate-800">{t.origin || "-"} <span className="font-medium text-slate-500 text-xs">({t.patient_unit || ""})</span></span></div>
-          <div className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-blue-600" /> <span className="text-sm font-bold text-slate-800">{t.destination || "-"}</span></div>
-        </div>
-
-        {t.clinical_team && (
-          <div className="mb-4 bg-teal-50 p-2.5 rounded-lg border border-teal-200 shadow-sm">
-            <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest mb-1 flex items-center">Personal Solicitado:</p>
-            <p className="text-sm font-bold text-teal-900">{t.clinical_team}</p>
+    return (
+      <Card className={`shadow-sm border-l-4 transition-all hover:shadow-md ${config.border}`}>
+        <CardContent className="p-5">
+          <div className="flex justify-between items-start mb-3">
+            <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm">{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
+            <Badge className={`font-bold uppercase text-[9px] ${config.color}`}>{config.label}</Badge>
           </div>
-        )}
+          <div className="flex justify-between items-start">
+            <p className="font-black text-xl text-slate-900 mb-1">{t.patient_name || "Paciente no especificado"}</p>
+            <Badge className={t.priority === "alta" ? "bg-red-100 text-red-700" : t.priority === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"}>
+              {t.priority}
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-500 mb-4 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason || "Sin especificar"}</p>
 
-        <Button onClick={() => {
-          setAssignDialog(t);
-          setStaffRows(t.assigned_clinical_staff || []);
-          setPriority(t.priority || "normal");
-          setEditData({ ...t });
-        }}
-          className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 text-sm shadow-sm rounded-xl">
-          Revisar y Visar
-        </Button>
-      </CardContent>
-    </Card>
-  );
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 space-y-2">
+            <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-600" /> <span className="text-sm font-bold text-slate-800">{t.origin || "-"} <span className="font-medium text-slate-500 text-xs">({t.patient_unit || ""})</span></span></div>
+            <div className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-blue-600" /> <span className="text-sm font-bold text-slate-800">{t.destination || "-"}</span></div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+             <div className="flex-1">
+                {t.clinical_team && (
+                  <div className="bg-teal-50 p-2 rounded-lg border border-teal-200">
+                    <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none mb-1">Equipo:</p>
+                    <p className="text-xs font-bold text-teal-900 truncate">{t.clinical_team}</p>
+                  </div>
+                )}
+             </div>
+             {t.status === "revision_gestor" && (
+                <Button onClick={() => {
+                  setAssignDialog(t);
+                  setStaffRows(t.assigned_clinical_staff || []);
+                  setPriority(t.priority || "normal");
+                  setEditData({ ...t });
+                }}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 px-4 text-xs shadow-sm rounded-xl shrink-0">
+                  Visar
+                </Button>
+             )}
+             {t.status !== "revision_gestor" && (
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fecha</p>
+                  <p className="text-xs font-bold text-slate-700">{t.scheduled_date || "Hoy"}</p>
+                </div>
+             )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
@@ -166,34 +193,45 @@ function AssignPersonnelSection() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-red-500 shadow-sm">
+        <button onClick={() => setFilterStatus("revision_gestor")} 
+          className={`text-left p-4 rounded-2xl border-l-4 border-l-red-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "revision_gestor" ? "bg-red-50 ring-2 ring-red-200" : "bg-white"}`}>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">En Revisión</p>
           <p className="text-3xl font-black text-red-600">{stats.revision}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-amber-500 shadow-sm">
+        </button>
+        <button onClick={() => setFilterStatus("pendiente")}
+          className={`text-left p-4 rounded-2xl border-l-4 border-l-amber-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "pendiente" ? "bg-amber-50 ring-2 ring-amber-200" : "bg-white"}`}>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pendientes</p>
           <p className="text-3xl font-black text-amber-600">{stats.pendiente}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-blue-500 shadow-sm">
+        </button>
+        <button onClick={() => setFilterStatus("asignado")}
+          className={`text-left p-4 rounded-2xl border-l-4 border-l-blue-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "asignado" ? "bg-blue-50 ring-2 ring-blue-200" : "bg-white"}`}>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Asignados</p>
           <p className="text-3xl font-black text-blue-600">{stats.asignado}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-emerald-500 shadow-sm">
+        </button>
+        <button onClick={() => setFilterStatus("en_curso")}
+          className={`text-left p-4 rounded-2xl border-l-4 border-l-emerald-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "en_curso" ? "bg-emerald-50 ring-2 ring-emerald-200" : "bg-white"}`}>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">En Curso</p>
           <p className="text-3xl font-black text-emerald-600">{stats.en_curso}</p>
-        </div>
+        </button>
       </div>
 
       <div className="mb-6 flex items-center justify-between border-b pb-4">
         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
-           <BedDouble className="w-5 h-5 text-teal-600" /> Solicitudes por Visar 
-           <Badge className="ml-2 bg-red-100 text-red-700">{pendingTrips.length}</Badge>
+           {filterStatus === "revision_gestor" ? <BedDouble className="w-5 h-5 text-teal-600" /> : <Activity className="w-5 h-5 text-teal-600" />} 
+           {filterStatus === "revision_gestor" ? "Solicitudes por Visar" : 
+            filterStatus === "pendiente" ? "Traslados Pendientes de Conductor" :
+            filterStatus === "asignado" ? "Traslados con Conductor Asignado" : "Traslados en Ejecución"}
+           <Badge className={`ml-2 ${filterStatus === "revision_gestor" ? "bg-red-100 text-red-700" : "bg-teal-100 text-teal-700"}`}>{displayedTrips.length}</Badge>
         </h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {pendingTrips.map(t => <TripCard key={t.id} t={t} isPending={true} />)}
-        {pendingTrips.length === 0 && <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200"><p className="text-xl font-bold">Sin solicitudes pendientes en este momento.</p></div>}
+        {displayedTrips.map(t => <TripCard key={t.id} t={t} isPending={t.status === "revision_gestor"} />)}
+        {displayedTrips.length === 0 && (
+          <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+            <p className="text-xl font-bold">Sin traslados en este estado.</p>
+          </div>
+        )}
       </div>
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
