@@ -41,8 +41,20 @@ const COLORS = { pendiente: '#f59e0b', asignado: '#0d9488', en_curso: '#3b82f6',
 const pColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
 const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
 
-function TripDetailDialog({ trip, open, onOpenChange }) {
+function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
     if (!trip) return null;
+
+    const handleUnassign = async () => {
+        try {
+            await api.put(`/trips/${trip.id}/unassign`);
+            toast.success("Traslado desasignado correctamente");
+            onOpenChange(false);
+            if (onRefresh) onRefresh();
+        } catch (e) {
+            toast.error("Error al desasignar traslado");
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-white rounded-3xl overflow-hidden border-none shadow-2xl">
@@ -120,6 +132,28 @@ function TripDetailDialog({ trip, open, onOpenChange }) {
                                 <p className="text-[10px] font-black text-slate-400 uppercase">Destino</p>
                                 <p className="font-black text-slate-900">{trip.destination}</p>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Conductor Asignado</p>
+                                {trip.driver_name ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center"><User className="w-4 h-4 text-slate-600" /></div>
+                                        <p className="font-black text-slate-900">{trip.driver_name}</p>
+                                        <Badge className="bg-teal-100 text-teal-800 border-none font-mono text-[10px]">{trip.vehicle_plate || "Móvil pendiente"}</Badge>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm font-bold text-slate-400 italic">No se ha asignado conductor aún</p>
+                                )}
+                            </div>
+                            {trip.driver_id && trip.status === "asignado" && (
+                                <Button onClick={handleUnassign} variant="destructive" size="sm" className="h-9 px-4 font-bold shadow-md">
+                                    Desasignar
+                                </Button>
+                            )}
                         </div>
                     </div>
 
@@ -338,7 +372,7 @@ function AssignSection() {
                 {filteredTrips.length === 0 && !loading && <p className="text-center py-12 text-slate-400">Sin viajes en esta categoría</p>}
             </div>
 
-            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} />
+            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchAll} />
 
 
             <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
@@ -563,7 +597,7 @@ function CalendarSection() {
                     )}
                 </>
             )}
-            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} />
+            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchCalendar} />
         </div>
     );
 }
