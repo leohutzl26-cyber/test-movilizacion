@@ -768,12 +768,8 @@ function NewTripSection({ onNavigate }) {
             if (Object.keys(newErrors).length > 0) {
                 toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
             }
-            if (staffRows.length === 0) { 
-                setErrors(prev => ({ ...prev, staff: true }));
-                toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; 
-            }
-            if (staffRows.some(r => !r.type || !r.staff_id)) { 
-                toast.error("Complete tipo y nombre de todo el personal clínico añadido"); return; 
+            if (staffRows.length > 0 && staffRows.some(r => !r.type || !r.staff_id)) { 
+                toast.error("Complete tipo y nombre de todo el personal clínico añadido o elimine la fila vacía"); return; 
             }
             if (form.patient_requirements.length === 0) { toast.error("Seleccione requerimientos del paciente"); return; }
         } else {
@@ -942,9 +938,9 @@ function NewTripSection({ onNavigate }) {
 
                         {tripType === "clinico" && (
                             <div className="space-y-4">
-                                <h3 className={`font-bold border-b pb-2 flex items-center gap-2 ${errors.staff ? "text-red-600 border-red-200" : "text-teal-800 border-teal-100"}`}><Plus className="w-5 h-5" /> Personal Clínico Requerido *</h3>
+                                <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><Plus className="w-5 h-5" /> Personal Clínico Acompañante (Opcional)</h3>
                                 
-                                <Button type="button" variant="outline" onClick={() => { addStaffRow(); if (errors.staff) setErrors(p => ({ ...p, staff: false })); }} className={`font-bold h-10 flex items-center gap-2 ${errors.staff ? "border-red-500 text-red-700 bg-red-50" : "border-teal-200 text-teal-700 hover:bg-teal-50"}`}>
+                                <Button type="button" variant="outline" onClick={addStaffRow} className="border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-10 flex items-center gap-2">
                                     <Plus className="w-4 h-4" /> Añadir Personal Clínico
                                 </Button>
 
@@ -975,7 +971,6 @@ function NewTripSection({ onNavigate }) {
                                         </div>
                                     </div>
                                 ))}
-                                {staffRows.length === 0 && <p className="text-xs text-amber-600 font-medium italic">⚠ Se requiere al menos un personal clínico asignado</p>}
                             </div>
                         )}
 
