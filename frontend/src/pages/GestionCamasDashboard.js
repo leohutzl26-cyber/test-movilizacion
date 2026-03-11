@@ -89,14 +89,21 @@ function AssignPersonnelSection() {
 
   const handleApprove = async () => {
     try {
-      await api.put(`/trips/${assignDialog.id}/approve-gestor`, {
+      const payload = {
         ...editData,
         priority: priority,
         assigned_clinical_staff: staffRows
-      });
-      toast.success("Traslado visado y aprobado correctamente");
+      };
+
+      if (assignDialog.status === "revision_gestor") {
+        await api.put(`/trips/${assignDialog.id}/approve-gestor`, payload);
+        toast.success("Traslado visado y aprobado correctamente");
+      } else {
+        await api.put(`/trips/${assignDialog.id}`, payload);
+        toast.success("Traslado actualizado correctamente");
+      }
       setAssignDialog(null); fetchTripsAndStaff();
-    } catch (e) { toast.error("Error al aprobar traslado"); }
+    } catch (e) { toast.error("Error al guardar cambios"); }
   };
 
   const handleReject = async () => {
@@ -188,15 +195,15 @@ function AssignPersonnelSection() {
                   </div>
                 )}
              </div>
-             {t.status === "revision_gestor" && (
+             {(t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") && (
                 <Button onClick={() => {
                   setAssignDialog(t);
                   setStaffRows(t.assigned_clinical_staff || []);
                   setPriority(t.priority || "normal");
                   setEditData({ ...t });
                 }}
-                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 px-4 text-xs shadow-sm rounded-xl shrink-0">
-                  Visar
+                  className={`${t.status === "revision_gestor" ? "bg-teal-600 hover:bg-teal-700" : "bg-blue-600 hover:bg-blue-700"} text-white font-bold h-10 px-4 text-xs shadow-sm rounded-xl shrink-0`}>
+                  {t.status === "revision_gestor" ? "Visar" : "Editar"}
                 </Button>
              )}
              {t.status !== "revision_gestor" && (
@@ -262,7 +269,7 @@ function AssignPersonnelSection() {
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-2xl font-black">Visar Traslado Clínico</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-2xl font-black">{assignDialog?.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}</DialogTitle></DialogHeader>
           {assignDialog && (
             <div className="space-y-5 pt-3">
               {/* SOLICITANTE E INGRESO */}
@@ -473,7 +480,9 @@ function AssignPersonnelSection() {
                   <Button variant="destructive" className="h-12 font-bold flex-1 gap-2" onClick={() => setRejectDialog(assignDialog)}>
                     <XCircle className="w-5 h-5" /> Rechazar Traslado
                   </Button>
-                  <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-lg flex-[2]" onClick={handleApprove}>Aprobar y Enviar a Coordinación</Button>
+                  <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-lg flex-[2]" onClick={handleApprove}>
+                    {assignDialog.status === "revision_gestor" ? "Aprobar y Enviar a Coordinación" : "Guardar Cambios Actualizados"}
+                  </Button>
                 </DialogFooter>
               </div>
             </div>

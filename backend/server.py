@@ -581,6 +581,12 @@ async def get_trip_detail(trip_id: str, user=Depends(get_current_user)):
 async def edit_trip(trip_id: str, data: TripUpdate, user=Depends(get_current_user)):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Sincronizar clinical_team si se envía personal asignado
+    if "assigned_clinical_staff" in update_data and update_data["assigned_clinical_staff"]:
+        staff_names = [f"{s.get('type')}: {s.get('staff_name') or 'Por identificar'}" for s in update_data["assigned_clinical_staff"]]
+        update_data["clinical_team"] = ", ".join(staff_names)
+        
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     return {"message": "Viaje actualizado"}
 
