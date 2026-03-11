@@ -118,9 +118,16 @@ function NewTripSection() {
         updated[index].staff_name = "";
       }
       // If staff_id changed, find the name
-      if (field === "staff_id" && value) {
-        const staff = clinicalStaffOptions.find(s => s.id === value);
-        if (staff) updated[index].staff_name = staff.name;
+      if (field === "staff_id") {
+        if (value && value !== "none") {
+          const staff = clinicalStaffOptions.find(s => s.id === value);
+          if (staff) {
+            updated[index].staff_name = staff.name;
+          }
+        } else {
+          updated[index].staff_id = "";
+          updated[index].staff_name = "";
+        }
       }
       return updated;
     });
@@ -141,7 +148,7 @@ function NewTripSection() {
         toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
       }
       if (staffRows.length === 0) { toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; }
-      if (staffRows.some(r => !r.type || !r.staff_id)) { toast.error("Complete tipo y nombre de todo el personal clínico añadido"); return; }
+      if (staffRows.some(r => !r.type)) { toast.error("Seleccione el tipo de personal para todas las filas añadidas"); return; }
       if (form.patient_requirements.length === 0) { toast.error("Seleccione requerimientos del paciente"); return; }
     } else {
       if (!finalOrigin || !finalDest || !form.task_details) {
@@ -315,10 +322,11 @@ function NewTripSection() {
                                 <SelectContent>{personnelTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                               </Select>
                             </td>
-                            <td className="p-2">
+                             <td className="p-2">
                               <Select value={row.staff_id} onValueChange={v => updateStaffRow(i, "staff_id", v)} disabled={!row.type}>
-                                <SelectTrigger className="h-10"><SelectValue placeholder={row.type ? "Seleccione funcionario" : "Primero seleccione tipo"} /></SelectTrigger>
+                                <SelectTrigger className="h-10"><SelectValue placeholder={row.type ? "Opcional: Identificar luego..." : "Primero seleccione tipo"} /></SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="none">Por identificar (Gestor)...</SelectItem>
                                   {getStaffByType(row.type).length > 0
                                     ? getStaffByType(row.type).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)
                                     : <SelectItem value="__none" disabled>No hay personal de este tipo</SelectItem>}

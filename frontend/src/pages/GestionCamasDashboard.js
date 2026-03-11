@@ -49,7 +49,10 @@ function ClinicalOverviewSection({ onNavigate }) {
       const allClinicos = Array.from(uniqueMap.values()).filter(t => t.trip_type === "clinico");
 
       const pendingDriver = allClinicos.filter(t => t.status === "pendiente").length;
-      const pendingStaff = allClinicos.filter(t => !t.clinical_team || String(t.clinical_team).trim() === "").length;
+      const pendingStaff = allClinicos.filter(t => 
+        (!t.clinical_team || String(t.clinical_team).trim() === "") || 
+        (t.assigned_clinical_staff?.some(s => !s.staff_id))
+      ).length;
       const activeTrips = allClinicos.filter(t => t.status === "en_curso" || t.status === "asignado").length;
 
       setStats({ pendingDriver, pendingStaff, activeTrips });
@@ -118,7 +121,7 @@ function AssignPersonnelSection() {
   const [loading, setLoading] = useState(true);
   const [assignDialog, setAssignDialog] = useState(null);
 
-  const [selectedStaffId, setSelectedStaffId] = useState("");
+  const [staffRows, setStaffRows] = useState([]);
   const [priority, setPriority] = useState("normal");
 
   const fetchTripsAndStaff = useCallback(async () => {
@@ -136,18 +139,23 @@ function AssignPersonnelSection() {
 
   const handleApprove = async () => {
     try {
-      let clinical_team_name = "";
-      if (selectedStaffId && selectedStaffId !== "none") {
-        const staff = clinicalStaffOptions.find(s => s.id === selectedStaffId);
-        if (staff) clinical_team_name = staff.name;
-      }
-
       await api.put(`/trips/${assignDialog.id}/approve-gestor`, {
-        priority: priority
+        priority: priority,
+        assigned_clinical_staff: staffRows
       });
       toast.success("Traslado visado y aprobado correctamente");
-      setAssignDialog(null); setPriority("normal"); fetchTripsAndStaff();
+      setAssignDialog(null); fetchTripsAndStaff();
     } catch (e) { toast.error("Error al aprobar traslado"); }
+  };
+
+  const updateStaffRow = (index, field, value) => {
+    const updated = [...staffRows];
+    updated[index][field] = value;
+    if (field === "staff_id") {
+      const staff = clinicalStaffOptions.find(s => s.id === value);
+      updated[index].staff_name = staff ? staff.name : "";
+    }
+    setStaffRows(updated);
   };
 
   const pendingTrips = trips;
@@ -161,7 +169,12 @@ function AssignPersonnelSection() {
           <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm">{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
           <span className="text-xs font-bold text-slate-500">{t.scheduled_date || new Date(t.created_at || Date.now()).toLocaleDateString()}</span>
         </div>
-        <p className="font-black text-xl text-slate-900 mb-1">{t.patient_name || "Paciente no especificado"}</p>
+        <div className="flex justify-between items-start">
+          <p className="font-black text-xl text-slate-900 mb-1">{t.patient_name || "Paciente no especificado"}</p>
+          <Badge className={t.priority === "alta" ? "bg-red-100 text-red-700" : t.priority === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"}>
+            {t.priority}
+          </Badge>
+        </div>
         <p className="text-xs text-slate-500 mb-4 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason || "Sin especificar"}</p>
 
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 space-y-2">
@@ -169,7 +182,7 @@ function AssignPersonnelSection() {
           <div className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-blue-600" /> <span className="text-sm font-bold text-slate-800">{t.destination || "-"}</span></div>
         </div>
 
-        {t.accompaniment_staff_id && t.clinical_team && (
+        {t.clinical_team && (
           <div className="mb-4 bg-teal-50 p-2.5 rounded-lg border border-teal-200 shadow-sm">
             <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest mb-1 flex items-center">Personal Solicitado:</p>
             <p className="text-sm font-bold text-teal-900">{t.clinical_team}</p>
@@ -178,7 +191,7 @@ function AssignPersonnelSection() {
 
         <Button onClick={() => {
           setAssignDialog(t);
-          setSelectedStaffId(t.accompaniment_staff_id || "none");
+          setStaffRows(t.assigned_clinical_staff || []);
           setPriority(t.priority || "normal");
         }}
           className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 text-sm shadow-sm rounded-xl">
@@ -192,7 +205,7 @@ function AssignPersonnelSection() {
     <div className="max-w-6xl mx-auto animate-slide-up">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-black text-slate-900">Visación de Traslados Clínicos</h1>
-        <p className="text-slate-500 font-medium mt-1">Revise, asigne prioridad y apruebe las solicitudes para enviarlas a coordinación.</p>
+        <p className="text-slate-500 font-medium mt-1">Revise, identifique al personal faltante y apruebe las solicitudes.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -210,11 +223,12 @@ function AssignPersonnelSection() {
                 <div><p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Solicitado por</p><p className="font-bold text-purple-900">{assignDialog.requester_name || assignDialog.requester_person || "-"}</p></div>
                 <div className="text-right"><p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Ingresado</p><p className="font-bold text-purple-900 text-sm">{assignDialog.created_at ? new Date(assignDialog.created_at).toLocaleString() : "-"}</p></div>
               </div>
+
               {/* DATOS PACIENTE */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Paciente</p>
                 <p className="text-xl font-black text-slate-900">{assignDialog.patient_name || "No especificado"}</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 pt-2 border-t border-slate-200 text-xs">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 pt-2 border-t border-slate-200 text-xs text-slate-600">
                   <div><span className="font-bold text-slate-500">RUT:</span> {assignDialog.rut || "-"}</div>
                   <div><span className="font-bold text-slate-500">Edad:</span> {assignDialog.age || "-"}</div>
                   <div><span className="font-bold text-slate-500">Peso:</span> {assignDialog.weight || "-"}</div>
@@ -224,32 +238,64 @@ function AssignPersonnelSection() {
                   <div><span className="font-bold text-slate-500">Médico:</span> {assignDialog.attending_physician || "-"}</div>
                 </div>
               </div>
+
               {/* RUTA */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm"><p className="text-[10px] font-bold text-slate-400 uppercase">Origen</p><p className="font-bold text-slate-800">{assignDialog.origin}</p><p className="text-xs text-slate-500">{assignDialog.patient_unit || ""}</p></div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm"><p className="text-[10px] font-bold text-slate-400 uppercase">Destino</p><p className="font-bold text-slate-800">{assignDialog.destination}</p></div>
               </div>
-              {/* HORARIOS */}
-              <div className="bg-red-50 p-3 rounded-xl border border-red-200 flex gap-6">
-                <div><p className="text-[10px] font-bold text-red-600 uppercase">Citación</p><p className="font-black text-red-900 text-lg">{assignDialog.appointment_time || "-"}</p></div>
-                <div><p className="text-[10px] font-bold text-red-600 uppercase">Salida</p><p className="font-black text-red-900 text-lg">{assignDialog.departure_time || "-"}</p></div>
-                <div><p className="text-[10px] font-bold text-red-600 uppercase">Fecha</p><p className="font-black text-red-900 text-lg">{assignDialog.scheduled_date || "-"}</p></div>
+
+              {/* ASIGNACIÓN DE PERSONAL (TABLA EDITABLE) */}
+              <div className="space-y-3">
+                <h4 className="font-black text-teal-800 text-sm flex items-center gap-2"><Users className="w-4 h-4" /> Personal Clínico Asignado</h4>
+                {staffRows.length === 0 ? (
+                  <p className="text-xs text-amber-600 italic font-bold">No hay personal solicitado por el origen.</p>
+                ) : (
+                  <div className="border rounded-xl overflow-hidden overflow-x-auto shadow-sm">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-100 font-bold text-slate-500 uppercase tracking-tighter">
+                        <tr>
+                          <th className="p-2 text-left">Función</th>
+                          <th className="p-2 text-left">Funcionario Identificado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {staffRows.map((row, i) => (
+                          <tr key={i} className="bg-white">
+                            <td className="p-2 font-black text-teal-700">{row.type}</td>
+                            <td className="p-2">
+                              <Select value={row.staff_id || "none"} onValueChange={v => updateStaffRow(i, "staff_id", v === "none" ? "" : v)}>
+                                <SelectTrigger className={`h-9 ${!row.staff_id ? "border-amber-400 bg-amber-50" : "border-slate-200"}`}>
+                                  <SelectValue placeholder="Identificar funcionario..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Sin identificar todavía...</SelectItem>
+                                  {clinicalStaffOptions.filter(s => s.role === row.type).map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {staffRows.some(r => !r.staff_id) && (
+                  <div className="bg-amber-100 border-l-4 border-amber-500 p-2 rounded flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <p className="text-[10px] font-bold text-amber-800">Hay personal sin identificar. Puede identificarlo ahora o dejarlo pendiente.</p>
+                  </div>
+                )}
               </div>
-              {/* REQUERIMIENTOS */}
-              {(assignDialog.required_personnel?.length > 0 || assignDialog.patient_requirements?.length > 0 || assignDialog.assigned_clinical_staff?.length > 0) && (
-                <div className="bg-teal-50 p-3 rounded-xl border border-teal-200">
-                  {assignDialog.assigned_clinical_staff?.length > 0 && <div className="mb-2"><p className="text-[10px] text-teal-800 font-bold uppercase mb-1">Personal Clínico</p>{assignDialog.assigned_clinical_staff.map((s, i) => <p key={i} className="text-sm text-teal-900 font-medium">{s.type}: <strong>{s.staff_name}</strong></p>)}</div>}
-                  {assignDialog.required_personnel?.length > 0 && !assignDialog.assigned_clinical_staff?.length && <div className="mb-2"><p className="text-[10px] text-teal-800 font-bold uppercase mb-1">Personal Requerido</p><p className="text-sm text-teal-900 font-medium">{assignDialog.required_personnel.join(", ")}</p></div>}
-                  {assignDialog.patient_requirements?.length > 0 && <div><p className="text-[10px] text-teal-800 font-bold uppercase mb-1">Requerimientos Paciente</p><p className="text-sm text-teal-900 font-medium">{assignDialog.patient_requirements.join(", ")}</p></div>}
-                </div>
-              )}
-              {assignDialog.notes && <div className="bg-amber-50 p-3 rounded-xl border border-amber-200"><p className="text-[10px] font-bold text-amber-700 uppercase mb-1">Notas</p><p className="text-sm text-slate-800">{assignDialog.notes}</p></div>}
+
               {/* ACCIONES DE VISADO */}
               <div className="border-t pt-4 space-y-4">
                 <div className="space-y-2">
-                  <Label className="font-bold text-slate-700 text-sm">Prioridad del Traslado *</Label>
+                  <Label className="font-bold text-slate-700 text-sm">Prioridad Final del Traslado *</Label>
                   <Select value={priority} onValueChange={setPriority}>
-                    <SelectTrigger className="h-12 font-bold border-slate-300"><SelectValue placeholder="Seleccione prioridad" /></SelectTrigger>
+                    <SelectTrigger className="h-11 font-bold border-slate-300"><SelectValue placeholder="Seleccione prioridad" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="alta"><span className="text-red-600 font-bold">Alta Prioridad</span></SelectItem>
                       <SelectItem value="media"><span className="text-amber-600 font-bold">Media Prioridad</span></SelectItem>
@@ -257,12 +303,10 @@ function AssignPersonnelSection() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-4 pt-2">
-                  <p className="text-xs text-slate-500 italic">El personal clínico asignado por el solicitante será notificado al aprobar.</p>
-                </div>
-                <DialogFooter className="mt-4">
-                  <Button variant="outline" className="h-12 font-bold" onClick={() => setAssignDialog(null)}>Cancelar</Button>
-                  <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-md w-full" onClick={handleApprove}>Aprobar y Enviar a Conductores</Button>
+                
+                <DialogFooter className="mt-4 gap-2 flex-col sm:flex-row">
+                  <Button variant="outline" className="h-12 font-bold min-w-[120px]" onClick={() => setAssignDialog(null)}>Cancelar</Button>
+                  <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-lg flex-1" onClick={handleApprove}>Aprobar y Enviar a Coordinación</Button>
                 </DialogFooter>
               </div>
             </div>

@@ -509,8 +509,15 @@ async def approve_trip_gestor(trip_id: str, data: TripUpdate, user=Depends(requi
         "priority": data.priority or trip.get("priority"),
         "clinical_team": data.clinical_team or trip.get("clinical_team"),
         "accompaniment_staff_id": data.accompaniment_staff_id or trip.get("accompaniment_staff_id"),
+        "assigned_clinical_staff": data.assigned_clinical_staff if data.assigned_clinical_staff is not None else trip.get("assigned_clinical_staff", []),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
+
+    # Si se actualizó la lista detallada, recalculamos el string de clinical_team
+    if data.assigned_clinical_staff:
+        staff_names = [f"{s.get('type')}: {s.get('staff_name') or 'N/A'}" for s in data.assigned_clinical_staff]
+        update_data["clinical_team"] = ", ".join(staff_names)
+
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     
     # Send a notification action to the audit logs

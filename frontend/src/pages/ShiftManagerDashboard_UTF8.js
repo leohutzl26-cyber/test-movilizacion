@@ -735,9 +735,14 @@ function NewTripSection({ onNavigate }) {
                 updated[index].staff_id = "";
                 updated[index].staff_name = "";
             }
-            if (field === "staff_id" && value) {
-                const staff = clinicalStaffOptions.find(s => s.id === value);
-                if (staff) updated[index].staff_name = staff.name;
+            if (field === "staff_id") {
+                if (value && value !== "none") {
+                    const staff = clinicalStaffOptions.find(s => s.id === value);
+                    if (staff) updated[index].staff_name = staff.name;
+                } else {
+                    updated[index].staff_id = "";
+                    updated[index].staff_name = "";
+                }
             }
             return updated;
         });
@@ -768,8 +773,8 @@ function NewTripSection({ onNavigate }) {
             if (Object.keys(newErrors).length > 0) {
                 toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
             }
-            if (staffRows.length > 0 && staffRows.some(r => !r.type || !r.staff_id)) { 
-                toast.error("Complete tipo y nombre de todo el personal clínico añadido o elimine la fila vacía"); return; 
+            if (staffRows.length > 0 && staffRows.some(r => !r.type)) { 
+                toast.error("Seleccione el tipo de personal para todas las filas añadidas"); return; 
             }
             if (form.patient_requirements.length === 0) { toast.error("Seleccione requerimientos del paciente"); return; }
         } else {
@@ -954,10 +959,11 @@ function NewTripSection({ onNavigate }) {
                                             </Select>
                                         </div>
                                         <div className="flex-1 space-y-1">
-                                            <Label className="text-[10px] font-bold uppercase text-slate-500">Nombre Funcionario</Label>
-                                            <Select value={row.staff_id} onValueChange={v => updateStaffRow(i, "staff_id", v)} disabled={!row.type}>
-                                                <SelectTrigger className="h-10"><SelectValue placeholder={row.type ? "Seleccione funcionario" : "Primero seleccione tipo"} /></SelectTrigger>
+                                            <Label className="text-[10px] font-bold uppercase text-slate-500">Nombre Funcionario (Opcional)</Label>
+                                            <Select value={row.staff_id || "none"} onValueChange={v => updateStaffRow(i, "staff_id", v)} disabled={!row.type}>
+                                                <SelectTrigger className="h-10"><SelectValue placeholder={row.type ? "Opcional: Identificar luego..." : "Primero seleccione tipo"} /></SelectTrigger>
                                                 <SelectContent>
+                                                    <SelectItem value="none">Por identificar luego...</SelectItem>
                                                     {getStaffByType(row.type).length > 0
                                                         ? getStaffByType(row.type).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)
                                                         : <SelectItem value="__none" disabled>No hay personal de este tipo</SelectItem>}
