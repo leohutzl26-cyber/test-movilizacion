@@ -83,7 +83,7 @@ function DispatchSection() {
     const fetchTrips = useCallback(async () => {
         try {
             const res = await api.get("/trips/all_active");
-            setTrips(res.data);
+            setTrips(res.data || []);
         } catch (e) { } finally { setLoading(false); }
     }, []);
 
@@ -159,7 +159,7 @@ function AssignSection() {
     const fetchAll = useCallback(async () => {
         try {
             const [tRes, dRes] = await Promise.all([api.get("/trips/pool"), api.get("/drivers/available")]);
-            setTrips(tRes.data); setDrivers(dRes.data);
+            setTrips(tRes.data || []); setDrivers(dRes.data || []);
         } catch (e) { } finally { setLoading(false); }
     }, []);
 
@@ -272,7 +272,7 @@ function CalendarSection() {
         setLoading(true);
         try {
             const res = await api.get("/trips/all_active");
-            setTrips(res.data);
+            setTrips(res.data || []);
         } catch (e) { } finally { setLoading(false); }
     }, []);
 
@@ -351,7 +351,7 @@ function CalendarSection() {
 function VehiclesSection() {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
-    const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data); } catch { } finally { setLoading(false); } }, []);
+    const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data || []); } catch { } finally { setLoading(false); } }, []);
     useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
     const handleStatusChange = async (vehicleId, status) => {
@@ -389,7 +389,7 @@ function VehiclesSection() {
 function DriversSection() {
     const [drivers, setDrivers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const fetchDrivers = useCallback(async () => { try { const r = await api.get("/drivers"); setDrivers(r.data); } catch { } finally { setLoading(false); } }, []);
+    const fetchDrivers = useCallback(async () => { try { const r = await api.get("/drivers"); setDrivers(r.data || []); } catch { } finally { setLoading(false); } }, []);
     useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
 
     return (
@@ -425,7 +425,7 @@ function NewTripSection({ onNavigate }) {
         scheduled_date: new Date().toISOString().split("T")[0],
         rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
         attending_physician: "", appointment_time: "", departure_time: "",
-        patient_requirements: [], accompaniment: "", accompaniment_staff_id: "none",
+        patient_requirements: [], accompaniment: "",
         task_details: "", staff_count: ""
     });
 
@@ -518,7 +518,6 @@ function NewTripSection({ onNavigate }) {
                 origin: finalOrigin,
                 destination: finalDest,
                 trip_type: tripType,
-                accompaniment_staff_id: form.accompaniment_staff_id === "none" ? null : form.accompaniment_staff_id,
                 required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name}`),
                 assigned_clinical_staff: staffRows,
             };
@@ -529,7 +528,7 @@ function NewTripSection({ onNavigate }) {
                 origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
                 scheduled_date: new Date().toISOString().split("T")[0], rut: "", age: "", diagnosis: "", weight: "", bed: "",
                 transfer_reason: "", attending_physician: "", appointment_time: "", departure_time: "",
-                patient_requirements: [], accompaniment: "", accompaniment_staff_id: "none", task_details: "", staff_count: ""
+                patient_requirements: [], accompaniment: "", task_details: "", staff_count: ""
             });
             setStaffRows([]);
             setRutStatus(null);
