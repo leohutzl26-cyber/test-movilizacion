@@ -797,7 +797,7 @@ function NewTripSection({ onNavigate }) {
                 origin: finalOrigin,
                 destination: finalDest,
                 trip_type: tripType,
-                required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name}`),
+                required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`),
                 assigned_clinical_staff: staffRows,
             };
 

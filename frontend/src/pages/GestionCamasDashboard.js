@@ -325,7 +325,7 @@ function ClinicalStaffMantenedor() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
-
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({ name: "", role: "", is_active: true });
 
   const fetchStaff = useCallback(async () => {
@@ -377,6 +377,16 @@ function ClinicalStaffMantenedor() {
         </Button>
       </div>
 
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Input 
+          placeholder="Buscar personal por nombre o tipo (ej. TENS)..." 
+          className="pl-10 h-11 bg-white border-slate-200 shadow-sm rounded-xl focus:ring-teal-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <Card className="shadow-sm">
         <CardContent className="p-0 overflow-hidden">
           {loading ? <div className="py-20 flex justify-center text-teal-600"><RefreshCw className="w-8 h-8 animate-spin" /></div> : (
@@ -390,7 +400,10 @@ function ClinicalStaffMantenedor() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {staff.map(s => (
+                {staff.filter(s => 
+                  s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  s.role.toLowerCase().includes(searchTerm.toLowerCase())
+                ).map(s => (
                   <tr key={s.id} className="hover:bg-slate-50">
                     <td className="p-4 font-bold text-slate-800"><div className="flex items-center gap-2"><Users className="w-4 h-4 text-teal-500" /> {s.name}</div></td>
                     <td className="p-4 text-slate-600">{s.role}</td>
@@ -405,6 +418,12 @@ function ClinicalStaffMantenedor() {
                     </td>
                   </tr>
                 ))}
+                {staff.length > 0 && staff.filter(s => 
+                  s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  s.role.toLowerCase().includes(searchTerm.toLowerCase())
+                ).length === 0 && (
+                  <tr><td colSpan={4} className="text-center py-10 text-slate-400 font-medium">No se encontraron resultados para "{searchTerm}"</td></tr>
+                )}
                 {staff.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-slate-400">No hay personal registrado.</td></tr>}
               </tbody>
             </table>
@@ -950,7 +969,15 @@ function GestorNewTripSection() {
     setStaffRows(prev => {
       const u = [...prev]; u[i] = { ...u[i], [field]: value };
       if (field === "type") { u[i].staff_id = ""; u[i].staff_name = ""; }
-      if (field === "staff_id" && value) { const s = clinicalStaffOptions.find(s => s.id === value); if (s) u[i].staff_name = s.name; }
+      if (field === "staff_id") {
+        if (value && value !== "none") {
+          const s = clinicalStaffOptions.find(s => s.id === value);
+          if (s) u[i].staff_name = s.name;
+        } else {
+          u[i].staff_id = "";
+          u[i].staff_name = "";
+        }
+      }
       return u;
     });
   };
@@ -962,13 +989,13 @@ function GestorNewTripSection() {
       if (!form.patient_name || !form.origin || !form.destination) { toast.error("Complete campos obligatorios"); return; }
       if (!rutValid) { toast.error("El RUT ingresado no es válido"); return; }
       if (staffRows.length === 0) { toast.error("Añada al menos un personal clínico"); return; }
-      if (staffRows.some(r => !r.type || !r.staff_id)) { toast.error("Complete todo el personal añadido"); return; }
+      if (staffRows.some(r => !r.type)) { toast.error("Seleccione el tipo de personal para todo el personal añadido"); return; }
     } else {
       if (!form.origin || !form.destination || !form.task_details) { toast.error("Complete Origen, Destino y Cometido"); return; }
     }
     setLoading(true);
     try {
-      await api.post("/trips", { ...form, trip_type: tripType, required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name}`), assigned_clinical_staff: staffRows });
+      await api.post("/trips", { ...form, trip_type: tripType, required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`), assigned_clinical_staff: staffRows });
       toast.success("Traslado creado exitosamente");
       setForm({ origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "", scheduled_date: new Date().toISOString().split("T")[0], rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "", attending_physician: "", appointment_time: "", departure_time: "", patient_requirements: [], accompaniment: "", task_details: "", staff_count: "" });
       setStaffRows([]);
@@ -1019,7 +1046,7 @@ function GestorNewTripSection() {
           {/* Personal clínico tabla */}
           {tripType === "clinico" && (<div className="space-y-3">
             <Label className="font-bold">Personal Clínico *</Label>
-            {staffRows.length > 0 && <div className="border rounded-xl overflow-hidden"><table className="w-full text-sm"><thead className="bg-slate-100"><tr><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Tipo</th><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Nombre</th><th className="p-2 w-10"></th></tr></thead><tbody>{staffRows.map((row, i) => (<tr key={i}><td className="p-2"><Select value={row.type} onValueChange={v => updateStaffRow(i, "type", v)}><SelectTrigger className="h-9"><SelectValue placeholder="Tipo" /></SelectTrigger><SelectContent>{PERSONNEL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Select value={row.staff_id} onValueChange={v => updateStaffRow(i, "staff_id", v)} disabled={!row.type}><SelectTrigger className="h-9"><SelectValue placeholder="Funcionario" /></SelectTrigger><SelectContent>{getStaffByType(row.type).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeStaffRow(i)} className="h-8 w-8 text-red-500"><Trash2 className="w-4 h-4" /></Button></td></tr>))}</tbody></table></div>}
+            {staffRows.length > 0 && <div className="border rounded-xl overflow-hidden"><table className="w-full text-sm"><thead className="bg-slate-100"><tr><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Tipo</th><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Nombre / Identificación</th><th className="p-2 w-10"></th></tr></thead><tbody>{staffRows.map((row, i) => (<tr key={i}><td className="p-2"><Select value={row.type} onValueChange={v => updateStaffRow(i, "type", v)}><SelectTrigger className="h-9"><SelectValue placeholder="Tipo" /></SelectTrigger><SelectContent>{PERSONNEL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Select value={row.staff_id || "none"} onValueChange={v => updateStaffRow(i, "staff_id", v)} disabled={!row.type}><SelectTrigger className="h-9"><SelectValue placeholder="Opcional: Por identificar" /></SelectTrigger><SelectContent><SelectItem value="none">Por identificar luego...</SelectItem>{getStaffByType(row.type).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeStaffRow(i)} className="h-8 w-8 text-red-500"><Trash2 className="w-4 h-4" /></Button></td></tr>))}</tbody></table></div>}
             <Button type="button" variant="outline" onClick={addStaffRow} className="border-teal-200 text-teal-700 h-9"><Plus className="w-4 h-4 mr-1" /> Añadir Personal</Button>
           </div>)}
           {/* Requerimientos */}
