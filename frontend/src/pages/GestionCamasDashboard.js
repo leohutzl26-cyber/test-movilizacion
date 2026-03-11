@@ -13,6 +13,7 @@ import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, T
 import api from "@/lib/api";
 
 const PERSONNEL_TYPES = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];
+const REQUIREMENT_OPTIONS = ["Camilla", "Incubadora", "Silla de rueda", "Oxigeno", "Monitor", "Aislamiento Aéreo", "Aislamiento Contacto", "Aislamiento Protector", "Dependiente severo"];
 
 export default function GestionCamasDashboard() {
   const [section, setSection] = useState("dashboard");
@@ -133,6 +134,14 @@ function AssignPersonnelSection() {
 
   const removeStaffRow = (index) => {
     setStaffRows(staffRows.filter((_, i) => i !== index));
+  };
+
+  const handleRequirementChange = (val) => {
+    const current = editData.patient_requirements || [];
+    const updated = current.includes(val) 
+      ? current.filter(i => i !== val) 
+      : [...current, val];
+    setEditData({ ...editData, patient_requirements: updated });
   };
 
   const displayedTrips = filterStatus === "revision_gestor" 
@@ -302,6 +311,22 @@ function AssignPersonnelSection() {
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Médico Tratante</Label>
                     <Input className="h-9 text-sm font-bold bg-white" value={editData.attending_physician || ""} onChange={e => setEditData({ ...editData, attending_physician: e.target.value })} />
+                  </div>
+                  <div className="md:col-span-2 space-y-2 mt-2">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2"><Stethoscope className="w-3 h-3" /> Requerimientos del Paciente</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white p-3 rounded-lg border border-slate-100 shadow-inner">
+                      {REQUIREMENT_OPTIONS.map(opt => (
+                        <label key={opt} className="flex items-center gap-2 cursor-pointer group">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 accent-teal-600 rounded" 
+                            checked={(editData.patient_requirements || []).includes(opt)}
+                            onChange={() => handleRequirementChange(opt)}
+                          />
+                          <span className="text-[11px] font-bold text-slate-600 group-hover:text-teal-700 transition-colors">{opt}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
