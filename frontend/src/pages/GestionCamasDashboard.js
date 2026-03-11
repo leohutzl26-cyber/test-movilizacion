@@ -53,6 +53,8 @@ function AssignPersonnelSection() {
   const [originServices, setOriginServices] = useState([]);
   const [filterStatus, setFilterStatus] = useState("revision_gestor");
   const [allActiveTrips, setAllActiveTrips] = useState([]);
+  const [rejectDialog, setRejectDialog] = useState(null); // Contiene el viaje a rechazar
+  const [rejectReason, setRejectReason] = useState("");
 
   const fetchTripsAndStaff = useCallback(async () => {
     try {
@@ -94,6 +96,21 @@ function AssignPersonnelSection() {
       toast.success("Traslado visado y aprobado correctamente");
       setAssignDialog(null); fetchTripsAndStaff();
     } catch (e) { toast.error("Error al aprobar traslado"); }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) { toast.error("Debe ingresar una justificación"); return; }
+    try {
+      await api.put(`/trips/${rejectDialog.id}/status`, {
+        status: "cancelado",
+        cancel_reason: rejectReason
+      });
+      toast.success("Traslado rechazado y cancelado");
+      setRejectDialog(null);
+      setAssignDialog(null);
+      setRejectReason("");
+      fetchTripsAndStaff();
+    } catch (e) { toast.error("Error al rechazar traslado"); }
   };
 
   const updateStaffRow = (index, field, value) => {
@@ -428,11 +445,41 @@ function AssignPersonnelSection() {
                 
                 <DialogFooter className="mt-4 gap-2 flex-col sm:flex-row">
                   <Button variant="outline" className="h-12 font-bold min-w-[120px]" onClick={() => setAssignDialog(null)}>Cancelar</Button>
-                  <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-lg flex-1" onClick={handleApprove}>Aprobar y Enviar a Coordinación</Button>
+                  <Button variant="destructive" className="h-12 font-bold flex-1 gap-2" onClick={() => setRejectDialog(assignDialog)}>
+                    <XCircle className="w-5 h-5" /> Rechazar Traslado
+                  </Button>
+                  <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-lg flex-[2]" onClick={handleApprove}>Aprobar y Enviar a Coordinación</Button>
                 </DialogFooter>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* DIÁLOGO DE JUSTIFICACIÓN DE RECHAZO */}
+      <Dialog open={!!rejectDialog} onOpenChange={() => setRejectDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6" /> Confirmar Rechazo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-slate-600 font-medium">¿Está seguro que desea rechazar la solicitud de traslado de <strong>{rejectDialog?.patient_name}</strong>? Esta acción cancelará el folio permanentemente.</p>
+            <div className="space-y-2">
+              <Label className="font-bold text-slate-700">Justificación del Rechazo *</Label>
+              <textarea 
+                className="w-full min-h-[100px] p-3 text-sm border rounded-xl focus:ring-red-500 outline-none" 
+                placeholder="Escriba el motivo del rechazo aquí..." 
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRejectDialog(null)}>Cancelar</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold" onClick={handleReject}>Confirmar Rechazo Definitivo</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
