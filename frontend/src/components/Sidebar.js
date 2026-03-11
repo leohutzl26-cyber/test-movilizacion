@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History } from "lucide-react";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [loading, setLoading] = useState(false);
+  const [openSubMenu, setOpenSubMenu] = useState("mantenedores"); // Mantenedores abierto por defecto
 
   const navItems = {
     admin: [
@@ -47,8 +48,15 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     gestion_camas: [
       { id: "dashboard", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
-      { id: "staff", label: "Mantenedor Personal", icon: Users },
-      { id: "services", label: "Mant. Servicios", icon: MapPin },
+      { 
+        id: "mantenedores", 
+        label: "Mantenedores", 
+        icon: Settings,
+        subItems: [
+          { id: "staff", label: "Personal Clínico", icon: Users },
+          { id: "services", label: "Servicios / Unidades", icon: MapPin },
+        ]
+      },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "history", label: "Histórico y Reportes", icon: FileText }
     ]
@@ -87,6 +95,38 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
           {links.map((link) => {
             const isActive = activeSection === link.id;
+            const hasSubItems = link.subItems && link.subItems.length > 0;
+            const isSubMenuOpen = openSubMenu === link.id;
+
+            if (hasSubItems) {
+              return (
+                <div key={link.id} className="space-y-1">
+                  <button onClick={() => setOpenSubMenu(isSubMenuOpen ? null : link.id)}
+                    className={`w-full flex items-center justify-between px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium touch-target
+                      ${isSubMenuOpen ? "text-teal-700 font-bold" : "text-slate-600 hover:bg-slate-50"}`}>
+                    <div className="flex items-center gap-3">
+                      <link.icon className={`w-5 h-5 ${isSubMenuOpen ? "text-teal-600" : "text-slate-400"}`} /> {link.label}
+                    </div>
+                    {isSubMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+                  {isSubMenuOpen && (
+                    <div className="pl-9 space-y-1 animate-in slide-in-from-top-1 duration-200">
+                      {link.subItems.map((sub) => {
+                        const isSubActive = activeSection === sub.id;
+                        return (
+                          <button key={sub.id} onClick={() => { onSectionChange(sub.id); setIsOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-xs font-medium
+                              ${isSubActive ? "bg-teal-50 text-teal-700 shadow-sm border border-teal-100" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}>
+                            <sub.icon className={`w-4 h-4 ${isSubActive ? "text-teal-600" : "text-slate-400"}`} /> {sub.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <button key={link.id} onClick={() => { onSectionChange(link.id); setIsOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium touch-target
