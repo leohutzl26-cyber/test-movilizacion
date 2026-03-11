@@ -21,96 +21,20 @@ export default function GestionCamasDashboard() {
     <div className="min-h-screen bg-slate-50 flex">
       <Sidebar activeSection={section} onSectionChange={setSection} />
       <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
-        {section === "dashboard" && <ClinicalOverviewSection onNavigate={setSection} />}
-        {section === "new" && <GestorNewTripSection />}
         {section === "assign" && <AssignPersonnelSection />}
+        {section === "new" && <GestorNewTripSection />}
         {section === "staff" && <ClinicalStaffMantenedor />}
         {section === "services" && <OriginServicesMantenedor />}
         {section === "calendar" && <ClinicalCalendarSection />}
         {section === "history" && <ClinicalHistorySection />}
+        {/* Unificado: "dashboard" ahora redirige a "assign" */}
+        {section === "dashboard" && <AssignPersonnelSection />}
       </main>
     </div>
   );
 }
 
-// ==========================================
-// SECCIÓN 1: TORRE DE CONTROL (RESUMEN)
-// ==========================================
-function ClinicalOverviewSection({ onNavigate }) {
-  const [stats, setStats] = useState({ pendingDriver: 0, pendingStaff: 0, activeTrips: 0 });
-  const [loading, setLoading] = useState(true);
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const [pool, active] = await Promise.all([api.get("/trips/pool"), api.get("/trips/active")]);
-      const uniqueMap = new Map();
-      pool.data.forEach(t => uniqueMap.set(t.id, t));
-      active.data.forEach(t => uniqueMap.set(t.id, t));
-      const allClinicos = Array.from(uniqueMap.values()).filter(t => t.trip_type === "clinico");
-
-      const pendingDriver = allClinicos.filter(t => t.status === "pendiente").length;
-      const pendingStaff = allClinicos.filter(t => 
-        (!t.clinical_team || String(t.clinical_team).trim() === "") || 
-        (t.assigned_clinical_staff?.some(s => !s.staff_id))
-      ).length;
-      const activeTrips = allClinicos.filter(t => t.status === "en_curso" || t.status === "asignado").length;
-
-      setStats({ pendingDriver, pendingStaff, activeTrips });
-    } catch (e) { } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchStats(); const interval = setInterval(fetchStats, 10000); return () => clearInterval(interval); }, [fetchStats]);
-
-  return (
-    <div className="animate-slide-up max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900">Resumen de Gestión de Camas</h1>
-        <p className="text-slate-500 font-medium mt-1">Monitoreo en tiempo real de traslados de pacientes.</p>
-      </div>
-
-      {loading ? <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-teal-600" /></div> : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className={`shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-all ${stats.pendingStaff > 0 ? "border-l-red-500 bg-red-50/30" : "border-l-emerald-500"}`} onClick={() => onNavigate("assign")}>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                  {stats.pendingStaff > 0 ? <AlertTriangle className="w-3 h-3 text-red-500" /> : <CheckCircle className="w-3 h-3 text-emerald-500" />} Pendiente Personal Apoyo
-                </p>
-                <p className={`text-5xl font-black ${stats.pendingStaff > 0 ? "text-red-600" : "text-emerald-600"}`}>{stats.pendingStaff}</p>
-                <p className="text-xs font-medium text-slate-400 mt-2 hover:text-red-700">Ir a asignar →</p>
-              </div>
-              <BedDouble className={`w-14 h-14 ${stats.pendingStaff > 0 ? "text-red-200" : "text-emerald-100"}`} />
-            </CardContent>
-          </Card>
-
-          <Card className={`shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-all ${stats.pendingDriver > 0 ? "border-l-amber-500 bg-amber-50/30" : "border-l-emerald-500"}`} onClick={() => onNavigate("calendar")}>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                  {stats.pendingDriver > 0 ? <Clock className="w-3 h-3 text-amber-500" /> : <CheckCircle className="w-3 h-3 text-emerald-500" />} Listos para Asignar
-                </p>
-                <p className={`text-5xl font-black ${stats.pendingDriver > 0 ? "text-amber-600" : "text-emerald-600"}`}>{stats.pendingDriver}</p>
-                <p className="text-xs font-medium text-slate-400 mt-2 hover:text-amber-700">Ir a agenda →</p>
-              </div>
-              <CalendarDays className={`w-14 h-14 ${stats.pendingDriver > 0 ? "text-amber-200" : "text-emerald-100"}`} />
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-l-4 border-l-blue-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("calendar")}>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Traslados Activos</p>
-                <p className="text-5xl font-black text-blue-600">{stats.activeTrips}</p>
-                <p className="text-xs font-medium text-slate-400 mt-2 hover:text-blue-700">Ver en agenda →</p>
-              </div>
-              <Activity className="w-14 h-14 text-blue-200" />
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
+// La sección de resumen ha sido unificada en la Bandeja de Entrada.
 
 // ==========================================
 // SECCIÓN 2: REVISIÓN Y VISADO DE TRASLADOS PENDIENTES
@@ -124,15 +48,27 @@ function AssignPersonnelSection() {
   const [staffRows, setStaffRows] = useState([]);
   const [priority, setPriority] = useState("normal");
   const [editData, setEditData] = useState({});
+  const [stats, setStats] = useState({ revision: 0, pendiente: 0, asignado: 0, en_curso: 0 });
 
   const fetchTripsAndStaff = useCallback(async () => {
     try {
-      const [revTrips, staffInfo] = await Promise.all([
+      const [revTrips, staffInfo, allActive] = await Promise.all([
         api.get("/trips/gestion_revision"),
-        api.get("/clinical-staff")
+        api.get("/clinical-staff"),
+        api.get("/trips/active")
       ]);
+      
       setTrips(revTrips.data);
       setClinicalStaffOptions(staffInfo.data.filter(s => s.is_active));
+      
+      // Calcular estadísticas de estados específicos
+      const clinicos = allActive.data.filter(t => t.trip_type === "clinico");
+      setStats({
+        revision: revTrips.data.length,
+        pendiente: clinicos.filter(t => t.status === "pendiente").length,
+        asignado: clinicos.filter(t => t.status === "asignado").length,
+        en_curso: clinicos.filter(t => t.status === "en_curso").length
+      });
     } catch { } finally { setLoading(false); }
   }, []);
 
@@ -207,13 +143,39 @@ function AssignPersonnelSection() {
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900">Bandeja de Entrada (Visación)</h1>
-        <p className="text-slate-500 font-medium mt-1">Revise, identifique al personal faltante y apruebe las solicitudes.</p>
+        <h1 className="text-2xl md:text-3xl font-black text-slate-900">Bandeja de Entrada</h1>
+        <p className="text-slate-500 font-medium mt-1">Gestión centralizada de traslados clínicos.</p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-red-500 shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">En Revisión</p>
+          <p className="text-3xl font-black text-red-600">{stats.revision}</p>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-amber-500 shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pendientes</p>
+          <p className="text-3xl font-black text-amber-600">{stats.pendiente}</p>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-blue-500 shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Asignados</p>
+          <p className="text-3xl font-black text-blue-600">{stats.asignado}</p>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border-l-4 border-l-emerald-500 shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">En Curso</p>
+          <p className="text-3xl font-black text-emerald-600">{stats.en_curso}</p>
+        </div>
+      </div>
+
+      <div className="mb-6 flex items-center justify-between border-b pb-4">
+        <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
+           <BedDouble className="w-5 h-5 text-teal-600" /> Solicitudes por Visar 
+           <Badge className="ml-2 bg-red-100 text-red-700">{pendingTrips.length}</Badge>
+        </h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {pendingTrips.map(t => <TripCard key={t.id} t={t} isPending={true} />)}
-        {pendingTrips.length === 0 && <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200"><p className="text-xl font-bold">Excelente, no hay traslados pendientes de visación.</p></div>}
+        {pendingTrips.length === 0 && <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200"><p className="text-xl font-bold">Sin solicitudes pendientes en este momento.</p></div>}
       </div>
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>

@@ -45,9 +45,8 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "list", label: "Mis Solicitudes", icon: ClipboardList },
     ],
     gestion_camas: [
-      { id: "dashboard", label: "Resumen Clínico", icon: Home },
+      { id: "dashboard", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
-      { id: "assign", label: "Bandeja de Entrada", icon: BedDouble },
       { id: "staff", label: "Mantenedor Personal", icon: Users },
       { id: "services", label: "Mant. Servicios", icon: MapPin },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
