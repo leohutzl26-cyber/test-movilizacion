@@ -59,8 +59,7 @@ function NewTripSection() {
     scheduled_date: new Date().toISOString().split("T")[0],
     rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
     attending_physician: "", appointment_time: "", departure_time: "",
-    patient_requirements: [], accompaniment: "", accompaniment_staff_id: "none",
-    task_details: "", staff_count: ""
+    patient_requirements: [], accompaniment: "", task_details: "", staff_count: ""
   });
 
   // Dynamic clinical staff table rows: [{type, staff_id, staff_name}]
@@ -157,7 +156,6 @@ function NewTripSection() {
         origin: finalOrigin,
         destination: finalDest,
         trip_type: tripType,
-        accompaniment_staff_id: form.accompaniment_staff_id === "none" ? null : form.accompaniment_staff_id,
         required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name}`),
         assigned_clinical_staff: staffRows,
       };
@@ -168,7 +166,7 @@ function NewTripSection() {
         origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
         scheduled_date: new Date().toISOString().split("T")[0], rut: "", age: "", diagnosis: "", weight: "", bed: "",
         transfer_reason: "", attending_physician: "", appointment_time: "", departure_time: "",
-        patient_requirements: [], accompaniment: "", accompaniment_staff_id: "none", task_details: "", staff_count: ""
+        patient_requirements: [], accompaniment: "", task_details: "", staff_count: ""
       });
       setStaffRows([]);
       setRutStatus(null);
@@ -367,18 +365,6 @@ function NewTripSection() {
                     <Select value={form.accompaniment} onValueChange={v => setForm({ ...form, accompaniment: v })}>
                       <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
                       <SelectContent><SelectItem value="ninguno">Ninguno</SelectItem>{accompanimentOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Personal Clínico Acompañante Específico (Opcional)</Label>
-                    <Select value={form.accompaniment_staff_id} onValueChange={v => setForm({ ...form, accompaniment_staff_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Opcional: Seleccione personal específico" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sin asignación (Asignará Gestión Cama)</SelectItem>
-                        {clinicalStaffOptions.map(staff => (
-                          <SelectItem key={staff.id} value={staff.id}>{staff.name} ({staff.role})</SelectItem>
-                        ))}
-                      </SelectContent>
                     </Select>
                   </div>
                 </div>
