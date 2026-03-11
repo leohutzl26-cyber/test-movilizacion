@@ -48,6 +48,8 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     gestion_camas: [
       { id: "dashboard", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
+      { id: "calendar", label: "Calendario", icon: CalendarDays },
+      { id: "history", label: "Histórico y Reportes", icon: FileText },
       { 
         id: "mantenedores", 
         label: "Mantenedores", 
@@ -57,8 +59,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
           { id: "services", label: "Servicios / Unidades", icon: MapPin },
         ]
       },
-      { id: "calendar", label: "Calendario", icon: CalendarDays },
-      { id: "history", label: "Histórico y Reportes", icon: FileText }
     ]
   };
 
