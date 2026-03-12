@@ -251,33 +251,33 @@ function DispatchSection() {
     const StatusCard = ({ id, label, count, color, activeColor }) => (
         <button 
             onClick={() => setFilterStatus(id)}
-            className={`flex-1 text-left p-5 rounded-3xl border-l-8 transition-all hover:scale-[1.02] shadow-sm 
-                ${filterStatus === id ? `${activeColor} ring-2 ring-slate-900/5` : "bg-white border-l-slate-200"}`}
+            className={`flex-1 text-left p-4 rounded-2xl border-l-4 transition-all hover:scale-[1.01] shadow-sm 
+                ${filterStatus === id ? `${activeColor} ring-1 ring-slate-900/5` : "bg-white border-l-slate-200"}`}
             style={{ borderLeftColor: filterStatus === id ? color : undefined }}
         >
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-            <p className={`text-4xl font-black ${filterStatus === id ? "text-slate-900" : "text-slate-400"}`}>{count}</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+            <p className={`text-2xl font-black ${filterStatus === id ? "text-slate-900" : "text-slate-500"}`}>{count}</p>
         </button>
     );
 
     return (
-        <div className="animate-slide-up space-y-8">
+        <div className="animate-slide-up space-y-6">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Bandeja de Entrada</h1>
-                    <p className="text-slate-500 font-medium text-lg">Central de Coordinación y Despacho en Tiempo Real.</p>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bandeja de Entrada</h1>
+                    <p className="text-slate-500 font-bold text-xs">Gestión de Despacho en Tiempo Real.</p>
                 </div>
-                <div className="bg-white px-4 py-2 rounded-2xl border border-slate-200 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sistema en Vivo</span>
+                <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Live</span>
                 </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <StatusCard id="pendiente" label="Pendientes" count={stats.pendiente} color="#f59e0b" activeColor="bg-amber-50" />
-                <StatusCard id="asignado" label="Asignados" count={stats.asignado} color="#0d9488" activeColor="bg-teal-50" />
-                <StatusCard id="en_curso" label="En Curso" count={stats.en_curso} color="#3b82f6" activeColor="bg-blue-50" />
-                <StatusCard id="completado" label="Hoy" count={stats.completado} color="#10b981" activeColor="bg-emerald-50" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatusCard id="pendiente" label="Por Despachar" count={stats.pendiente} color="#f59e0b" activeColor="bg-amber-50" />
+                <StatusCard id="asignado" label="Con Conductor" count={stats.asignado} color="#0d9488" activeColor="bg-teal-50" />
+                <StatusCard id="en_curso" label="En Tránsito" count={stats.en_curso} color="#3b82f6" activeColor="bg-blue-50" />
+                <StatusCard id="completado" label="Finalizados" count={stats.completado} color="#10b981" activeColor="bg-emerald-50" />
             </div>
 
             <div className="space-y-4">
@@ -291,52 +291,51 @@ function DispatchSection() {
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                     {filteredTrips.map(t => (
-                        <Card key={t.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-slate-200 hover:ring-teal-500 transition-all">
+                        <Card key={t.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-md transition-all">
                             <CardContent className="p-0">
                                 <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
                                     {/* INFO PRINCIPAL */}
-                                    <div className="p-6 flex-1 bg-white">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[11px] font-black font-mono border border-slate-200">#{t.tracking_number}</span>
-                                            <Badge className={t.priority === "alta" ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}>{t.priority.toUpperCase()}</Badge>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-auto">{t.scheduled_date || "Hoy"}</span>
+                                    <div className="p-4 flex-1 bg-white">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[9px] font-black font-mono border border-slate-200">#{t.tracking_number}</span>
+                                            <Badge className={`text-[9px] font-black px-2 py-0 ${t.priority === "alta" ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}`}>{t.priority.toUpperCase()}</Badge>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest ml-auto">{t.scheduled_date || "Hoy"}</span>
                                         </div>
-                                        <h3 className="text-2xl font-black text-slate-900 mb-2 leading-tight">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                            {t.trip_type === "clinico" ? <Stethoscope className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
-                                            {t.transfer_reason || "Gestión General"}
+                                        <h3 className="text-base font-black text-slate-900 mb-1 leading-tight uppercase group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            {t.trip_type === "clinico" ? <Stethoscope className="w-2.5 h-2.5" /> : <Truck className="w-2.5 h-2.5" />}
+                                            {t.transfer_reason || "Gral."}
                                         </p>
                                     </div>
 
                                     {/* RUTA */}
-                                    <div className="p-6 w-full md:w-80 bg-slate-50/50 space-y-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200 shadow-sm"><MapPin className="w-4 h-4 text-teal-700" /></div>
-                                            <div className="truncate"><p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Origen</p><p className="text-sm font-black text-slate-700">{t.origin}</p></div>
+                                    <div className="p-4 w-full md:w-64 bg-slate-50/50 space-y-2">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200 shadow-sm"><MapPin className="w-3.5 h-3.5 text-teal-700" /></div>
+                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Desde</p><p className="text-xs font-black text-slate-800 uppercase">{t.origin}</p></div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200 shadow-sm"><ArrowRight className="w-4 h-4 text-blue-700" /></div>
-                                            <div className="truncate"><p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Destino</p><p className="text-sm font-black text-slate-700">{t.destination}</p></div>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200 shadow-sm"><ArrowRight className="w-3.5 h-3.5 text-blue-700" /></div>
+                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Hacia</p><p className="text-xs font-black text-slate-800 uppercase">{t.destination}</p></div>
                                         </div>
                                     </div>
 
                                     {/* ESTADO OPERATIVO */}
-                                    <div className="p-6 w-full md:w-64 bg-white flex flex-col justify-center gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0"><User className="w-5 h-5 text-slate-600" /></div>
+                                    <div className="p-4 w-full md:w-56 bg-white flex flex-col justify-center gap-3">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0"><User className="w-4 h-4 text-slate-500" /></div>
                                             <div>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Responsable</p>
-                                                <p className="text-sm font-black text-slate-900 leading-none">{t.driver_name || "PDTE. ASIGNACIÓN"}</p>
-                                                {t.vehicle_plate && <p className="text-[10px] font-bold text-teal-600 mt-1">{t.vehicle_plate}</p>}
+                                                <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Conductor</p>
+                                                <p className="text-xs font-black text-slate-900 leading-none truncate w-32">{t.driver_name || "SIN ASIGNAR"}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center shrink-0"><Clock className="w-5 h-5 text-amber-600" /></div>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center shrink-0"><Clock className="w-4 h-4 text-amber-600" /></div>
                                             <div>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Horario Cita</p>
-                                                <p className="text-sm font-black text-slate-900 leading-none">{t.appointment_time || "AHORA"}</p>
+                                                <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Cita</p>
+                                                <p className="text-xs font-black text-slate-900 leading-none">{t.appointment_time || "AHORA"}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -391,62 +390,61 @@ function AssignSection() {
     if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
     return (
-        <div className="animate-slide-up">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="animate-slide-up space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Bandeja de Asignación</h1>
-                    <p className="text-slate-500 font-medium mt-1">Gestione solicitudes pendientes y asigne conductores.</p>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bandeja de Asignación</h1>
+                    <p className="text-slate-500 font-bold text-xs uppercase tracking-widest italic mt-1">Gestión Logística de Flota.</p>
                 </div>
-                <div className="flex gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                     {["all", "pendiente", "asignado"].map(f => (
-                        <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === f ? "bg-teal-600 text-white shadow-md" : "text-slate-500 hover:bg-slate-100"}`}>{f === "all" ? "Todos" : f.charAt(0).toUpperCase() + f.slice(1)}</button>
+                        <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded text-[10px] font-black uppercase transition-all ${filter === f ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:bg-slate-100"}`}>{f === "all" ? "Todos" : f.charAt(0).toUpperCase() + f.slice(1)}</button>
                     ))}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {filteredTrips.map(t => (
-                    <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-8 border-l-teal-500 shadow-sm overflow-hidden cursor-pointer group bg-white hover:ring-2 hover:ring-teal-500 transition-all">
-                        <CardContent className="p-6">
-                            <div className="flex flex-col gap-5">
+                    <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm overflow-hidden cursor-pointer group bg-white hover:ring-1 hover:ring-teal-500 transition-all">
+                        <CardContent className="p-4">
+                            <div className="flex flex-col gap-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <span className="bg-slate-900 text-teal-400 font-mono px-3 py-1 rounded-lg text-[11px] font-black tracking-wider">#{t.tracking_number}</span>
-                                        <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[10px] font-black uppercase tracking-widest`}>{(t.status || "pendiente").replace(/_/g, " ")}</Badge>
-                                        <Badge className={`border-none text-[10px] font-black uppercase tracking-widest ${pColors[t.priority] || pColors.normal}`}>{t.priority}</Badge>
+                                        <span className="bg-slate-900 text-teal-400 font-mono px-2 py-0.5 rounded text-[10px] font-black tracking-wider shadow-sm">#{t.tracking_number}</span>
+                                        <Badge className={`border-none text-[9px] font-black uppercase tracking-tight ${sColors[t.status] || "bg-slate-100"}`}>{(t.status || "pendiente").replace(/_/g, " ")}</Badge>
+                                        <Badge className={`border-none text-[9px] font-black uppercase tracking-tight ${pColors[t.priority] || pColors.normal}`}>{t.priority}</Badge>
                                     </div>
-                                    <p className="text-xs font-bold text-slate-400">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase">{t.scheduled_date || "Hoy"}</p>
                                 </div>
 
                                 <div className="flex-1">
-                                    <h3 className="text-2xl font-black text-slate-900 mb-1 leading-tight group-hover:text-teal-700 transition-colors uppercase">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-                                    <p className="text-sm font-bold text-slate-500 italic mb-4">{t.transfer_reason || "Traslado General"}</p>
+                                    <h3 className="text-base font-black text-slate-900 leading-tight group-hover:text-teal-700 transition-colors uppercase truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
                                     
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                                            <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200"><MapPin className="w-5 h-5 text-teal-700" /></div>
-                                            <div className="truncate"><p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">Origen</p><p className="text-sm font-black text-slate-800">{t.origin}</p></div>
+                                    <div className="grid grid-cols-2 gap-3 mt-3">
+                                        <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
+                                            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200"><MapPin className="w-4 h-4 text-teal-700" /></div>
+                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Desde</p><p className="text-xs font-black text-slate-800 uppercase truncate">{t.origin}</p></div>
                                         </div>
-                                        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                                            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200"><ArrowRight className="w-5 h-5 text-blue-700" /></div>
-                                            <div className="truncate"><p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">Destino</p><p className="text-sm font-black text-slate-800">{t.destination}</p></div>
+                                        <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200"><ArrowRight className="w-4 h-4 text-blue-700" /></div>
+                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Hacia</p><p className="text-xs font-black text-slate-800 uppercase truncate">{t.destination}</p></div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-between pt-4 border-t border-slate-100 gap-4" onClick={e => e.stopPropagation()}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0"><User className="w-5 h-5 text-slate-500" /></div>
+                                <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-4" onClick={e => e.stopPropagation()}>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0"><User className="w-4 h-4 text-slate-400" /></div>
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tight">Responsable</p>
-                                            <p className="text-sm font-black text-slate-900 leading-none">{t.driver_name || "PENDIENTE"}</p>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase leading-none">Móvil</p>
+                                            <p className="text-xs font-black text-slate-800 uppercase">{t.driver_name ? t.driver_name.split(' ')[0] : "PDTE."}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 font-black">
                                         {["pendiente", "asignado"].includes(t.status) && (
-                                            <Button onClick={() => setCancelDialog(t)} variant="ghost" className="h-10 px-4 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase transition-all">Cancelar</Button>
+                                            <Button onClick={() => setCancelDialog(t)} variant="ghost" className="h-8 px-2 text-[9px] text-red-600 hover:bg-red-50 font-black uppercase">Cancelar</Button>
                                         )}
-                                        <Button onClick={() => setAssignDialog(t)} className="h-11 px-8 bg-teal-600 hover:bg-teal-700 text-white font-black shadow-lg shadow-teal-600/20 rounded-xl uppercase tracking-wider transition-all">{t.driver_id ? "Reasignar" : "Asignar Movil"}</Button>
+                                        <Button onClick={() => setAssignDialog(t)} className="h-9 px-4 bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-black shadow-md rounded-lg uppercase tracking-wider transition-all">{t.driver_id ? "Re-Asignar" : "Asignar Móvil"}</Button>
                                     </div>
                                 </div>
                             </div>
@@ -568,11 +566,11 @@ function CalendarSection() {
     );
 
     return (
-        <div className="animate-slide-up">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="animate-slide-up space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Calendario Global</h1>
-                    <p className="text-slate-500 font-medium mt-1 capitalize">{getTitle()}</p>
+                    <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">Calendario Global</h1>
+                    <p className="text-slate-500 font-bold text-xs mt-0.5 capitalize">{getTitle()}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="bg-white border border-slate-200 rounded-xl p-1 flex gap-1 shadow-sm font-bold">
@@ -598,20 +596,19 @@ function CalendarSection() {
                                     <p className="text-xl font-bold text-slate-400">No hay traslados programados</p>
                                 </div>
                             ) : trips.map(t => (
-                                <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm cursor-pointer group">
-                                    <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                        <div className="flex items-center gap-5">
-                                            <div className="bg-teal-50 border border-teal-100 px-4 py-2 rounded-2xl text-center min-w-[100px] shadow-inner group-hover:bg-teal-600 transition-colors">
-                                                <p className="text-[10px] font-black text-teal-600 uppercase tracking-tighter group-hover:text-teal-100">Hora Cita</p>
-                                                <p className="text-xl font-black text-slate-800 group-hover:text-white">{t.appointment_time || "--:--"}</p>
+                                <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm cursor-pointer group bg-white">
+                                    <CardContent className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl text-center min-w-[80px] group-hover:bg-teal-600 transition-colors">
+                                                <p className="text-[8px] font-black text-teal-600 uppercase group-hover:text-teal-100">Cita</p>
+                                                <p className="text-base font-black text-slate-800 group-hover:text-white">{t.appointment_time || "--:--"}</p>
                                             </div>
                                             <div>
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Badge className="bg-slate-800 font-mono text-[10px]">{t.tracking_number}</Badge>
-                                                    <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[9px] uppercase font-black`}>{t.status.replace(/_/g, " ")}</Badge>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Badge className="bg-slate-900 font-mono text-[9px] px-1.5 py-0">#{t.tracking_number}</Badge>
+                                                    <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[8px] uppercase font-black px-1.5 py-0`}>{t.status.replace(/_/g, " ")}</Badge>
                                                 </div>
-                                                <h3 className="font-black text-slate-900 text-lg group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-                                                <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-teal-500" /> {t.origin} <ArrowRight className="w-3.5 h-3.5 text-slate-300" /> {t.destination}</p>
+                                                <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
                                             </div>
                                         </div>
                                         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-right">
@@ -730,19 +727,17 @@ function DriversSection() {
     useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
 
     return (
-        <div className="animate-slide-up">
-            <h1 className="text-2xl font-bold text-slate-900 mb-6">Gestión de Conductores</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="animate-slide-up space-y-4">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">Gestión de Conductores</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {drivers.map(d => (
                     <Card key={d.id} className="shadow-sm border-slate-200">
-                        <CardContent className="p-5">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-indigo-600" /></div>
-                                    <div><p className="font-bold text-slate-900 text-lg">{d.name}</p><p className="text-xs font-medium text-slate-500">{d.email}</p></div>
-                                </div>
+                        <CardContent className="p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0"><User className="w-3.5 h-3.5 text-indigo-600" /></div>
+                                <div className="truncate"><p className="font-black text-slate-900 text-[11px] leading-none mb-0.5 uppercase truncate">{d.name.split(' ')[0]}</p><p className="text-[9px] font-bold text-slate-400 uppercase truncate leading-none">Móvil: {d.vehicle_plate || "N/A"}</p></div>
                             </div>
-                            {d.extra_available && <Badge className="bg-teal-100 text-teal-800 border border-teal-200 w-full justify-center py-1.5 mb-3 shadow-sm">DISPONIBILIDAD EXTRA ACTIVA</Badge>}
+                            {d.extra_available && <Badge className="bg-emerald-50 text-emerald-700 border-none w-full text-[8px] font-black uppercase py-0.5 tracking-tighter">Extra Activa</Badge>}
                         </CardContent>
                     </Card>
                 ))}
@@ -900,60 +895,58 @@ function NewTripSection({ onNavigate }) {
     };
 
     return (
-        <div className="max-w-4xl mx-auto animate-slide-up">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6">Nueva Solicitud de Traslado</h1>
+        <div className="max-w-6xl mx-auto animate-slide-up space-y-4">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">Nueva Solicitud de Traslado</h1>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-                <button type="button" onClick={() => setTripType("clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${tripType === "clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500 hover:border-teal-200"}`}>
-                    <Stethoscope className="w-8 h-8" /><span className="font-bold">Traslado Clínico</span>
+            <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setTripType("clinico")} className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${tripType === "clinico" ? "border-teal-600 bg-teal-50 text-teal-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-teal-200"}`}>
+                    <Stethoscope className="w-5 h-5" /><span className="text-xs font-black uppercase tracking-widest">Traslado Clínico</span>
                 </button>
-                <button type="button" onClick={() => setTripType("no_clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${tripType === "no_clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500 hover:border-teal-200"}`}>
-                    <Truck className="w-8 h-8" /><span className="font-bold">Traslado No Clínico</span>
+                <button type="button" onClick={() => setTripType("no_clinico")} className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${tripType === "no_clinico" ? "border-teal-600 bg-teal-50 text-teal-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-teal-200"}`}>
+                    <Truck className="w-5 h-5" /><span className="text-xs font-black uppercase tracking-widest">Traslado No Clínico</span>
                 </button>
             </div>
 
-            <Card className="shadow-lg border-t-4 border-t-teal-500">
-                <CardContent className="p-6">
+            <Card className="shadow-sm border-slate-200">
+                <CardContent className="p-5">
                     <form onSubmit={handleSubmit} className="space-y-8 animate-slide-up">
                         {tripType === "clinico" && (
                             <>
-                                <div className="space-y-4">
-                                    <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><User className="w-5 h-5" /> Datos del Paciente</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1"><Label className={errors.patient_name ? "text-red-500" : ""}>Nombre Paciente *</Label><Input className={errors.patient_name ? "border-red-500 bg-red-50 shadow-inner" : ""} value={form.patient_name} onChange={e => { setForm({ ...form, patient_name: e.target.value }); if (errors.patient_name) setErrors(p => ({ ...p, patient_name: false })); }} /></div>
+                                <div className="space-y-3">
+                                    <h3 className="text-xs font-black text-teal-800 border-b border-teal-100 pb-1 flex items-center gap-1.5 uppercase tracking-widest leading-none"><User className="w-4 h-4" /> Paciente</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                        <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.patient_name ? "text-red-500" : "text-slate-500"}`}>Nombre Paciente *</Label><Input className={`h-9 text-xs font-semibold ${errors.patient_name ? "border-red-500 bg-red-50" : ""}`} value={form.patient_name} onChange={e => { setForm({ ...form, patient_name: e.target.value }); if (errors.patient_name) setErrors(p => ({ ...p, patient_name: false })); }} /></div>
                                         <div className="space-y-1">
-                                            <Label>RUT</Label>
+                                            <Label className="text-[10px] font-bold text-slate-500">RUT</Label>
                                             <div className="relative">
                                                 <Input
                                                     value={form.rut}
                                                     onChange={e => handleRutChange(e.target.value)}
-                                                    placeholder="Ej: 12345678-9"
-                                                    className={rutStatus ? (rutStatus.valid ? "border-emerald-500 pr-10" : "border-red-500 pr-10") : "pr-10"}
+                                                    placeholder="12345678-9"
+                                                    className={`h-9 text-xs font-semibold pr-8 ${rutStatus ? (rutStatus.valid ? "border-emerald-500" : "border-red-500") : ""}`}
                                                 />
                                                 {rutStatus && (
                                                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                                         {rutStatus.valid
-                                                            ? <CheckCircle className="w-5 h-5 text-emerald-500" />
-                                                            : <XCircle className="w-5 h-5 text-red-500" />}
+                                                            ? <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                                            : <XCircle className="w-4 h-4 text-red-500" />}
                                                     </div>
                                                 )}
                                             </div>
-                                            {rutStatus && !rutStatus.valid && <p className="text-xs text-red-500 font-medium mt-0.5">RUT inválido. Formato correcto: {rutStatus.formatted}</p>}
-                                            {rutStatus && rutStatus.valid && <p className="text-xs text-emerald-600 font-medium mt-0.5">✓ RUT válido: {rutStatus.formatted}</p>}
                                         </div>
-                                        <div className="space-y-1"><Label>Edad</Label><Input value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} /></div>
-                                        <div className="space-y-1"><Label>Peso</Label><Input value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} /></div>
-                                        <div className="space-y-1 md:col-span-2"><Label>Diagnóstico</Label><Input value={form.diagnosis} onChange={e => setForm({ ...form, diagnosis: e.target.value })} /></div>
+                                        <div className="space-y-1"><Label className="text-[10px] font-bold text-slate-500">Edad</Label><Input className="h-9 text-xs font-semibold" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} /></div>
+                                        <div className="space-y-1"><Label className="text-[10px] font-bold text-slate-500">Peso (Kg)</Label><Input className="h-9 text-xs font-semibold" value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} /></div>
+                                        <div className="space-y-1 lg:col-span-2 xl:col-span-3"><Label className="text-[10px] font-bold text-slate-500">Diagnóstico</Label><Input className="h-9 text-xs font-semibold" value={form.diagnosis} onChange={e => setForm({ ...form, diagnosis: e.target.value })} /></div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><Activity className="w-5 h-5" /> Detalles Médicos</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1"><Label>Médico Tratante</Label><Input value={form.attending_physician} onChange={e => setForm({ ...form, attending_physician: e.target.value })} /></div>
-                                        <div className="space-y-1"><Label className={errors.transfer_reason ? "text-red-500" : ""}>Motivo Traslado *</Label>
+                                <div className="space-y-3">
+                                    <h3 className="text-xs font-black text-teal-800 border-b border-teal-100 pb-1 flex items-center gap-1.5 uppercase tracking-widest leading-none"><Activity className="w-4 h-4" /> Detalles Médicos</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                        <div className="space-y-1"><Label className="text-[10px] font-bold text-slate-500">Médico Tratante</Label><Input className="h-9 text-xs font-semibold" value={form.attending_physician} onChange={e => setForm({ ...form, attending_physician: e.target.value })} /></div>
+                                        <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.transfer_reason ? "text-red-500" : "text-slate-500"}`}>Motivo Traslado *</Label>
                                             <Select value={form.transfer_reason} onValueChange={v => { setForm({ ...form, transfer_reason: v }); if (errors.transfer_reason) setErrors(p => ({ ...p, transfer_reason: false })); }}>
-                                                <SelectTrigger className={errors.transfer_reason ? "border-red-500 bg-red-50" : ""}><SelectValue placeholder="Seleccione..." /></SelectTrigger>
+                                                <SelectTrigger className={`h-9 text-xs font-semibold ${errors.transfer_reason ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione..." /></SelectTrigger>
                                                 <SelectContent>{reasonOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
@@ -972,30 +965,30 @@ function NewTripSection({ onNavigate }) {
                             </div>
                         )}
 
-                        <div className="space-y-4">
-                            <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><MapPin className="w-5 h-5" /> Ubicación y Tiempos</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1"><Label className={errors.origin ? "text-red-500" : ""}>Origen *</Label>
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-black text-teal-800 border-b border-teal-100 pb-1 flex items-center gap-1.5 uppercase tracking-widest leading-none"><MapPin className="w-4 h-4" /> Ubicación y Tiempos</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.origin ? "text-red-500" : "text-slate-500"}`}>Origen *</Label>
                                     {!useCustomOrigin ? (
                                         <Select onValueChange={v => { 
                                             if (v === "otro") { setUseCustomOrigin(true); } 
                                             else { setForm({ ...form, origin: v }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }
                                         }}>
-                                            <SelectTrigger className={errors.origin ? "border-red-500 bg-red-50" : ""}><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                                            <SelectTrigger className={`h-9 text-xs font-semibold ${errors.origin ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione" /></SelectTrigger>
                                             <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
                                         </Select>
-                                    ) : <Input className={errors.origin ? "border-red-500 bg-red-50" : ""} placeholder="Escriba origen" value={form.origin} onChange={e => { setForm({ ...form, origin: e.target.value }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }} onDoubleClick={() => setUseCustomOrigin(false)} />}
+                                    ) : <Input className={`h-9 text-xs font-semibold ${errors.origin ? "border-red-500 bg-red-50" : ""}`} placeholder="Escriba origen" value={form.origin} onChange={e => { setForm({ ...form, origin: e.target.value }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }} onDoubleClick={() => setUseCustomOrigin(false)} />}
                                 </div>
-                                <div className="space-y-1"><Label className={errors.destination ? "text-red-500" : ""}>Destino *</Label>
+                                <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.destination ? "text-red-500" : "text-slate-500"}`}>Destino *</Label>
                                     {!useCustomDest ? (
                                         <Select onValueChange={v => {
                                             if (v === "otro") { setUseCustomDest(true); } 
                                             else { setForm({ ...form, destination: v }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }
                                         }}>
-                                            <SelectTrigger className={errors.destination ? "border-red-500 bg-red-50" : ""}><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                                            <SelectTrigger className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione" /></SelectTrigger>
                                             <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
                                         </Select>
-                                    ) : <Input className={errors.destination ? "border-red-500 bg-red-50" : ""} placeholder="Escriba destino" value={form.destination} onChange={e => { setForm({ ...form, destination: e.target.value }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }} onDoubleClick={() => setUseCustomDest(false)} />}
+                                    ) : <Input className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`} placeholder="Escriba destino" value={form.destination} onChange={e => { setForm({ ...form, destination: e.target.value }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }} onDoubleClick={() => setUseCustomDest(false)} />}
                                 </div>
                                 {tripType === "clinico" && (
                                     <>
