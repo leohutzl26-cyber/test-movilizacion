@@ -170,15 +170,23 @@ function AssignPersonnelSection() {
       <Card className={`shadow-sm border-l-4 transition-all hover:shadow-md ${config.border}`}>
         <CardContent className="p-5">
           <div className="flex justify-between items-start mb-3">
-            <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm">{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
-            <Badge className={`font-bold uppercase text-[9px] ${config.color}`}>{config.label}</Badge>
+            <div className="flex flex-col gap-1">
+              <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm w-fit">{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
+              <div className="flex items-center gap-1.5 text-slate-500">
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-black uppercase tracking-tight">{t.scheduled_date || "Hoy"}</span>
+                <Clock className="w-3.5 h-3.5 ml-1" />
+                <span className="text-[11px] font-black">{t.appointment_time || "--:--"}</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <Badge className={`font-bold uppercase text-[9px] ${config.color}`}>{config.label}</Badge>
+              <Badge className={t.priority === "urgente" ? "bg-red-500 text-white" : t.priority === "alta" ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-700"}>
+                {t.priority.toUpperCase()}
+              </Badge>
+            </div>
           </div>
-          <div className="flex justify-between items-start">
-            <p className="font-black text-xl text-slate-900 mb-1">{t.patient_name || "Paciente no especificado"}</p>
-            <Badge className={t.priority === "alta" ? "bg-red-100 text-red-700" : t.priority === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"}>
-              {t.priority}
-            </Badge>
-          </div>
+          <p className="font-black text-xl text-slate-900 mb-1 leading-tight">{t.patient_name || "Paciente no especificado"}</p>
           <p className="text-xs text-slate-500 mb-4 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason || "Sin especificar"}</p>
 
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 space-y-2">
@@ -206,12 +214,7 @@ function AssignPersonnelSection() {
                   {t.status === "revision_gestor" ? "Visar" : "Editar"}
                 </Button>
              )}
-             {t.status !== "revision_gestor" && (
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fecha</p>
-                  <p className="text-xs font-bold text-slate-700">{t.scheduled_date || "Hoy"}</p>
-                </div>
-             )}
+
           </div>
         </CardContent>
       </Card>

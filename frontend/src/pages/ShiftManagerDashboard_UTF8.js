@@ -100,7 +100,19 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-[9px] font-bold text-teal-600/70 uppercase mb-1">Equipo Clínico</p>
-                                        <p className="text-sm font-black text-teal-900">{trip.required_personnel?.join(", ") || "No especificado"}</p>
+                                        <div className="space-y-1">
+                                            {trip.assigned_clinical_staff && trip.assigned_clinical_staff.length > 0 ? (
+                                                trip.assigned_clinical_staff.map((s, idx) => (
+                                                    <p key={idx} className="text-sm font-black text-teal-900 leading-tight">
+                                                        <span className="text-[10px] text-teal-600/70 uppercase">{s.type}:</span> {s.staff_name || "PDTE. IDENTIFICAR"}
+                                                    </p>
+                                                ))
+                                            ) : (
+                                                <p className="text-sm font-black text-teal-900 leading-tight">
+                                                    {trip.required_personnel?.join(", ") || "No especificado"}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                     <div>
                                         <p className="text-[9px] font-bold text-teal-600/70 uppercase mb-1">Equipamiento</p>
