@@ -235,6 +235,7 @@ function DispatchSection() {
     const [returnDialog, setReturnDialog] = useState(null);
     const [editDialog, setEditDialog] = useState(null);
     const [detailTrip, setDetailTrip] = useState(null);
+    const [driverSearch, setDriverSearch] = useState("");
 
     const fetchTrips = useCallback(async () => {
         try {
@@ -431,33 +432,94 @@ function DispatchSection() {
 
             <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchTrips} />
 
-            {/* DIALOGO ASIGNACIÓN */}
-            <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader><DialogTitle className="text-xl font-black uppercase">{assignDialog?.driver_id ? "Reasignar Conductor" : "Asignar Conductor"}</DialogTitle></DialogHeader>
-                    {assignDialog && (
-                        <div className="space-y-4 pt-2">
-                            <div className="p-3 bg-slate-900 text-white rounded-xl shadow-md">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Destino Final</p>
-                                <p className="font-black text-teal-400 text-sm truncate uppercase">{assignDialog.destination}</p>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs font-black uppercase text-slate-500">Seleccione un Conductor disponible</Label>
-                                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
-                                    {drivers.map(d => (
-                                        <button key={d.id} onClick={() => handleAssign(assignDialog.id, d.id)} className="w-full flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-teal-400 hover:bg-teal-50 transition-all group">
-                                            <div className="text-left">
-                                                <p className="font-black text-slate-900 text-xs uppercase group-hover:text-teal-700">{d.name}</p>
-                                                <p className="text-[10px] text-slate-500 font-bold">Móvil: {d.vehicle_plate || "N/A"}</p>
-                                            </div>
-                                            <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowRight className="w-3 h-3" /></div>
-                                        </button>
-                                    ))}
-                                    {drivers.length === 0 && <p className="text-xs text-slate-400 py-6 text-center italic font-medium">Cargando conductores conductores...</p>}
+            {/* DIALOGO ASIGNACIÓN REDISEÑADO PARA PC */}
+            <Dialog open={!!assignDialog} onOpenChange={(open) => { if (!open) { setAssignDialog(null); setDriverSearch(""); } }}>
+                <DialogContent className="max-w-3xl bg-slate-50 border-none shadow-2xl p-0 overflow-hidden">
+                    <div className="flex h-[500px]">
+                        {/* Lateral Izquierdo: Resumen del viaje */}
+                        <div className="w-1/3 bg-slate-900 p-6 text-white flex flex-col justify-between">
+                            <div>
+                                <Badge className="bg-teal-500/20 text-teal-400 border-none mb-4 uppercase text-[9px] font-black tracking-widest px-2 py-1">Detalle del Traslado</Badge>
+                                <h3 className="text-xl font-black leading-tight mb-6 uppercase">{assignDialog?.trip_type === "clinico" ? assignDialog?.patient_name : assignDialog?.task_details}</h3>
+                                
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-1 w-2 h-2 rounded-full bg-teal-500 shrink-0"></div>
+                                        <div><p className="text-[10px] text-slate-400 font-black uppercase leading-none mb-1">Origen</p><p className="text-sm font-bold leading-tight">{assignDialog?.origin}</p></div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 shrink-0"></div>
+                                        <div><p className="text-[10px] text-slate-400 font-black uppercase leading-none mb-1">Destino</p><p className="text-sm font-bold leading-tight">{assignDialog?.destination}</p></div>
+                                    </div>
                                 </div>
                             </div>
+                            <div className="pt-6 border-t border-slate-800">
+                                <p className="text-[10px] text-slate-400 font-black uppercase leading-none mb-2 tracking-widest">Hora de Cita</p>
+                                <p className="text-3xl font-black text-teal-400 font-mono">{assignDialog?.appointment_time || "--:--"}</p>
+                            </div>
                         </div>
-                    )}
+
+                        {/* Panel Derecho: Selector de Conductores */}
+                        <div className="flex-1 bg-white flex flex-col">
+                            <div className="p-6 border-b border-slate-100">
+                                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-4 flex items-center gap-2">
+                                    {assignDialog?.driver_id ? "Reasignar Móvil" : "Asignar Móvil Operativo"}
+                                </h2>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none"><Search className="h-4 h-4 text-slate-400" /></div>
+                                    <Input 
+                                        placeholder="Buscar por nombre o patente..." 
+                                        className="pl-10 h-11 bg-slate-50 border-slate-200 rounded-xl text-sm focus:ring-teal-500"
+                                        value={driverSearch}
+                                        onChange={(e) => setDriverSearch(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/30">
+                                <div className="grid grid-cols-2 gap-3">
+                                    {drivers.filter(d => 
+                                        d.name.toLowerCase().includes(driverSearch.toLowerCase()) || 
+                                        (d.vehicle_plate && d.vehicle_plate.toLowerCase().includes(driverSearch.toLowerCase()))
+                                    ).map(d => (
+                                        <button 
+                                            key={d.id} 
+                                            onClick={() => handleAssign(assignDialog.id, d.id)}
+                                            className="group flex flex-col p-3 bg-white border border-slate-200 rounded-2xl hover:border-teal-500 hover:shadow-xl transition-all duration-300 text-left relative overflow-hidden"
+                                        >
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-teal-50 flex items-center justify-center text-slate-400 group-hover:text-teal-600 font-black text-sm transition-colors border border-slate-100 group-hover:border-teal-200">
+                                                    {d.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-black text-slate-900 text-[11px] leading-tight uppercase group-hover:text-teal-700 truncate">{d.name}</p>
+                                                    <Badge className="bg-slate-100 group-hover:bg-teal-100 text-slate-500 group-hover:text-teal-700 border-none font-mono text-[9px] px-1.5 py-0 mt-0.5">
+                                                        {d.vehicle_plate || "S/M"}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                            <div className="mt-auto flex items-center justify-between">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Disponible Ahora</span>
+                                                <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-teal-500 group-hover:translate-x-1 transition-all" />
+                                            </div>
+                                            {/* Decoración hover */}
+                                            <div className="absolute top-0 right-0 w-16 h-16 bg-teal-500/5 rounded-full -mr-8 -mt-8 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        </button>
+                                    ))}
+                                    {drivers.length === 0 && (
+                                        <div className="col-span-2 py-20 text-center">
+                                            <User className="w-12 h-12 text-slate-200 mx-auto mb-2" />
+                                            <p className="text-xs font-black text-slate-400 uppercase">Sin conductores registrados</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="p-4 border-t border-slate-100 bg-white flex justify-end">
+                                <Button variant="ghost" onClick={() => setAssignDialog(null)} className="text-xs font-black uppercase text-slate-500">Cancelar</Button>
+                            </div>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
 
