@@ -29,7 +29,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     coordinador: [
       { id: "dispatch", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
-      { id: "assign", label: "Bolsa de Asignación", icon: ClipboardList },
       { id: "by_driver", label: "Pizarra de Conducción", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit } from "lucide-react";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
@@ -200,7 +200,6 @@ export default function ShiftManagerDashboard_UTF8() {
             <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
                 <div className="max-w-7xl mx-auto">
                     {section === "dispatch" && <DispatchSection />}
-                    {section === "assign" && <AssignSection />}
                     {section === "new" && <NewTripSection onNavigate={setSection} />}
                     {section === "calendar" && <CalendarSection />}
                     {section === "by_driver" && <ByDriverSection />}
@@ -218,17 +217,24 @@ function DispatchSection() {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState("pendiente");
     const [stats, setStats] = useState({ pendiente: 0, asignado: 0, en_curso: 0, completado: 0 });
+    const [drivers, setDrivers] = useState([]);
+    const [assignDialog, setAssignDialog] = useState(null);
+    const [cancelDialog, setCancelDialog] = useState(null);
+    const [returnDialog, setReturnDialog] = useState(null);
+    const [editDialog, setEditDialog] = useState(null);
+    const [detailTrip, setDetailTrip] = useState(null);
 
     const fetchTrips = useCallback(async () => {
         try {
-            const [activeRes, statsRes] = await Promise.all([
+            const [activeRes, statsRes, driversRes] = await Promise.all([
                 api.get("/trips/active"),
-                api.get("/stats/dashboard")
+                api.get("/stats/dashboard"),
+                api.get("/drivers")
             ]);
             const activeTrips = activeRes.data || [];
             setTrips(activeTrips);
+            setDrivers(driversRes.data || []);
             
-            // Extraer estadísticas de los estados activos para las tarjetas
             setStats({
                 pendiente: activeTrips.filter(t => t.status === "pendiente").length,
                 asignado: activeTrips.filter(t => t.status === "asignado").length,
@@ -243,6 +249,44 @@ function DispatchSection() {
         const interval = setInterval(fetchTrips, 15000);
         return () => clearInterval(interval);
     }, [fetchTrips]);
+
+    const handleAssign = async (tripId, driverId) => {
+        try {
+            await api.post(`/trips/${tripId}/manager-assign`, { driver_id: driverId });
+            toast.success("Viaje asignado exitosamente");
+            setAssignDialog(null); fetchTrips();
+        } catch (e) { toast.error("Error al asignar"); }
+    };
+
+    const handleCancel = async (e) => {
+        e.preventDefault();
+        const reason = e.target.reason.value;
+        if (!reason) { toast.error("Debe indicar una justificación"); return; }
+        try {
+            await api.put(`/trips/${cancelDialog.id}/status`, { status: "cancelado", cancel_reason: reason });
+            toast.success("Traslado cancelado");
+            setCancelDialog(null); fetchTrips();
+        } catch (e) { toast.error("Error al cancelar"); }
+    };
+
+    const handleReturnToManager = async () => {
+        try {
+            await api.put(`/trips/${returnDialog.id}/status`, { status: "revision_gestor" });
+            toast.success("Traslado devuelto al gestor de camas");
+            setReturnDialog(null); fetchTrips();
+        } catch (e) { toast.error("Error al devolver traslado"); }
+    };
+
+    const handleEditSubmission = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        try {
+            await api.put(`/trips/${editDialog.id}`, data);
+            toast.success("Traslado actualizado");
+            setEditDialog(null); fetchTrips();
+        } catch (e) { toast.error("Error al actualizar"); }
+    };
 
     const filteredTrips = trips.filter(t => t.status === filterStatus);
 
@@ -293,197 +337,188 @@ function DispatchSection() {
 
                 <div className="grid grid-cols-1 gap-3">
                     {filteredTrips.map(t => (
-                        <Card key={t.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-md transition-all">
+                        <Card key={t.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-md transition-all bg-white">
                             <CardContent className="p-0">
-                                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                                <div className="flex flex-col xl:flex-row divide-y xl:divide-y-0 xl:divide-x divide-slate-100">
                                     {/* INFO PRINCIPAL */}
-                                    <div className="p-4 flex-1 bg-white">
+                                    <div className="p-4 flex-1 cursor-pointer" onClick={() => setDetailTrip(t)}>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[9px] font-black font-mono border border-slate-200">#{t.tracking_number}</span>
-                                            <Badge className={`text-[9px] font-black px-2 py-0 ${t.priority === "alta" ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}`}>{t.priority.toUpperCase()}</Badge>
+                                            <span className="bg-slate-900 text-teal-400 px-2 py-0.5 rounded-md text-[9px] font-black font-mono shadow-sm">#{t.tracking_number}</span>
+                                            <Badge className={`text-[8px] font-black px-1.5 py-0 uppercase border-none ${t.priority === "urgente" ? "bg-red-500 text-white" : t.priority === "alta" ? "bg-orange-500 text-white" : "bg-slate-200 text-slate-700"}`}>{t.priority}</Badge>
                                             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest ml-auto">{t.scheduled_date || "Hoy"}</span>
                                         </div>
-                                        <h3 className="text-base font-black text-slate-900 mb-1 leading-tight uppercase group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                            {t.trip_type === "clinico" ? <Stethoscope className="w-2.5 h-2.5" /> : <Truck className="w-2.5 h-2.5" />}
-                                            {t.transfer_reason || "Gral."}
-                                        </p>
+                                        <h3 className="text-sm font-black text-slate-900 mb-1 leading-tight uppercase group-hover:text-teal-700 transition-colors truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                {t.trip_type === "clinico" ? <Stethoscope className="w-2.5 h-2.5" /> : <Truck className="w-2.5 h-2.5" />}
+                                                {t.transfer_reason || "Gral."}
+                                            </p>
+                                            <p className="text-[9px] font-bold text-teal-600 bg-teal-50 px-1.5 rounded uppercase">{t.trip_type}</p>
+                                        </div>
                                     </div>
 
                                     {/* RUTA */}
-                                    <div className="p-4 w-full md:w-64 bg-slate-50/50 space-y-2">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200 shadow-sm"><MapPin className="w-3.5 h-3.5 text-teal-700" /></div>
-                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Desde</p><p className="text-xs font-black text-slate-800 uppercase">{t.origin}</p></div>
+                                    <div className="p-3 w-full xl:w-72 bg-slate-50/30 flex flex-col justify-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="w-3 h-3 text-teal-600 shrink-0" />
+                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Desde</p><p className="text-[11px] font-black text-slate-800 uppercase truncate leading-none">{t.origin}</p></div>
                                         </div>
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200 shadow-sm"><ArrowRight className="w-3.5 h-3.5 text-blue-700" /></div>
-                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Hacia</p><p className="text-xs font-black text-slate-800 uppercase">{t.destination}</p></div>
+                                        <div className="flex items-center gap-2">
+                                            <ArrowRight className="w-3 h-3 text-blue-600 shrink-0" />
+                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Hacia</p><p className="text-[11px] font-black text-slate-800 uppercase truncate leading-none">{t.destination}</p></div>
                                         </div>
                                     </div>
 
                                     {/* ESTADO OPERATIVO */}
-                                    <div className="p-4 w-full md:w-56 bg-white flex flex-col justify-center gap-3">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0"><User className="w-4 h-4 text-slate-500" /></div>
-                                            <div>
+                                    <div className="p-3 w-full xl:w-48 bg-white flex flex-col justify-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <div className="truncate">
                                                 <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Conductor</p>
-                                                <p className="text-xs font-black text-slate-900 leading-none truncate w-32">{t.driver_name || "SIN ASIGNAR"}</p>
+                                                <p className="text-xs font-black text-slate-900 leading-none truncate uppercase">{t.driver_name ? t.driver_name.split(' ')[0] : "PENDIENTE"}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center shrink-0"><Clock className="w-4 h-4 text-amber-600" /></div>
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                                             <div>
                                                 <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Cita</p>
-                                                <p className="text-xs font-black text-slate-900 leading-none">{t.appointment_time || "AHORA"}</p>
+                                                <p className="text-xs font-black text-slate-900 leading-none">{t.appointment_time || "--:--"}</p>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* ACCIONES */}
+                                    <div className="p-3 w-full xl:w-auto bg-slate-50/50 flex flex-row xl:flex-col items-center justify-center gap-1.5 min-w-[140px]">
+                                        {["pendiente", "asignado"].includes(t.status) && (
+                                            <>
+                                                <Button onClick={() => setAssignDialog(t)} className="w-full h-8 bg-teal-600 hover:bg-teal-700 text-white text-[9px] font-black uppercase shadow-sm">
+                                                    {t.driver_id ? "Reasignar" : "Asignar"}
+                                                </Button>
+                                                <div className="flex w-full gap-1">
+                                                    <Button onClick={() => setEditDialog(t)} variant="outline" className="flex-1 h-8 text-[9px] font-black uppercase text-teal-600 border-teal-100 hover:bg-teal-50" title="Editar Traslado">
+                                                        <Edit className="w-3 h-3 mr-1" /> Editar
+                                                    </Button>
+                                                    <Button onClick={() => setReturnDialog(t)} variant="outline" className="flex-1 h-8 text-[9px] font-black uppercase text-slate-600 border-slate-200" title="Devolver al Gestor">
+                                                        <RotateCcw className="w-3 h-3 mr-1" /> Devolver
+                                                    </Button>
+                                                    <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-8 w-8 p-0 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700" title="Cancelar Traslado">
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        )}
+                                        {t.status === "en_curso" && <Badge className="bg-blue-100 text-blue-700 border-none font-black text-[9px] uppercase">En Ruta</Badge>}
+                                        {t.status === "completado" && <Badge className="bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase">Finalizado</Badge>}
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
-                    {filteredTrips.length === 0 && (
-                        <div className="py-24 text-center bg-white rounded-[2rem] border-4 border-dashed border-slate-100">
-                             <CheckCircle className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                             <p className="text-xl font-black text-slate-400">Todo despejado en esta área</p>
-                             <p className="text-slate-300 font-medium">No hay traslados con estado {filterStatus} actualmente.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function AssignSection() {
-    const [trips, setTrips] = useState([]);
-    const [drivers, setDrivers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [assignDialog, setAssignDialog] = useState(null);
-    const [cancelDialog, setCancelDialog] = useState(null);
-    const [detailTrip, setDetailTrip] = useState(null);
-    const [filter, setFilter] = useState("all");
-
-    const fetchAll = useCallback(async () => {
-        try {
-            const [tRes, dRes] = await Promise.all([api.get("/trips/pool"), api.get("/drivers")]);
-            setTrips(tRes.data || []); setDrivers(dRes.data || []);
-        } catch (e) { } finally { setLoading(false); }
-    }, []);
-
-    useEffect(() => { fetchAll(); const i = setInterval(fetchAll, 10000); return () => clearInterval(i); }, [fetchAll]);
-
-    const handleAssign = async (tripId, driverId) => {
-        try {
-            await api.post(`/trips/${tripId}/manager-assign`, { driver_id: driverId });
-            toast.success("Viaje asignado exitosamente");
-            setAssignDialog(null); fetchAll();
-        } catch (e) { toast.error("Error al asignar"); }
-    };
-
-    const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", revision_gestor: "bg-purple-100 text-purple-800" };
-    const priorityColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
-
-    const filteredTrips = filter === "all" ? trips : trips.filter(t => t.status === filter);
-
-    if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
-
-    return (
-        <div className="animate-slide-up space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bandeja de Asignación</h1>
-                    <p className="text-slate-500 font-bold text-xs uppercase tracking-widest italic mt-1">Gestión Logística de Flota.</p>
-                </div>
-                <div className="flex gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                    {["all", "pendiente", "asignado"].map(f => (
-                        <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded text-[10px] font-black uppercase transition-all ${filter === f ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:bg-slate-100"}`}>{f === "all" ? "Todos" : f.charAt(0).toUpperCase() + f.slice(1)}</button>
-                    ))}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {filteredTrips.map(t => (
-                    <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm overflow-hidden cursor-pointer group bg-white hover:ring-1 hover:ring-teal-500 transition-all">
-                        <CardContent className="p-4">
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="bg-slate-900 text-teal-400 font-mono px-2 py-0.5 rounded text-[10px] font-black tracking-wider shadow-sm">#{t.tracking_number}</span>
-                                        <Badge className={`border-none text-[9px] font-black uppercase tracking-tight ${sColors[t.status] || "bg-slate-100"}`}>{(t.status || "pendiente").replace(/_/g, " ")}</Badge>
-                                        <Badge className={`border-none text-[9px] font-black uppercase tracking-tight ${pColors[t.priority] || pColors.normal}`}>{t.priority}</Badge>
-                                    </div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase">{t.scheduled_date || "Hoy"}</p>
-                                </div>
+            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchTrips} />
 
-                                <div className="flex-1">
-                                    <h3 className="text-base font-black text-slate-900 leading-tight group-hover:text-teal-700 transition-colors uppercase truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-                                    
-                                    <div className="grid grid-cols-2 gap-3 mt-3">
-                                        <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
-                                            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200"><MapPin className="w-4 h-4 text-teal-700" /></div>
-                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Desde</p><p className="text-xs font-black text-slate-800 uppercase truncate">{t.origin}</p></div>
-                                        </div>
-                                        <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
-                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200"><ArrowRight className="w-4 h-4 text-blue-700" /></div>
-                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Hacia</p><p className="text-xs font-black text-slate-800 uppercase truncate">{t.destination}</p></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-4" onClick={e => e.stopPropagation()}>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0"><User className="w-4 h-4 text-slate-400" /></div>
-                                        <div>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase leading-none">Móvil</p>
-                                            <p className="text-xs font-black text-slate-800 uppercase">{t.driver_name ? t.driver_name.split(' ')[0] : "PDTE."}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 font-black">
-                                        {["pendiente", "asignado"].includes(t.status) && (
-                                            <Button onClick={() => setCancelDialog(t)} variant="ghost" className="h-8 px-2 text-[9px] text-red-600 hover:bg-red-50 font-black uppercase">Cancelar</Button>
-                                        )}
-                                        <Button onClick={() => setAssignDialog(t)} className="h-9 px-4 bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-black shadow-md rounded-lg uppercase tracking-wider transition-all">{t.driver_id ? "Re-Asignar" : "Asignar Móvil"}</Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-
-            <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchAll} />
-
-
+            {/* DIALOGO ASIGNACIÓN */}
             <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
-                <DialogContent>
-                    <DialogHeader><DialogTitle>{assignDialog?.driver_id ? "Reasignar Traslado" : "Asignar Traslado"}</DialogTitle></DialogHeader>
+                <DialogContent className="max-w-md">
+                    <DialogHeader><DialogTitle className="text-xl font-black uppercase">{assignDialog?.driver_id ? "Reasignar Conductor" : "Asignar Conductor"}</DialogTitle></DialogHeader>
                     {assignDialog && (
-                        <div className="space-y-4">
-                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Destino</p>
-                                <p className="font-bold text-slate-800">{assignDialog.destination}</p>
+                        <div className="space-y-4 pt-2">
+                            <div className="p-3 bg-slate-900 text-white rounded-xl shadow-md">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Destino Final</p>
+                                <p className="font-black text-teal-400 text-sm truncate uppercase">{assignDialog.destination}</p>
                             </div>
                             <div className="space-y-2">
-                                <Label>Seleccione Conductor Disponible</Label>
-                                <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                <Label className="text-xs font-black uppercase text-slate-500">Seleccione un Conductor disponible</Label>
+                                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
                                     {drivers.map(d => (
-                                        <button key={d.id} onClick={() => handleAssign(assignDialog.id, d.id)} className="w-full p-3 text-left bg-white border border-slate-200 rounded-xl hover:border-teal-400 hover:bg-teal-50 transition-all group">
-                                            <p className="font-bold text-slate-900 group-hover:text-teal-700">{d.name}</p>
-                                            <p className="text-xs text-slate-500">Vehículo: {d.vehicle_plate || "Sin asignar"}</p>
+                                        <button key={d.id} onClick={() => handleAssign(assignDialog.id, d.id)} className="w-full flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-teal-400 hover:bg-teal-50 transition-all group">
+                                            <div className="text-left">
+                                                <p className="font-black text-slate-900 text-xs uppercase group-hover:text-teal-700">{d.name}</p>
+                                                <p className="text-[10px] text-slate-500 font-bold">Móvil: {d.vehicle_plate || "N/A"}</p>
+                                            </div>
+                                            <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowRight className="w-3 h-3" /></div>
                                         </button>
                                     ))}
-                                    {drivers.length === 0 && <p className="text-xs text-slate-400 py-4 text-center">No hay conductores disponibles actualmente.</p>}
+                                    {drivers.length === 0 && <p className="text-xs text-slate-400 py-6 text-center italic font-medium">Cargando conductores conductores...</p>}
                                 </div>
                             </div>
                         </div>
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* DIALOGO CANCELACIÓN */}
+            <Dialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle className="text-lg font-black text-red-600 uppercase">Confirmar Cancelación</DialogTitle></DialogHeader>
+                    <form onSubmit={handleCancel} className="space-y-4 pt-4">
+                        <div className="p-3 bg-red-50 rounded-lg border border-red-100 text-red-800 text-xs font-bold">
+                            Esta acción cancelará definitivamente el traslado #{cancelDialog?.tracking_number}.
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-black uppercase text-slate-500">Justificación del rechazo *</Label>
+                            <textarea name="reason" className="w-full h-24 p-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none" placeholder="Indique el motivo de la cancelación..." required />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button type="button" variant="outline" onClick={() => setCancelDialog(null)} className="text-xs font-black uppercase h-9">Volver</Button>
+                            <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase h-9 px-6">Confirmar Cancelación</Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* DIALOGO DEVOLVER AL GESTOR */}
+            <Dialog open={!!returnDialog} onOpenChange={() => setReturnDialog(null)}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader><DialogTitle className="text-lg font-black text-slate-900 uppercase">Devolver Traslado</DialogTitle></DialogHeader>
+                    <div className="space-y-4 pt-4">
+                        <p className="text-sm text-slate-500 font-medium">¿Está seguro de devolver este traslado al Gestor de Camas para su revisión? El traslado saldrá de su bandeja activa hasta que sea aprobado nuevamente.</p>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setReturnDialog(null)} className="text-xs font-black uppercase">Cancelar</Button>
+                            <Button onClick={handleReturnToManager} className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase">Sí, Devolver</Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* DIALOGO EDICIÓN */}
+            <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader><DialogTitle className="text-xl font-black uppercase">Editar Traslado #{editDialog?.tracking_number}</DialogTitle></DialogHeader>
+                    {editDialog && (
+                        <form onSubmit={handleEditSubmission} className="space-y-4 pt-2">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Origen</Label><Input name="origin" defaultValue={editDialog.origin} className="h-9 text-xs font-bold" /></div>
+                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Destino</Label><Input name="destination" defaultValue={editDialog.destination} className="h-9 text-xs font-bold" /></div>
+                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Paciente / Cometido</Label><Input name={editDialog.trip_type === "clinico" ? "patient_name" : "task_details"} defaultValue={editDialog.trip_type === "clinico" ? editDialog.patient_name : editDialog.task_details} className="h-9 text-xs font-bold" /></div>
+                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fecha Programada</Label><Input name="scheduled_date" type="date" defaultValue={editDialog.scheduled_date} className="h-9 text-xs font-bold" /></div>
+                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Hora Cita</Label><Input name="appointment_time" type="time" defaultValue={editDialog.appointment_time} className="h-9 text-xs font-bold" /></div>
+                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Prioridad</Label>
+                                    <Select name="priority" defaultValue={editDialog.priority}>
+                                        <SelectTrigger className="h-9 text-xs font-bold"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="urgente">Urgente</SelectItem>
+                                            <SelectItem value="alta">Alta</SelectItem>
+                                            <SelectItem value="normal">Normal</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                                <Button type="button" variant="outline" onClick={() => setEditDialog(null)} className="text-xs font-black uppercase h-9">Cancelar</Button>
+                                <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase h-9 px-8 shadow-md transition-all active:scale-95">Guardar Cambios</Button>
+                            </div>
+                        </form>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+
 
 function CalendarSection() {
     const [viewMode, setViewMode] = useState("daily");
