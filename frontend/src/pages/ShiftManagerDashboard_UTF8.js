@@ -264,7 +264,7 @@ function DispatchSection() {
 
     const handleAssign = async (tripId, driverId) => {
         try {
-            await api.post(`/trips/${tripId}/manager-assign`, { driver_id: driverId });
+            await api.put(`/trips/${tripId}/manager-assign`, { driver_id: driverId });
             toast.success("Viaje asignado exitosamente");
             setAssignDialog(null); fetchTrips();
         } catch (e) { toast.error("Error al asignar"); }
