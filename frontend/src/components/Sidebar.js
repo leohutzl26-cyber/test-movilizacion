@@ -27,14 +27,14 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "audit", label: "Auditoría", icon: Shield },
     ],
     coordinador: [
-      { id: "dispatch", label: "Despacho en Vivo", icon: Clock },
+      { id: "dispatch", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
-      { id: "assign", label: "Asignar", icon: ClipboardList },
-      { id: "by_driver", label: "Pizarra (Conductores)", icon: BarChart3 },
+      { id: "assign", label: "Bolsa de Asignación", icon: ClipboardList },
+      { id: "by_driver", label: "Pizarra de Conducción", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "drivers", label: "Conductores", icon: Users },
-      { id: "history", label: "Historial", icon: Home },
+      { id: "history", label: "Historial", icon: History },
     ],
     conductor: [
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },

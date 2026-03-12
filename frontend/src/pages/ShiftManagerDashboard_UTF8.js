@@ -216,11 +216,25 @@ export default function ShiftManagerDashboard_UTF8() {
 function DispatchSection() {
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [filterStatus, setFilterStatus] = useState("pendiente");
+    const [stats, setStats] = useState({ pendiente: 0, asignado: 0, en_curso: 0, completado: 0 });
 
     const fetchTrips = useCallback(async () => {
         try {
-            const res = await api.get("/trips/active");
-            setTrips(res.data || []);
+            const [activeRes, statsRes] = await Promise.all([
+                api.get("/trips/active"),
+                api.get("/stats/dashboard")
+            ]);
+            const activeTrips = activeRes.data || [];
+            setTrips(activeTrips);
+            
+            // Extraer estadísticas de los estados activos para las tarjetas
+            setStats({
+                pendiente: activeTrips.filter(t => t.status === "pendiente").length,
+                asignado: activeTrips.filter(t => t.status === "asignado").length,
+                en_curso: activeTrips.filter(t => t.status === "en_curso").length,
+                completado: statsRes.data?.by_status?.completado || 0
+            });
         } catch (e) { } finally { setLoading(false); }
     }, []);
 
@@ -230,56 +244,114 @@ function DispatchSection() {
         return () => clearInterval(interval);
     }, [fetchTrips]);
 
+    const filteredTrips = trips.filter(t => t.status === filterStatus);
+
     if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
+    const StatusCard = ({ id, label, count, color, activeColor }) => (
+        <button 
+            onClick={() => setFilterStatus(id)}
+            className={`flex-1 text-left p-5 rounded-3xl border-l-8 transition-all hover:scale-[1.02] shadow-sm 
+                ${filterStatus === id ? `${activeColor} ring-2 ring-slate-900/5` : "bg-white border-l-slate-200"}`}
+            style={{ borderLeftColor: filterStatus === id ? color : undefined }}
+        >
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+            <p className={`text-4xl font-black ${filterStatus === id ? "text-slate-900" : "text-slate-400"}`}>{count}</p>
+        </button>
+    );
+
     return (
-        <div className="animate-slide-up">
-            <div className="mb-8">
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Despacho de Movilización</h1>
-                <p className="text-slate-500 font-medium">Vista global de traslados en curso y por iniciar.</p>
+        <div className="animate-slide-up space-y-8">
+            <div className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Bandeja de Entrada</h1>
+                    <p className="text-slate-500 font-medium text-lg">Central de Coordinación y Despacho en Tiempo Real.</p>
+                </div>
+                <div className="bg-white px-4 py-2 rounded-2xl border border-slate-200 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sistema en Vivo</span>
+                </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {trips.map(t => (
-                    <Card key={t.id} className="card-hover overflow-hidden border-none shadow-sm ring-1 ring-slate-200">
-                        <div className={`h-1.5 w-full bg-slate-200`} style={{ backgroundColor: COLORS[t.status] || '#cbd5e1' }}></div>
-                        <CardContent className="p-5">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex flex-col gap-1">
-                                    <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold shadow-sm w-fit">{t.tracking_number}</span>
-                                    <h3 className="font-black text-lg text-slate-900 leading-tight mt-1">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-                                </div>
-                                <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none shadow-sm text-[10px] font-black uppercase tracking-widest`}>{(t.status || "").replace(/_/g, " ")}</Badge>
-                            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <StatusCard id="pendiente" label="Pendientes" count={stats.pendiente} color="#f59e0b" activeColor="bg-amber-50" />
+                <StatusCard id="asignado" label="Asignados" count={stats.asignado} color="#0d9488" activeColor="bg-teal-50" />
+                <StatusCard id="en_curso" label="En Curso" count={stats.en_curso} color="#3b82f6" activeColor="bg-blue-50" />
+                <StatusCard id="completado" label="Hoy" count={stats.completado} color="#10b981" activeColor="bg-emerald-50" />
+            </div>
 
-                            <div className="space-y-3 mb-5">
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                    <MapPin className="w-4 h-4 text-teal-600 flex-shrink-0" />
-                                    <div className="truncate"><span className="text-[10px] font-bold text-slate-400 block uppercase tracking-tighter">Origen</span>{t.origin}</div>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                    <ArrowRight className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                                    <div className="truncate"><span className="text-[10px] font-bold text-slate-400 block uppercase tracking-tighter">Destino</span>{t.destination}</div>
-                                </div>
-                            </div>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                    <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
+                        <Activity className="w-6 h-6 text-teal-600" />
+                        {filterStatus === "pendiente" ? "Traslados por Despachar" : 
+                         filterStatus === "asignado" ? "Traslados con Conductor" :
+                         filterStatus === "en_curso" ? "Traslados en Ruta" : "Traslados Finalizados Hoy"}
+                        <Badge className="bg-slate-900 text-white font-black">{filteredTrips.length}</Badge>
+                    </h2>
+                </div>
 
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Truck className="w-4 h-4 text-slate-500" /></div>
-                                    <div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Conductor / Móvil</p>
-                                        <p className="text-xs font-bold text-slate-700">{t.driver_name || "Sin asignar"}</p>
+                <div className="grid grid-cols-1 gap-4">
+                    {filteredTrips.map(t => (
+                        <Card key={t.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-slate-200 hover:ring-teal-500 transition-all">
+                            <CardContent className="p-0">
+                                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                                    {/* INFO PRINCIPAL */}
+                                    <div className="p-6 flex-1 bg-white">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[11px] font-black font-mono border border-slate-200">#{t.tracking_number}</span>
+                                            <Badge className={t.priority === "alta" ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}>{t.priority.toUpperCase()}</Badge>
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-auto">{t.scheduled_date || "Hoy"}</span>
+                                        </div>
+                                        <h3 className="text-2xl font-black text-slate-900 mb-2 leading-tight">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                            {t.trip_type === "clinico" ? <Stethoscope className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
+                                            {t.transfer_reason || "Gestión General"}
+                                        </p>
+                                    </div>
+
+                                    {/* RUTA */}
+                                    <div className="p-6 w-full md:w-80 bg-slate-50/50 space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200 shadow-sm"><MapPin className="w-4 h-4 text-teal-700" /></div>
+                                            <div className="truncate"><p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Origen</p><p className="text-sm font-black text-slate-700">{t.origin}</p></div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200 shadow-sm"><ArrowRight className="w-4 h-4 text-blue-700" /></div>
+                                            <div className="truncate"><p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Destino</p><p className="text-sm font-black text-slate-700">{t.destination}</p></div>
+                                        </div>
+                                    </div>
+
+                                    {/* ESTADO OPERATIVO */}
+                                    <div className="p-6 w-full md:w-64 bg-white flex flex-col justify-center gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0"><User className="w-5 h-5 text-slate-600" /></div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Responsable</p>
+                                                <p className="text-sm font-black text-slate-900 leading-none">{t.driver_name || "PDTE. ASIGNACIÓN"}</p>
+                                                {t.vehicle_plate && <p className="text-[10px] font-bold text-teal-600 mt-1">{t.vehicle_plate}</p>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center shrink-0"><Clock className="w-5 h-5 text-amber-600" /></div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Horario Cita</p>
+                                                <p className="text-sm font-black text-slate-900 leading-none">{t.appointment_time || "AHORA"}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Programado</p>
-                                    <p className="text-xs font-bold text-slate-700">{t.appointment_time || "Inmediato"}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-                {trips.length === 0 && <div className="col-span-full py-20 text-center text-slate-400 font-bold bg-white rounded-2xl border-2 border-dashed border-slate-200">No hay traslados activos en este momento.</div>}
+                            </CardContent>
+                        </Card>
+                    ))}
+                    {filteredTrips.length === 0 && (
+                        <div className="py-24 text-center bg-white rounded-[2rem] border-4 border-dashed border-slate-100">
+                             <CheckCircle className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                             <p className="text-xl font-black text-slate-400">Todo despejado en esta área</p>
+                             <p className="text-slate-300 font-medium">No hay traslados con estado {filterStatus} actualmente.</p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -332,44 +404,55 @@ function AssignSection() {
                 </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {filteredTrips.map(t => (
-                    <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm overflow-hidden cursor-pointer group">
-                        <CardContent className="p-5">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                <div className="flex-1 w-full">
-                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                        <span className="bg-slate-200 text-slate-800 font-mono px-2 py-0.5 rounded-md text-[10px] font-bold group-hover:bg-teal-600 group-hover:text-white transition-colors">{t.tracking_number || t.id.substring(0, 6).toUpperCase()}</span>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sColors[t.status] || "bg-slate-100"}`}>{(t.status || "pendiente").replace(/_/g, " ")}</span>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pColors[t.priority] || pColors.normal}`}>{t.priority}</span>
-                                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
-                                        <span className="text-[10px] text-slate-400 font-medium">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
+                    <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-8 border-l-teal-500 shadow-sm overflow-hidden cursor-pointer group bg-white hover:ring-2 hover:ring-teal-500 transition-all">
+                        <CardContent className="p-6">
+                            <div className="flex flex-col gap-5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="bg-slate-900 text-teal-400 font-mono px-3 py-1 rounded-lg text-[11px] font-black tracking-wider">#{t.tracking_number}</span>
+                                        <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[10px] font-black uppercase tracking-widest`}>{(t.status || "pendiente").replace(/_/g, " ")}</Badge>
+                                        <Badge className={`border-none text-[10px] font-black uppercase tracking-widest ${pColors[t.priority] || pColors.normal}`}>{t.priority}</Badge>
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-900 mb-4">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
+                                    <p className="text-xs font-bold text-slate-400">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</p>
+                                </div>
+
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-black text-slate-900 mb-1 leading-tight group-hover:text-teal-700 transition-colors uppercase">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
+                                    <p className="text-sm font-bold text-slate-500 italic mb-4">{t.transfer_reason || "Traslado General"}</p>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0"><MapPin className="w-4 h-4 text-teal-600" /></div>
-                                            <div className="truncate"><p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Origen</p><p className="text-sm font-bold text-slate-700">{t.origin}</p></div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                            <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0 border border-teal-200"><MapPin className="w-5 h-5 text-teal-700" /></div>
+                                            <div className="truncate"><p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">Origen</p><p className="text-sm font-black text-slate-800">{t.origin}</p></div>
                                         </div>
-                                        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0"><ArrowRight className="w-4 h-4 text-blue-600" /></div>
-                                            <div className="truncate"><p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Destino</p><p className="text-sm font-bold text-slate-700">{t.destination}</p></div>
+                                        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200"><ArrowRight className="w-5 h-5 text-blue-700" /></div>
+                                            <div className="truncate"><p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">Destino</p><p className="text-sm font-black text-slate-800">{t.destination}</p></div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2 w-full md:w-48" onClick={e => e.stopPropagation()}>
-                                    <Button onClick={() => setAssignDialog(t)} className="h-12 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md rounded-xl w-full">{t.driver_id ? "Reasignar" : "Asignar Conductor"}</Button>
-                                    {["pendiente", "asignado"].includes(t.status) && (
-                                        <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-10 text-xs text-red-600 border-red-200 hover:bg-red-50 w-full font-medium">Cancelar</Button>
-                                    )}
+                                <div className="flex items-center justify-between pt-4 border-t border-slate-100 gap-4" onClick={e => e.stopPropagation()}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0"><User className="w-5 h-5 text-slate-500" /></div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tight">Responsable</p>
+                                            <p className="text-sm font-black text-slate-900 leading-none">{t.driver_name || "PENDIENTE"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {["pendiente", "asignado"].includes(t.status) && (
+                                            <Button onClick={() => setCancelDialog(t)} variant="ghost" className="h-10 px-4 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase transition-all">Cancelar</Button>
+                                        )}
+                                        <Button onClick={() => setAssignDialog(t)} className="h-11 px-8 bg-teal-600 hover:bg-teal-700 text-white font-black shadow-lg shadow-teal-600/20 rounded-xl uppercase tracking-wider transition-all">{t.driver_id ? "Reasignar" : "Asignar Movil"}</Button>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                 ))}
-                {filteredTrips.length === 0 && !loading && <p className="text-center py-12 text-slate-400">Sin viajes en esta categoría</p>}
             </div>
 
             <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchAll} />
@@ -1014,52 +1097,59 @@ function HistorySection() {
     const sColorsLocal = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
 
     return (
-        <div className="animate-slide-up">
-            <h1 className="text-2xl font-bold text-slate-900 mb-6 font-black tracking-tight">Historial de Traslados</h1>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden shadow-teal-900/5">
+        <div className="animate-slide-up space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Historial de Traslados</h1>
+                <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Registros</p>
+                    <p className="text-lg font-black text-slate-900">{trips.length}</p>
+                </div>
+            </div>
+            
+            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-200">
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Folio</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Paciente / Motivo</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Origen / Destino</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Conductor / Móvil</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Estado</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-widest">Fecha</th>
+                            <tr className="bg-slate-900 border-b border-slate-800">
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Folio</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Detalle Solicitud</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Trayecto Centralizado</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Responsable Operativo</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Estado Final</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Programada</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {trips.map(t => (
-                                <tr key={t.id} className="hover:bg-teal-50/30 transition-colors">
-                                    <td className="p-4 font-mono text-xs font-bold text-slate-500">
-                                        <span className="bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">{t.tracking_number}</span>
+                                <tr key={t.id} className="hover:bg-slate-50 transition-all cursor-default">
+                                    <td className="px-6 py-5">
+                                        <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 font-mono text-[11px] font-black">#{t.tracking_number}</span>
                                     </td>
-                                    <td className="p-4">
-                                        <p className="font-bold text-slate-900 text-sm leading-tight">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
-                                        <p className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-tighter">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</p>
+                                    <td className="px-6 py-5">
+                                        <p className="font-black text-slate-900 text-sm leading-tight uppercase">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">{t.transfer_reason || "Gral."}</p>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><MapPin className="w-3 h-3 text-teal-500" /> {t.origin}</p>
-                                            <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase ml-4 text-[9px] text-slate-400 tracking-tighter"><ArrowRight className="w-3 h-3 text-slate-300" /> {t.destination}</p>
+                                    <td className="px-6 py-5">
+                                        <div className="space-y-1.5">
+                                            <p className="text-xs font-black text-slate-700 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div> {t.origin}</p>
+                                            <p className="text-xs font-black text-slate-400 flex items-center gap-2"><ArrowRight className="w-3 h-3" /> {t.destination}</p>
                                         </div>
                                     </td>
-                                    <td className="p-4">
+                                    <td className="px-6 py-5">
                                         {t.driver_name ? (
-                                            <>
-                                                <p className="text-xs font-black text-slate-800">{t.driver_name}</p>
-                                                <p className="text-[10px] text-teal-600 font-bold font-mono">{t.vehicle_plate || ""}</p>
-                                            </>
+                                            <div className="bg-teal-50/50 p-2 rounded-xl border border-teal-100 w-fit min-w-[140px]">
+                                                <p className="text-[10px] font-black text-teal-800 uppercase leading-none mb-1">{t.driver_name}</p>
+                                                <p className="text-[10px] text-teal-600/70 font-bold font-mono uppercase italic">{t.vehicle_plate || "Sin Móvil"}</p>
+                                            </div>
                                         ) : (
-                                            <span className="text-xs text-slate-300 italic">No asignado</span>
+                                            <span className="text-xs text-slate-300 italic font-bold">No registrado</span>
                                         )}
                                     </td>
-                                    <td className="p-4">
-                                        <Badge className={`text-[9px] font-black uppercase tracking-widest border-none px-2 py-0.5 rounded-full ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600 font-bold"}`}>{t.status.replace(/_/g, " ")}</Badge>
+                                    <td className="px-6 py-5">
+                                        <Badge className={`text-[10px] font-black uppercase tracking-widest border-none px-3 py-1 rounded-full shadow-sm ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600"}`}>{t.status.replace(/_/g, " ")}</Badge>
                                     </td>
-                                    <td className="p-4">
-                                        <p className="text-xs font-bold text-slate-600 whitespace-nowrap">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</p>
+                                    <td className="px-6 py-5">
+                                        <p className="text-xs font-black text-slate-600 whitespace-nowrap">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</p>
                                     </td>
                                 </tr>
                             ))}
@@ -1067,9 +1157,9 @@ function HistorySection() {
                     </table>
                 </div>
                 {trips.length === 0 && (
-                    <div className="text-center py-20">
-                        <ClipboardList className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                        <p className="text-slate-400 font-medium">No hay registros históricos disponibles</p>
+                    <div className="text-center py-32 bg-slate-50/50">
+                        <ClipboardList className="w-20 h-20 text-slate-200 mx-auto mb-4" />
+                        <p className="text-xl font-black text-slate-300 uppercase tracking-[0.3em]">Bóveda de Datos Vacía</p>
                     </div>
                 )}
             </div>
