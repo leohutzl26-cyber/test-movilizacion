@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"; // IMPORTACIÓN CORREGIDA AQUÍ
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Shield, Trash2, Clock, MapPin, Search, Truck, Users, Activity, Car, Plus } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit } from "lucide-react";
 import api from "@/lib/api";
 
 export default function AdminDashboard() {
@@ -224,6 +224,7 @@ function VehiclesManager() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
 
   const fetchVehicles = useCallback(async () => {
@@ -236,12 +237,36 @@ function VehiclesManager() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/vehicles", formData);
-      toast.success("Vehículo creado exitosamente");
-      setIsDialogOpen(false);
-      setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
+      if (editingId) {
+        await api.put(`/vehicles/${editingId}`, formData);
+        toast.success("Vehículo actualizado exitosamente");
+      } else {
+        await api.post("/vehicles", formData);
+        toast.success("Vehículo creado exitosamente");
+      }
+      closeDialog();
       fetchVehicles();
-    } catch (e) { toast.error("Error al crear vehículo"); }
+    } catch (e) { toast.error(editingId ? "Error al actualizar vehículo" : "Error al crear vehículo"); }
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingId(null);
+    setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
+  };
+
+  const handleEdit = (v) => {
+    setEditingId(v.id);
+    setFormData({ 
+      plate: v.plate, 
+      brand: v.brand, 
+      model: v.model, 
+      type: v.type, 
+      year: v.year, 
+      mileage: v.mileage,
+      next_maintenance_km: v.next_maintenance_km || 10000 
+    });
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -263,7 +288,7 @@ function VehiclesManager() {
     <div className="max-w-6xl mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Gestión de Flota</h1>
-        <Button onClick={() => setIsDialogOpen(true)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
+        <Button onClick={() => { setEditingId(null); setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
           <Plus className="w-4 h-4 mr-2" /> Agregar Vehículo
         </Button>
       </div>
@@ -284,7 +309,8 @@ function VehiclesManager() {
                     <td className="p-4 text-slate-600">{v.year}</td>
                     <td className="p-4 font-bold text-slate-700">{v.mileage?.toLocaleString()} km</td>
                     <td className="p-4"><Badge variant="outline" className="uppercase text-[10px]">{v.status?.replace(/_/g, " ")}</Badge></td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right space-x-2">
+                       <Button size="icon" variant="ghost" onClick={() => handleEdit(v)} className="text-slate-400 hover:text-teal-600 h-8 w-8"><Edit className="w-4 h-4"/></Button>
                       <Button size="icon" variant="ghost" onClick={() => handleDelete(v.id)} className="text-slate-400 hover:text-red-600 h-8 w-8"><Trash2 className="w-4 h-4"/></Button>
                     </td>
                   </tr>
@@ -295,9 +321,9 @@ function VehiclesManager() {
         </Card>
       )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Nuevo Vehículo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Vehículo" : "Nuevo Vehículo"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Patente *</Label><Input value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value.toUpperCase()})} placeholder="ABCD-12" required /></div>
