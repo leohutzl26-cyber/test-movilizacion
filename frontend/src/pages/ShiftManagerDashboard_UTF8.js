@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search } from "lucide-react";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
@@ -466,7 +466,7 @@ function DispatchSection() {
                                     {assignDialog?.driver_id ? "Reasignar Móvil" : "Asignar Móvil Operativo"}
                                 </h2>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none"><Search className="h-4 h-4 text-slate-400" /></div>
+                                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none"><Search className="w-4 h-4 text-slate-400" /></div>
                                     <Input 
                                         placeholder="Buscar por nombre o patente..." 
                                         className="pl-10 h-11 bg-slate-50 border-slate-200 rounded-xl text-sm focus:ring-teal-500"
@@ -479,7 +479,7 @@ function DispatchSection() {
                             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/30">
                                 <div className="grid grid-cols-2 gap-3">
                                     {drivers.filter(d => 
-                                        d.name.toLowerCase().includes(driverSearch.toLowerCase()) || 
+                                        (d.name || "").toLowerCase().includes(driverSearch.toLowerCase()) || 
                                         (d.vehicle_plate && d.vehicle_plate.toLowerCase().includes(driverSearch.toLowerCase()))
                                     ).map(d => (
                                         <button 
@@ -489,7 +489,7 @@ function DispatchSection() {
                                         >
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-teal-50 flex items-center justify-center text-slate-400 group-hover:text-teal-600 font-black text-sm transition-colors border border-slate-100 group-hover:border-teal-200">
-                                                    {d.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                                                    {(d.name || "U").split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className="font-black text-slate-900 text-[11px] leading-tight uppercase group-hover:text-teal-700 truncate">{d.name}</p>
@@ -715,7 +715,7 @@ function CalendarSection() {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <Badge className="bg-slate-900 font-mono text-[9px] px-1.5 py-0">#{t.tracking_number}</Badge>
-                                                    <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[8px] uppercase font-black px-1.5 py-0`}>{t.status.replace(/_/g, " ")}</Badge>
+                                                    <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[8px] uppercase font-black px-1.5 py-0`}>{(t.status || "").replace(/_/g, " ")}</Badge>
                                                 </div>
                                                 <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
                                             </div>
@@ -1248,7 +1248,7 @@ function HistorySection() {
                                         )}
                                     </td>
                                     <td className="px-6 py-5">
-                                        <Badge className={`text-[10px] font-black uppercase tracking-widest border-none px-3 py-1 rounded-full shadow-sm ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600"}`}>{t.status.replace(/_/g, " ")}</Badge>
+                                        <Badge className={`text-[10px] font-black uppercase tracking-widest border-none px-3 py-1 rounded-full shadow-sm ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600"}`}>{(t.status || "").replace(/_/g, " ")}</Badge>
                                     </td>
                                     <td className="px-6 py-5">
                                         <p className="text-xs font-black text-slate-600 whitespace-nowrap">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</p>
