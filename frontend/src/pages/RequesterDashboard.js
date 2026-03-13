@@ -144,7 +144,7 @@ function NewTripSection() {
     const finalDest = useCustomDest ? form.destination : form.destination;
 
     if (tripType === "clinico") {
-      if (!form.patient_name || !form.patient_unit || !form.transfer_reason || !form.appointment_time || !finalOrigin || !finalDest) {
+      if (!form.patient_name || !form.patient_unit || !form.transfer_reason || !finalOrigin || !finalDest) {
         toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
       }
       if (staffRows.length === 0) { toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; }
@@ -290,7 +290,7 @@ function NewTripSection() {
                       )}
                     </div>
                     <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
-                    <div className="space-y-1"><Label>Hora de Citación *</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
+                    <div className="space-y-1"><Label>Hora de Citación</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
                   </>
                 )}
                 <div className="space-y-1"><Label>Fecha del Traslado</Label><Input type="date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} /></div>

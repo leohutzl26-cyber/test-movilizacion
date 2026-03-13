@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren } from "lucide-react";
 import api from "@/lib/api";
 
 const PERSONNEL_TYPES = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];
@@ -28,7 +29,7 @@ export default function GestionCamasDashboard() {
         {section === "services" && <OriginServicesMantenedor />}
         {section === "calendar" && <ClinicalCalendarSection />}
         {section === "history" && <ClinicalHistorySection />}
-        {/* Unificado: "dashboard" ahora redirige a "assign" */}
+        {section === "vehicles" && <VehiclesSection />}
         {section === "dashboard" && <AssignPersonnelSection />}
       </main>
     </div>
@@ -1263,4 +1264,146 @@ function GestorNewTripSection() {
       </CardContent></Card>
     </div>
   );
+}
+
+function VehiclesSection() {
+    const { user } = useAuth();
+    const [vehicles, setVehicles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const fetchVehicles = useCallback(async () => { 
+        try { 
+            const r = await api.get("/vehicles"); 
+            setVehicles(r.data || []); 
+        } catch { } 
+        finally { setLoading(false); } 
+    }, []);
+    
+    useEffect(() => { 
+        fetchVehicles(); 
+        const interval = setInterval(fetchVehicles, 20000);
+        return () => clearInterval(interval);
+    }, [fetchVehicles]);
+
+    const handleStatusToggle = async (v) => {
+        const newStatus = v.status === "fuera_de_servicio" ? "disponible" : "fuera_de_servicio";
+        try { 
+            await api.put(`/vehicles/${v.id}/status`, { status: newStatus }); 
+            toast.success(`Móvil ${v.plate} ${newStatus === "disponible" ? "habilitado" : "fuera de servicio"}`); 
+            fetchVehicles(); 
+        } catch (e) { toast.error("Error al actualizar estado"); }
+    };
+
+    const statusConfig = {
+        disponible: { 
+            bg: "bg-emerald-50", 
+            border: "border-emerald-200", 
+            text: "text-emerald-700", 
+            badge: "bg-emerald-100 text-emerald-800",
+            label: "Disponible",
+            icon: <CheckCircle className="w-4 h-4" />
+        },
+        fuera_de_servicio: { 
+            bg: "bg-rose-50", 
+            border: "border-rose-200", 
+            text: "text-rose-700", 
+            badge: "bg-rose-100 text-rose-800",
+            label: "Fuera de Servicio",
+            icon: <AlertTriangle className="w-4 h-4" />
+        },
+        en_uso: { 
+            bg: "bg-blue-50", 
+            border: "border-blue-200", 
+            text: "text-blue-700", 
+            badge: "bg-blue-100 text-blue-800",
+            label: "En Uso (Ruta)",
+            icon: <Activity className="w-4 h-4" />
+        }
+    };
+
+    if (loading && vehicles.length === 0) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
+
+    return (
+        <div className="animate-slide-up space-y-6">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Control de Flota Operativa</h1>
+                    <p className="text-slate-500 text-xs font-bold uppercase">Estado actual de todos los móviles del hospital.</p>
+                </div>
+                <Badge variant="outline" className="h-8 px-4 font-black border-slate-200 bg-white">
+                    TOTAL: {vehicles.length} MÓVILES
+                </Badge>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                {vehicles.sort((a,b) => a.plate.localeCompare(b.plate)).map(v => {
+                    const cfg = statusConfig[v.status] || statusConfig.disponible;
+                    return (
+                        <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
+                            <CardContent className="p-0">
+                                <div className="p-2.5 flex items-center justify-between border-b border-inherit">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
+                                            {v.type === "Ambulancia" ? <Siren className={`w-3.5 h-3.5 ${cfg.text}`} /> : <Truck className={`w-3.5 h-3.5 ${cfg.text}`} />}
+                                        </div>
+                                        <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
+                                    </div>
+                                    <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
+                                </div>
+
+                                <div className="p-2.5 space-y-2 min-h-[110px] flex flex-col justify-between">
+                                    <div className="space-y-0.5">
+                                        <p className="text-[11px] font-black text-slate-700 uppercase truncate leading-tight">{v.brand} {v.model}</p>
+                                        <p className="text-[9px] font-bold text-slate-400 leading-none">{v.type}</p>
+                                    </div>
+
+                                    {v.status === "en_uso" ? (
+                                        <div className="bg-white/60 rounded-lg p-2 border border-blue-100/50">
+                                            <div className="flex items-center gap-1.5 mb-1 text-blue-700">
+                                                <User className="w-2.5 h-2.5" />
+                                                <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "Cargando..."}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-blue-600">
+                                                <MapPin className="w-2.5 h-2.5" />
+                                                <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
+                                            </div>
+                                            {v.current_clinical_team && (
+                                                <div className="flex items-center gap-1.5 text-purple-600 border-t border-blue-100/30 mt-1 pt-1">
+                                                    <Users className="w-2.5 h-2.5 shrink-0" />
+                                                    <p className="text-[8px] font-bold truncate italic leading-tight">{v.current_clinical_team}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
+                                            <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
+                                        </div>
+                                    )}
+
+                                    {user?.role !== "gestion_camas" && (
+                                        <div className="pt-1">
+                                            <Button 
+                                                onClick={() => handleStatusToggle(v)}
+                                                disabled={v.status === "en_uso"}
+                                                variant="outline" 
+                                                className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
+                                            >
+                                                {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+            
+            {vehicles.length === 0 && (
+                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                    <Truck className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-400 font-bold uppercase tracking-widest">No se encontraron vehículos registrados</p>
+                </div>
+            )}
+        </div>
+    );
 }

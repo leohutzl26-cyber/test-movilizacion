@@ -1241,15 +1241,11 @@ function NewTripSection({ onNavigate }) {
             if (!form.patient_name) newErrors.patient_name = true;
             if (!form.patient_unit) newErrors.patient_unit = true;
             if (!form.transfer_reason) newErrors.transfer_reason = true;
-            if (!form.appointment_time) newErrors.appointment_time = true;
             if (!finalOrigin) newErrors.origin = true;
             if (!finalDest) newErrors.destination = true;
             
             setErrors(newErrors);
 
-            if (Object.keys(newErrors).length > 0) {
-                toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
-            }
             if (staffRows.length > 0 && staffRows.some(r => !r.type)) { 
                 toast.error("Seleccione el tipo de personal para todas las filas añadidas"); return; 
             }
@@ -1408,7 +1404,7 @@ function NewTripSection({ onNavigate }) {
                                             )}
                                         </div>
                                         <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
-                                        <div className="space-y-1"><Label className={errors.appointment_time ? "text-red-500" : ""}>Hora de Citación *</Label><Input className={errors.appointment_time ? "border-red-500 bg-red-50 shadow-inner" : ""} type="time" value={form.appointment_time} onChange={e => { setForm({ ...form, appointment_time: e.target.value }); if (errors.appointment_time) setErrors(p => ({ ...p, appointment_time: false })); }} /></div>
+                                        <div className="space-y-1"><Label>Hora de Citación</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
                                     </>
                                 )}
                                 <div className="space-y-1"><Label>Fecha del Traslado</Label><Input type="date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} /></div>
