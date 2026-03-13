@@ -18,7 +18,7 @@ export default function DriverDashboard() {
   useEffect(() => {
     const checkLicense = async () => {
       try {
-        const r = await api.get("/me");
+        const r = await api.get("/auth/me");
         if (r.data?.license_expired) setLicenseExpired(true);
       } catch {}
     };

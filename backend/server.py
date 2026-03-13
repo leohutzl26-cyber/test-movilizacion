@@ -950,6 +950,19 @@ async def driver_history(user=Depends(get_current_user)):
     history.sort(key=get_sort_key, reverse=True)
     logger.info(f"DRIVER_HISTORY_FINAL: Returning {len(history)} items")
     
+    # Inyectamos UN viaje de prueba siempre para ver si el frontend lo muestra
+    dummy_trip = {
+        "id": "dummy-test-123",
+        "tracking_number": "TEST-ROLLBACK",
+        "status": "completado",
+        "driver_name": "SISTEMA (DEBUG)",
+        "origin": "Punto A",
+        "destination": "Punto B",
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    history.insert(0, dummy_trip)
+    
     return history
 
 # ============ DEBUG ENDPOINT (TEMPORAL) ============
