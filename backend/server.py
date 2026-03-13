@@ -905,11 +905,13 @@ async def validate_rut(rut: str):
 # ============ DRIVER HISTORY ============
 
 @api_router.get("/trips/driver-history")
-async def driver_history(user=Depends(require_roles("conductor"))):
+async def driver_history(user=Depends(get_current_user)):
+    logger.info(f"Fetching history for user_id: {user['id']} (Role: {user['role']})")
     completed = await db.trips.find(
         {"driver_id": user["id"], "status": {"$in": ["completado", "cancelado"]}},
         {"_id": 0}
     ).sort("completed_at", -1).to_list(1000)
+    logger.info(f"Found {len(completed)} completed/cancelled trips")
     returned = await db.trips.find(
         {"previous_driver_id": user["id"]},
         {"_id": 0}

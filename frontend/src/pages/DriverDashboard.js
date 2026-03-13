@@ -502,8 +502,17 @@ function DriverHistorySection() {
   const [selectedTrip, setSelectedTrip] = useState(null);
 
   const fetchHistory = useCallback(async () => {
-    try { const r = await api.get("/trips/driver-history"); setTrips(r.data || []); }
-    catch { } finally { setLoading(false); }
+    try { 
+      const r = await api.get("/trips/driver-history"); 
+      console.log("History data received:", r.data);
+      setTrips(r.data || []); 
+    }
+    catch (err) { 
+      console.error("Error fetching history:", err.response?.status, err.response?.data);
+      toast.error("Error al cargar el historial");
+    } finally { 
+      setLoading(false); 
+    }
   }, []);
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
