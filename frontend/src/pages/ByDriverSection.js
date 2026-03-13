@@ -74,34 +74,76 @@ export default function ByDriverSection() {
             </div>
 
             <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex gap-4 overflow-x-auto pb-4 items-start h-[calc(100vh-280px)]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 pb-8">
                     {data.map((col) => (
-                        <div key={col.driver.id} className={`flex-shrink-0 w-80 rounded-xl flex flex-col h-full border ${col.driver.id === "unassigned" ? "bg-amber-50/50 border-amber-200 border-dashed" : "bg-slate-50 border-slate-200 shadow-sm"}`}>
-                            <div className={`p-4 rounded-t-xl border-b flex justify-between items-center ${col.driver.id === "unassigned" ? "bg-amber-100 border-amber-200" : "bg-white border-slate-100"}`}>
-                                <div>
-                                    <h3 className="font-black text-slate-800 flex items-center gap-2">
-                                        {col.driver.id === "unassigned" ? <AlertCircle className="w-5 h-5 text-amber-600" /> : <User className="w-5 h-5 text-teal-600" />}
-                                        {col.driver.name}
+                        <div key={col.driver.id} className={`rounded-2xl flex flex-col min-h-[400px] border shadow-sm transition-all ${col.driver.id === "unassigned" ? "bg-amber-50/30 border-amber-200 border-dashed" : "bg-white border-slate-200"}`}>
+                            {/* Cabecera compacta del Conductor */}
+                            <div className={`p-3 rounded-t-2xl border-b flex justify-between items-center ${col.driver.id === "unassigned" ? "bg-amber-100/50" : "bg-slate-50/50"}`}>
+                                <div className="min-w-0">
+                                    <h3 className="font-black text-slate-800 text-xs flex items-center gap-1.5 uppercase truncate">
+                                        {col.driver.id === "unassigned" ? <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" /> : <User className="w-3.5 h-3.5 text-teal-600 shrink-0" />}
+                                        <span className="truncate">{col.driver.name}</span>
                                     </h3>
-                                    <p className="text-xs text-slate-500 font-bold mt-1">{col.trips.length} viajes</p>
+                                    {col.driver.vehicle_plate && <p className="text-[10px] font-mono font-bold text-teal-600/70 mt-0.5 leading-none">{col.driver.vehicle_plate}</p>}
                                 </div>
+                                <Badge variant="outline" className="ml-2 bg-white text-[10px] font-black h-5 border-slate-200">{col.trips.length}</Badge>
                             </div>
+
                             <Droppable droppableId={col.driver.id}>
                                 {(provided, snapshot) => (
-                                    <div ref={provided.innerRef} {...provided.droppableProps} className={`p-2 flex-grow overflow-y-auto space-y-2 transition-colors ${snapshot.isDraggingOver ? "bg-teal-50/50" : ""}`}>
+                                    <div ref={provided.innerRef} {...provided.droppableProps} className={`p-2 flex-grow space-y-2 transition-colors min-h-[100px] ${snapshot.isDraggingOver ? "bg-teal-50/50" : ""}`}>
                                         {col.trips.map((t, idx) => (
                                             <Draggable key={t.id} draggableId={t.id} index={idx}>
                                                 {(provided, snap) => (
-                                                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`bg-white p-3 rounded-lg shadow-sm border ${snap.isDragging ? "shadow-lg scale-105 border-teal-300 z-50" : "border-slate-200 hover:border-teal-200 hover:shadow-md"} transition-all cursor-grab`}>
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <Badge className="bg-slate-800 font-mono text-[10px]">{t.tracking_number}</Badge>
-                                                            {t.trip_type === "clinico" ? <Activity className="w-3.5 h-3.5 text-rose-500" /> : <Truck className="w-3.5 h-3.5 text-blue-500" />}
+                                                    <div 
+                                                        ref={provided.innerRef} 
+                                                        {...provided.draggableProps} 
+                                                        {...provided.dragHandleProps} 
+                                                        className={`p-2.5 rounded-xl border group transition-all cursor-grab relative overflow-hidden ${
+                                                            snap.isDragging 
+                                                            ? "bg-white shadow-2xl scale-105 border-teal-500 z-50 ring-2 ring-teal-500/20" 
+                                                            : t.status === "en_curso"
+                                                                ? "bg-blue-50/50 border-blue-200 hover:border-blue-400"
+                                                                : "bg-white border-slate-100 hover:border-teal-200 hover:shadow-md"
+                                                        }`}
+                                                    >
+                                                        {/* Indicador de estado lateral */}
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${t.status === "en_curso" ? "bg-blue-500" : "bg-teal-500"}`}></div>
+
+                                                        <div className="flex justify-between items-center mb-1.5">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="bg-slate-900 text-teal-400 px-1.5 py-0.5 rounded font-mono text-[9px] font-black">#{t.tracking_number}</span>
+                                                                {t.status === "en_curso" && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                                                        <span className="text-[8px] font-black text-blue-600 uppercase">Ruta</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {t.trip_type === "clinico" ? <Activity className="w-3 h-3 text-rose-500" /> : <Truck className="w-3 h-3 text-blue-500" />}
                                                         </div>
-                                                        <p className="font-bold text-sm text-slate-800 leading-tight mb-2 truncate" title={t.trip_type === "clinico" ? t.patient_name : t.task_details}>{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
-                                                        <div className="text-xs space-y-1.5 text-slate-600">
-                                                            <p className="flex items-center gap-1.5 truncate"><MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />{t.origin}</p>
-                                                            <p className="flex items-center gap-1.5 truncate"><ArrowRight className="w-3.5 h-3.5 text-teal-500 shrink-0" />{t.destination}</p>
-                                                            <p className="flex items-center gap-1.5 mt-2 pt-2 border-t font-medium text-slate-700"><Clock className="w-3.5 h-3.5 shrink-0" />Salida: {t.departure_time || "-"}</p>
+
+                                                        <p className="font-black text-[11px] text-slate-800 leading-tight mb-2 uppercase line-clamp-2" title={t.trip_type === "clinico" ? t.patient_name : t.task_details}>
+                                                            {t.trip_type === "clinico" ? t.patient_name : t.task_details}
+                                                        </p>
+
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <MapPin className="w-3 h-3 text-slate-400" />
+                                                                <p className="text-[10px] font-bold text-slate-600 truncate uppercase">{t.origin}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <ArrowRight className="w-3 h-3 text-teal-500" />
+                                                                <p className="text-[10px] font-bold text-slate-600 truncate uppercase">{t.destination}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between">
+                                                            <div className="flex items-center gap-1 text-slate-500">
+                                                                <Clock className="w-3 h-3" />
+                                                                <span className="text-[9px] font-black uppercase">{t.appointment_time || t.departure_time || "--:--"}</span>
+                                                            </div>
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${t.priority === "urgente" ? "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]" : t.priority === "alta" ? "bg-orange-500" : "bg-slate-300"}`}></div>
                                                         </div>
                                                     </div>
                                                 )}
