@@ -363,6 +363,7 @@ async def change_password(data: ChangePassword, user=Depends(get_current_user)):
     return {"message": "Contraseña actualizada exitosamente"}
 
 @api_router.get("/auth/me")
+@api_router.get("/me")
 async def get_me(user=Depends(get_current_user)):
     return {k: v for k, v in user.items() if k != "password_hash"}
 
@@ -906,11 +907,14 @@ async def validate_rut(rut: str):
 
 @api_router.get("/trips/driver-history")
 async def driver_history(user=Depends(get_current_user)):
-    user_id = user["id"]
-    user_name = user["name"]
-    logger.info(f"FETCH_HISTORY: name='{user_name}' id='{user_id}'")
+    user_id = user.get("id")
+    user_name = user.get("name")
+    logger.info(f"!!! DRIVER_HISTORY_START !!! user_id={user_id} name={user_name}")
     
-    # Buscamos TODO lo relacionado a este usuario
+    if not user_id:
+        logger.error("DRIVER_HISTORY_ERROR: No user_id found in user object")
+        return []
+
     query = {
         "$or": [
             {"driver_id": user_id},
@@ -919,41 +923,33 @@ async def driver_history(user=Depends(get_current_user)):
         ]
     }
     
-    all_related = await db.trips.find(query, {"_id": 0}).to_list(1000)
-    logger.info(f"FETCH_HISTORY: Found {len(all_related)} total related trips")
+    try:
+        all_related = await db.trips.find(query, {"_id": 0}).to_list(2000)
+        logger.info(f"DRIVER_HISTORY_DB: Found {len(all_related)} trips in DB")
+    except Exception as e:
+        logger.error(f"DRIVER_HISTORY_DB_ERROR: {str(e)}")
+        return []
     
     history = []
     for t in all_related:
-        # Caso 1: Fue devuelto por este usuario
+        stat = t.get("status")
+        # Caso 1: Devuelto
         if t.get("previous_driver_id") == user_id:
             t["_history_status"] = "devuelto"
             history.append(t)
-        # Caso 2: Está en un estado final y este usuario es el conductor actual
-        elif t.get("status") in ["completado", "cancelado", "finalizado", "devuelto"]:
-            # Aseguramos que el usuario realmente sea el conductor (por ID o Nombre)
-            if t.get("driver_id") == user_id or t.get("driver_name") == user_name:
-                history.append(t)
-        # Caso 3: Viajes en curso/asignados (opcional incluirlos en historial? por ahora no, pero ayuda a debuggear)
-        # elif t.get("status") in ["asignado", "en_curso"]:
-        #    history.append(t)
+        # Caso 2: Finalizado / Completado
+        elif stat in ["completado", "cancelado", "finalizado", "devuelto", "terminado"]:
+            history.append(t)
+        # Debug: veamos qué otros estados hay asignados a este driver
+        else:
+            logger.info(f"DRIVER_HISTORY_SKIP: trip={t.get('id')} status={stat}")
 
-    # Ordenar por fecha lo más inteligentemente posible
     def get_sort_key(x):
         return x.get("completed_at") or x.get("returned_at") or x.get("updated_at") or x.get("created_at") or ""
 
     history.sort(key=get_sort_key, reverse=True)
+    logger.info(f"DRIVER_HISTORY_FINAL: Returning {len(history)} items")
     
-    # Debug: si sigue vacío, logueamos qué trips completados hay en general para ver discrepancias
-    if not history:
-        all_completed = await db.trips.find({"status": "completado"}, {"_id": 0}).limit(5).to_list(5)
-        logger.info(f"FETCH_HISTORY: EMPTY for user. Globals 'completado' count sample: {len(all_completed)}")
-        i = 0
-        for s in all_completed:
-            logger.info(f"Global Sample {i}: ID={s.get('id')} DriverID={s.get('driver_id')} DriverName='{s.get('driver_name')}'")
-            i += 1
-
-    return history
-
     return history
 
 # ============ DEBUG ENDPOINT (TEMPORAL) ============
