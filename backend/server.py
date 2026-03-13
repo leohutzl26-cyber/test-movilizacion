@@ -508,11 +508,15 @@ async def list_trips(user=Depends(get_current_user)):
     query = {}
     if user["role"] == "solicitante": query["requester_id"] = user["id"]
     elif user["role"] == "conductor": query["driver_id"] = user["id"]
-    return await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return trips
 
 @api_router.get("/trips/pool")
 async def trip_pool(user=Depends(require_roles("conductor", "coordinador", "gestion_camas"))):
-    return await db.trips.find({"status": "pendiente", "driver_id": None}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return await db.trips.find(
+        {"status": "pendiente", "$or": [{"driver_id": None}, {"driver_id": {"$exists": False}}]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
 
 @api_router.get("/trips/gestion_revision")
 async def trips_for_gestion_revision(user=Depends(require_roles("gestion_camas", "admin"))):
@@ -915,6 +919,45 @@ async def driver_history(user=Depends(require_roles("conductor"))):
         if r["id"] not in seen_ids:
             completed.append(r)
     return completed
+
+# ============ DEBUG ENDPOINT (TEMPORAL) ============
+@api_router.get("/debug/trips-status")
+async def debug_trips_status():
+    total = await db.trips.count_documents({})
+    pendientes = await db.trips.count_documents({"status": "pendiente"})
+    pendientes_sin_driver = await db.trips.count_documents({"status": "pendiente", "driver_id": None})
+    pendientes_sin_driver_field = await db.trips.count_documents({"status": "pendiente", "driver_id": {"$exists": False}})
+    asignados = await db.trips.count_documents({"status": "asignado"})
+    en_curso = await db.trips.count_documents({"status": "en_curso"})
+    completados = await db.trips.count_documents({"status": "completado"})
+    
+    # Sample de viajes pendientes
+    sample_pendientes = []
+    async for t in db.trips.find({"status": "pendiente"}, {"_id": 0, "id": 1, "tracking_number": 1, "driver_id": 1, "driver_name": 1, "status": 1, "origin": 1, "destination": 1}).limit(5):
+        sample_pendientes.append(t)
+    
+    # Sample de viajes asignados
+    sample_asignados = []
+    async for t in db.trips.find({"status": "asignado"}, {"_id": 0, "id": 1, "tracking_number": 1, "driver_id": 1, "driver_name": 1, "status": 1}).limit(5):
+        sample_asignados.append(t)
+    
+    # Conductores
+    conductores = []
+    async for u in db.users.find({"role": "conductor"}, {"_id": 0, "id": 1, "name": 1, "email": 1}).limit(10):
+        conductores.append(u)
+
+    return {
+        "total_trips": total,
+        "pendientes": pendientes,
+        "pendientes_driver_null": pendientes_sin_driver,
+        "pendientes_driver_no_field": pendientes_sin_driver_field,
+        "asignados": asignados,
+        "en_curso": en_curso,
+        "completados": completados,
+        "sample_pendientes": sample_pendientes,
+        "sample_asignados": sample_asignados,
+        "conductores": conductores
+    }
 
 # ============ COORDINATOR DASHBOARD STATS ============
 
