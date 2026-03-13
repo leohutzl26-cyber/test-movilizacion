@@ -424,10 +424,11 @@ async def list_vehicles(user=Depends(get_current_user)):
             active_trip = await db.trips.find_one({
                 "vehicle_id": v["id"],
                 "status": "en_curso"
-            }, {"_id": 0, "driver_name": 1, "destination": 1})
+            }, {"_id": 0, "driver_name": 1, "destination": 1, "clinical_team": 1})
             if active_trip:
                 v["current_driver"] = active_trip.get("driver_name")
                 v["current_destination"] = active_trip.get("destination")
+                v["current_clinical_team"] = active_trip.get("clinical_team")
     return vehicles
 
 @api_router.post("/vehicles")

@@ -537,11 +537,11 @@ function DriverHistorySection() {
               <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                 <MapPin className="w-3 h-3 text-teal-500" /> <span>{t.origin}</span> <ArrowRight className="w-3 h-3" /> <span>{t.destination}</span>
               </div>
-              {t.start_mileage && t.end_mileage && (
+              {t.start_mileage !== undefined && t.end_mileage !== undefined && t.start_mileage !== null && t.end_mileage !== null && (
                 <div className="mt-2 flex gap-4 text-xs text-slate-400">
                   <span>Km inicio: <strong className="text-slate-600">{t.start_mileage}</strong></span>
                   <span>Km final: <strong className="text-slate-600">{t.end_mileage}</strong></span>
-                  <span>Distancia: <strong className="text-teal-700">{(t.end_mileage - t.start_mileage).toFixed(1)} km</strong></span>
+                  <span>Distancia: <strong className="text-teal-700">{(Number(t.end_mileage) - Number(t.start_mileage)).toFixed(1)} km</strong></span>
                 </div>
               )}
             </CardContent>

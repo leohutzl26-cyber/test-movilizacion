@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren } from "lucide-react";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
@@ -974,6 +975,7 @@ function CalendarSection() {
 }
 
 function VehiclesSection() {
+    const { user } = useAuth();
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const fetchVehicles = useCallback(async () => { 
@@ -1074,6 +1076,12 @@ function VehiclesSection() {
                                                 <MapPin className="w-2.5 h-2.5" />
                                                 <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
                                             </div>
+                                            {v.current_clinical_team && (
+                                                <div className="flex items-center gap-1.5 text-purple-600 border-t border-blue-100/30 mt-1 pt-1">
+                                                    <Users className="w-2.5 h-2.5 shrink-0" />
+                                                    <p className="text-[8px] font-bold truncate italic leading-tight">{v.current_clinical_team}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
@@ -1082,16 +1090,18 @@ function VehiclesSection() {
                                     )}
 
                                     {/* Botón de Acción ultra compacto */}
-                                    <div className="pt-1">
-                                        <Button 
-                                            onClick={() => handleStatusToggle(v)}
-                                            disabled={v.status === "en_uso"}
-                                            variant="outline" 
-                                            className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
-                                        >
-                                            {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
-                                        </Button>
-                                    </div>
+                                    {user?.role !== "gestion_camas" && (
+                                        <div className="pt-1">
+                                            <Button 
+                                                onClick={() => handleStatusToggle(v)}
+                                                disabled={v.status === "en_uso"}
+                                                variant="outline" 
+                                                className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
+                                            >
+                                                {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

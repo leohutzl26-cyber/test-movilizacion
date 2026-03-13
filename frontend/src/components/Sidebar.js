@@ -47,6 +47,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "dashboard", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
+      { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "history", label: "Histórico y Reportes", icon: FileText },
       { 
         id: "mantenedores", 
