@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle, Car, Bus } from "lucide-react";
+import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle, Car, Bus, Siren } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import api from "@/lib/api";
 
 const VEHICLE_ICONS = {
-    Ambulancia: <Activity className="w-4 h-4 text-red-500" />,
+    Ambulancia: <Siren className="w-4 h-4 text-red-600" />,
     camion: <Truck className="w-4 h-4 text-blue-600" />,
     "Auto/SUV": <Car className="w-4 h-4 text-slate-600" />,
     Camioneta: (

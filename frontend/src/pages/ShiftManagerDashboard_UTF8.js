@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren } from "lucide-react";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
@@ -42,7 +42,7 @@ const pColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-wh
 const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
 
 const VEHICLE_ICONS = {
-    Ambulancia: <Activity className="w-5 h-5 text-red-500" />,
+    Ambulancia: <Siren className="w-5 h-5 text-red-600" />,
     camion: <Truck className="w-5 h-5 text-blue-600" />,
     "Auto/SUV": <Car className="w-5 h-5 text-slate-600" />,
     Camioneta: (

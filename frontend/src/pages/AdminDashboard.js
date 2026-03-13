@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"; // IMPORTACIÓN CORREGIDA AQUÍ
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren } from "lucide-react";
 import api from "@/lib/api";
 
 export default function AdminDashboard() {
@@ -277,7 +277,7 @@ function VehiclesManager() {
   };
 
   const vehicleIcons = {
-    Ambulancia: <Activity className="w-4 h-4 text-red-500" />,
+    Ambulancia: <Siren className="w-4 h-4 text-red-600" />,
     camion: <Truck className="w-4 h-4 text-blue-600" />,
     "Auto/SUV": <Car className="w-4 h-4 text-slate-600" />,
     Camioneta: (
@@ -288,7 +288,7 @@ function VehiclesManager() {
         <circle cx="17" cy="17" r="2" />
       </svg>
     ),
-    Van: <Users className="w-4 h-4 text-indigo-600" />
+    Van: <Bus className="w-4 h-4 text-indigo-600" />
   };
 
   return (
