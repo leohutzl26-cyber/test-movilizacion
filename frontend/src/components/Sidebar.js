@@ -23,7 +23,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "users", label: "Usuarios", icon: Users },
       { id: "vehicles", label: "Flota", icon: Truck },
       { id: "destinations", label: "Destinos", icon: MapPin },
-      { id: "drivers", label: "Conductores", icon: ClipboardList },
       { id: "audit", label: "Auditoría", icon: Shield },
     ],
     coordinador: [
