@@ -906,22 +906,46 @@ async def validate_rut(rut: str):
 
 @api_router.get("/trips/driver-history")
 async def driver_history(user=Depends(get_current_user)):
-    logger.info(f"Fetching history for user_id: {user['id']} (Role: {user['role']})")
-    completed = await db.trips.find(
-        {"driver_id": user["id"], "status": {"$in": ["completado", "cancelado"]}},
-        {"_id": 0}
-    ).sort("completed_at", -1).to_list(1000)
-    logger.info(f"Found {len(completed)} completed/cancelled trips")
+    user_id = user["id"]
+    user_name = user["name"]
+    logger.info(f"Fetching history for User: {user_name} (ID: {user_id})")
+    
+    # Intentamos buscar por driver_id OR por driver_name (como fallback)
+    query = {
+        "$or": [
+            {"driver_id": user_id},
+            {"driver_name": user_name}
+        ],
+        "status": {"$in": ["completado", "cancelado", "finalizado"]} # Añadimos 'finalizado' por si acaso
+    }
+    
+    completed = await db.trips.find(query, {"_id": 0}).sort("completed_at", -1).to_list(1000)
+    logger.info(f"Found {len(completed)} trips for {user_name} via standard query")
+    
+    # Si no encuentra nada, buscamos TODOS los completados para loguear qué hay en la DB
+    if len(completed) == 0:
+        sample = await db.trips.find({"status": "completado"}, {"_id": 0}).limit(3).to_list(3)
+        logger.info(f"Debug - Total 'completado' trips in DB: {len(sample)}")
+        for s in sample:
+            logger.info(f"Sample trip: ID={s.get('id')}, DriverID={s.get('driver_id')}, DriverName={s.get('driver_name')}")
+
     returned = await db.trips.find(
-        {"previous_driver_id": user["id"]},
+        {"previous_driver_id": user_id},
         {"_id": 0}
     ).sort("returned_at", -1).to_list(1000)
+    
     for r in returned:
         r["_history_status"] = "devuelto"
+        
+    # Unificar listas evitando duplicados
     seen_ids = set(t["id"] for t in completed)
     for r in returned:
         if r["id"] not in seen_ids:
             completed.append(r)
+            
+    # Ordenar final por fecha (completado o devuelto)
+    completed.sort(key=lambda x: x.get("completed_at") or x.get("returned_at") or "", reverse=True)
+    
     return completed
 
 # ============ DEBUG ENDPOINT (TEMPORAL) ============
