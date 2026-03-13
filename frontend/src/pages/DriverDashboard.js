@@ -182,12 +182,16 @@ function MyTripsSection() {
   const fetchAll = useCallback(async () => {
     try {
       const [t, v] = await Promise.all([api.get("/trips"), api.get("/vehicles")]);
-      setTrips(t.data.filter(tr => tr.status !== "cancelado"));
+      setTrips(t.data.filter(tr => ["asignado", "en_curso"].includes(tr.status)));
       setVehicles(v.data.filter(veh => veh.status === "disponible"));
     } catch { } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { 
+    fetchAll(); 
+    const interval = setInterval(fetchAll, 15000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   // FUNCIÓN PARA ABRIR VENTANAS Y LIMPIAR LA MEMORIA SUCIA
   const openActionDialog = (trip, type) => {

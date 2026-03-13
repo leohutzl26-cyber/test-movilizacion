@@ -1040,69 +1040,56 @@ function VehiclesSection() {
                 </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                 {vehicles.sort((a,b) => a.plate.localeCompare(b.plate)).map(v => {
                     const cfg = statusConfig[v.status] || statusConfig.disponible;
                     return (
                         <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
                             <CardContent className="p-0">
-                                {/* Cabecera de Patente */}
-                                <div className="p-4 flex items-center justify-between border-b border-inherit">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-white shadow-sm border border-inherit`}>
-                                            {v.type === "Ambulancia" ? <Siren className={`w-5 h-5 ${cfg.text}`} /> : <Truck className={`w-5 h-5 ${cfg.text}`} />}
+                                {/* Cabecera compacta */}
+                                <div className="p-2.5 flex items-center justify-between border-b border-inherit">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
+                                            {v.type === "Ambulancia" ? <Siren className={`w-3.5 h-3.5 ${cfg.text}`} /> : <Truck className={`w-3.5 h-3.5 ${cfg.text}`} />}
                                         </div>
-                                        <span className={`font-black text-xl tracking-tighter ${cfg.text}`}>{v.plate}</span>
+                                        <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
                                     </div>
-                                    <Badge className={`${cfg.badge} border-none text-[9px] font-black uppercase px-2 py-0.5`}>
-                                        {cfg.label}
-                                    </Badge>
+                                    <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
                                 </div>
 
-                                {/* Detalles del Vehículo */}
-                                <div className="p-4 space-y-4 min-h-[140px] flex flex-col justify-between">
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Modelo</p>
-                                        <p className="text-sm font-black text-slate-700 uppercase truncate">{v.brand} {v.model}</p>
-                                        <p className="text-[10px] font-bold text-slate-400">{v.type} • {v.year}</p>
+                                {/* Cuerpo compacto */}
+                                <div className="p-2.5 space-y-2 min-h-[110px] flex flex-col justify-between">
+                                    <div className="space-y-0.5">
+                                        <p className="text-[11px] font-black text-slate-700 uppercase truncate leading-tight">{v.brand} {v.model}</p>
+                                        <p className="text-[9px] font-bold text-slate-400 leading-none">{v.type}</p>
                                     </div>
 
                                     {v.status === "en_uso" ? (
-                                        <div className="bg-white/60 rounded-xl p-3 border border-blue-100 animate-in fade-in zoom-in-95 duration-300">
-                                            <div className="flex items-start gap-2 mb-2">
-                                                <User className="w-3 h-3 text-blue-600 mt-0.5" />
-                                                <div className="min-w-0">
-                                                    <p className="text-[8px] font-black text-blue-400 uppercase leading-none mb-0.5">Conductor</p>
-                                                    <p className="text-[11px] font-black text-blue-900 uppercase truncate">{v.current_driver || "Identificando..."}</p>
-                                                </div>
+                                        <div className="bg-white/60 rounded-lg p-2 border border-blue-100/50">
+                                            <div className="flex items-center gap-1.5 mb-1 text-blue-700">
+                                                <User className="w-2.5 h-2.5" />
+                                                <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "Cargando..."}</p>
                                             </div>
-                                            <div className="flex items-start gap-2">
-                                                <MapPin className="w-3 h-3 text-blue-600 mt-0.5" />
-                                                <div className="min-w-0">
-                                                    <p className="text-[8px] font-black text-blue-400 uppercase leading-none mb-0.5">Destino</p>
-                                                    <p className="text-[11px] font-black text-blue-900 uppercase truncate">{v.current_destination || "Identificando..."}</p>
-                                                </div>
+                                            <div className="flex items-center gap-1.5 text-blue-600">
+                                                <MapPin className="w-2.5 h-2.5" />
+                                                <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col justify-center h-[72px] text-center border-2 border-dashed border-inherit rounded-xl opacity-40">
-                                            <p className="text-[10px] font-black uppercase text-inherit tracking-tighter">Móvil en espera</p>
+                                        <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
+                                            <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
                                         </div>
                                     )}
 
-                                    {/* Botón de Acción rápida */}
-                                    <div className="pt-2">
+                                    {/* Botón de Acción ultra compacto */}
+                                    <div className="pt-1">
                                         <Button 
                                             onClick={() => handleStatusToggle(v)}
                                             disabled={v.status === "en_uso"}
                                             variant="outline" 
-                                            className={`w-full h-9 text-[10px] font-black uppercase tracking-widest transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
+                                            className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
                                         >
-                                            {v.status === "fuera_de_servicio" ? (
-                                                <><CheckCircle className="w-3.5 h-3.5 mr-2" /> Habilitar Móvil</>
-                                            ) : (
-                                                <><XCircle className="w-3.5 h-3.5 mr-2" /> Fuera de Servicio</>
-                                            )}
+                                            {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
                                         </Button>
                                     </div>
                                 </div>
