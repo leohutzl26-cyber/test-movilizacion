@@ -45,7 +45,14 @@ const VEHICLE_ICONS = {
     Ambulancia: <Activity className="w-5 h-5 text-red-500" />,
     camion: <Truck className="w-5 h-5 text-blue-600" />,
     "Auto/SUV": <Car className="w-5 h-5 text-slate-600" />,
-    Camioneta: <Truck className="w-5 h-5 text-emerald-600" />,
+    Camioneta: (
+      <svg className="w-5 h-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 13h4l1-3h4l1 3h10v4H2z" />
+        <path d="M12 13v4" />
+        <circle cx="7" cy="17" r="2" />
+        <circle cx="17" cy="17" r="2" />
+      </svg>
+    ),
     Van: <Bus className="w-5 h-5 text-indigo-600" />
 };
 
