@@ -23,6 +23,7 @@ export default function AdminDashboard() {
         {section === "destinations" && <DestinationsManager />}
         {section === "audit" && <AuditLogs />}
         {section === "vehicles" && <VehiclesManager />}
+        {section === "drivers" && <DriversManager />}
       </main>
     </div>
   );
@@ -44,6 +45,12 @@ function AdminOverview({ onNavigate }) {
             <CardContent className="p-6 flex items-center justify-between">
               <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Usuarios Pendientes</p><p className="text-4xl font-black text-slate-900">{stats.pending_users}</p></div>
               <Clock className="w-12 h-12 text-amber-200" />
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("drivers")}>
+            <CardContent className="p-6 flex items-center justify-between">
+              <div><p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Conductores</p><p className="text-4xl font-black text-slate-900">{stats.total_drivers}</p></div>
+              <Shield className="w-12 h-12 text-indigo-200" />
             </CardContent>
           </Card>
           <Card className="shadow-sm border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("vehicles")}>
@@ -360,3 +367,79 @@ function VehiclesManager() {
   );
 }
 
+function DriversManager() {
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [licenseDate, setLicenseDate] = useState("");
+
+  const fetchDrivers = useCallback(async () => {
+    try { const r = await api.get("/drivers"); setDrivers(r.data); }
+    catch (e) {} finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
+
+  const handleEdit = (d) => {
+    setSelectedDriver(d);
+    setLicenseDate(d.license_expiry || "");
+    setIsDialogOpen(true);
+  };
+
+  const saveLicense = async () => {
+    try {
+      await api.put(`/drivers/${selectedDriver.id}/license`, { license_expiry: licenseDate });
+      toast.success("Fecha de licencia actualizada");
+      setIsDialogOpen(false);
+      fetchDrivers();
+    } catch (e) { toast.error("Error al actualizar fecha"); }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Conductores Registrados</h1>
+      {loading ? <p className="text-slate-500">Cargando...</p> : (
+        <Card className="shadow-sm">
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                <tr><th className="p-4">Nombre / Email</th><th className="p-4 text-center">Estado de Cuenta</th><th className="p-4 text-center">Vencimiento Licencia</th><th className="p-4 text-center">Disp. Horas Extra</th><th className="p-4 text-right">Acciones</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {drivers.map(d => (
+                  <tr key={d.id} className="hover:bg-slate-50">
+                    <td className="p-4"><p className="font-bold text-slate-900">{d.name}</p><p className="text-xs text-slate-500">{d.email}</p></td>
+                    <td className="p-4 text-center"><Badge className="bg-emerald-100 text-emerald-800">{d.status}</Badge></td>
+                    <td className="p-4 text-center text-slate-600 font-medium">{d.license_expiry ? new Date(d.license_expiry).toLocaleDateString() : "No registrada"}</td>
+                    <td className="p-4 text-center">{d.extra_available ? <CheckCircle className="w-5 h-5 text-teal-500 mx-auto" /> : <XCircle className="w-5 h-5 text-slate-300 mx-auto" />}</td>
+                    <td className="p-4 text-right">
+                      <Button size="icon" variant="ghost" onClick={() => handleEdit(d)} className="text-slate-400 hover:text-teal-600 h-8 w-8"><Edit className="w-4 h-4"/></Button>
+                    </td>
+                  </tr>
+                ))}
+                {drivers.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-slate-400">No hay conductores registrados.</td></tr>}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Editar Fecha de Licencia</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+               <div><p className="font-bold text-slate-900">{selectedDriver?.name}</p><p className="text-xs text-slate-500">{selectedDriver?.email}</p></div>
+            <div className="space-y-2">
+              <Label>Nueva Fecha de Vencimiento</Label>
+              <Input type="date" value={licenseDate} onChange={e => setLicenseDate(e.target.value)} className="h-11" />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={saveLicense} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11 px-8">Guardar Cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
