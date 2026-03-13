@@ -32,8 +32,8 @@ function TripPoolSection({ onNavigate }) {
   const [selectedTrip, setSelectedTrip] = useState(null);
 
   const fetchPool = useCallback(async () => {
-    try { const r = await api.get("/trips/pool"); setTrips(r.data); }
-    catch { } finally { setLoading(false); }
+    try { const r = await api.get("/trips/pool"); console.log("Pool data:", r.data); setTrips(r.data); }
+    catch (err) { console.error("Error fetching pool:", err.response?.status, err.response?.data, err.message); } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchPool(); const interval = setInterval(fetchPool, 10000); return () => clearInterval(interval); }, [fetchPool]);
@@ -185,9 +185,11 @@ function MyTripsSection() {
   const fetchAll = useCallback(async () => {
     try {
       const [t, v] = await Promise.all([api.get("/trips"), api.get("/vehicles")]);
+      console.log("My trips data:", t.data);
+      console.log("Filtered trips:", t.data.filter(tr => ["asignado", "en_curso"].includes(tr.status)));
       setTrips(t.data.filter(tr => ["asignado", "en_curso"].includes(tr.status)));
       setVehicles(v.data.filter(veh => veh.status === "disponible"));
-    } catch { } finally { setLoading(false); }
+    } catch (err) { console.error("Error fetching my trips:", err.response?.status, err.response?.data, err.message); } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { 
