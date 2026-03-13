@@ -283,6 +283,7 @@ function MyTripsSection() {
         fetchAll();
         return;
       }
+      let payload = {};
       if (actionType === "start") payload = { status: "en_curso", vehicle_id: selectedVehicle, mileage: parseFloat(mileage) };
       if (actionType === "end") payload = { status: "completado", mileage: parseFloat(mileage) };
 
@@ -291,6 +292,7 @@ function MyTripsSection() {
       closeActionDialog();
       fetchAll();
     } catch (e) {
+      console.error("Error in handleAction:", e.response?.status, e.response?.data);
       toast.error(e.response?.data?.detail || "Error al procesar la acción");
       setShowWarning(false);
     }

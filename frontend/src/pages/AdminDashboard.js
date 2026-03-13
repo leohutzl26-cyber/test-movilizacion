@@ -370,6 +370,9 @@ function VehiclesManager() {
 function DriversManager() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [licenseDate, setLicenseDate] = useState("");
 
   const fetchDrivers = useCallback(async () => {
     try { const r = await api.get("/drivers"); setDrivers(r.data); }
@@ -377,6 +380,21 @@ function DriversManager() {
   }, []);
 
   useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
+
+  const handleEdit = (d) => {
+    setSelectedDriver(d);
+    setLicenseDate(d.license_expiry || "");
+    setIsDialogOpen(true);
+  };
+
+  const saveLicense = async () => {
+    try {
+      await api.put(`/drivers/${selectedDriver.id}/license`, { license_expiry: licenseDate });
+      toast.success("Fecha de licencia actualizada");
+      setIsDialogOpen(false);
+      fetchDrivers();
+    } catch (e) { toast.error("Error al actualizar fecha"); }
+  };
 
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
@@ -386,7 +404,7 @@ function DriversManager() {
           <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
-                <tr><th className="p-4">Nombre / Email</th><th className="p-4 text-center">Estado de Cuenta</th><th className="p-4 text-center">Vencimiento Licencia</th><th className="p-4 text-center">Disp. Horas Extra</th></tr>
+                <tr><th className="p-4">Nombre / Email</th><th className="p-4 text-center">Estado de Cuenta</th><th className="p-4 text-center">Vencimiento Licencia</th><th className="p-4 text-center">Disp. Horas Extra</th><th className="p-4 text-right">Acciones</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {drivers.map(d => (
@@ -395,6 +413,9 @@ function DriversManager() {
                     <td className="p-4 text-center"><Badge className="bg-emerald-100 text-emerald-800">{d.status}</Badge></td>
                     <td className="p-4 text-center text-slate-600 font-medium">{d.license_expiry ? new Date(d.license_expiry).toLocaleDateString() : "No registrada"}</td>
                     <td className="p-4 text-center">{d.extra_available ? <CheckCircle className="w-5 h-5 text-teal-500 mx-auto" /> : <XCircle className="w-5 h-5 text-slate-300 mx-auto" />}</td>
+                    <td className="p-4 text-right">
+                      <Button size="icon" variant="ghost" onClick={() => handleEdit(d)} className="text-slate-400 hover:text-teal-600 h-8 w-8"><Edit className="w-4 h-4"/></Button>
+                    </td>
                   </tr>
                 ))}
                 {drivers.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-slate-400">No hay conductores registrados.</td></tr>}
@@ -403,6 +424,22 @@ function DriversManager() {
           </CardContent>
         </Card>
       )}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Editar Fecha de Licencia</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+               <div><p className="font-bold text-slate-900">{selectedDriver?.name}</p><p className="text-xs text-slate-500">{selectedDriver?.email}</p></div>
+            <div className="space-y-2">
+              <Label>Nueva Fecha de Vencimiento</Label>
+              <Input type="date" value={licenseDate} onChange={e => setLicenseDate(e.target.value)} className="h-11" />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={saveLicense} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11 px-8">Guardar Cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
