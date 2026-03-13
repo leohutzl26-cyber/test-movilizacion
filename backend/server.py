@@ -908,45 +908,53 @@ async def validate_rut(rut: str):
 async def driver_history(user=Depends(get_current_user)):
     user_id = user["id"]
     user_name = user["name"]
-    logger.info(f"Fetching history for User: {user_name} (ID: {user_id})")
+    logger.info(f"FETCH_HISTORY: name='{user_name}' id='{user_id}'")
     
-    # Intentamos buscar por driver_id OR por driver_name (como fallback)
+    # Buscamos TODO lo relacionado a este usuario
     query = {
         "$or": [
             {"driver_id": user_id},
-            {"driver_name": user_name}
-        ],
-        "status": {"$in": ["completado", "cancelado", "finalizado"]} # Añadimos 'finalizado' por si acaso
+            {"driver_name": user_name},
+            {"previous_driver_id": user_id}
+        ]
     }
     
-    completed = await db.trips.find(query, {"_id": 0}).sort("completed_at", -1).to_list(1000)
-    logger.info(f"Found {len(completed)} trips for {user_name} via standard query")
+    all_related = await db.trips.find(query, {"_id": 0}).to_list(1000)
+    logger.info(f"FETCH_HISTORY: Found {len(all_related)} total related trips")
     
-    # Si no encuentra nada, buscamos TODOS los completados para loguear qué hay en la DB
-    if len(completed) == 0:
-        sample = await db.trips.find({"status": "completado"}, {"_id": 0}).limit(3).to_list(3)
-        logger.info(f"Debug - Total 'completado' trips in DB: {len(sample)}")
-        for s in sample:
-            logger.info(f"Sample trip: ID={s.get('id')}, DriverID={s.get('driver_id')}, DriverName={s.get('driver_name')}")
+    history = []
+    for t in all_related:
+        # Caso 1: Fue devuelto por este usuario
+        if t.get("previous_driver_id") == user_id:
+            t["_history_status"] = "devuelto"
+            history.append(t)
+        # Caso 2: Está en un estado final y este usuario es el conductor actual
+        elif t.get("status") in ["completado", "cancelado", "finalizado", "devuelto"]:
+            # Aseguramos que el usuario realmente sea el conductor (por ID o Nombre)
+            if t.get("driver_id") == user_id or t.get("driver_name") == user_name:
+                history.append(t)
+        # Caso 3: Viajes en curso/asignados (opcional incluirlos en historial? por ahora no, pero ayuda a debuggear)
+        # elif t.get("status") in ["asignado", "en_curso"]:
+        #    history.append(t)
 
-    returned = await db.trips.find(
-        {"previous_driver_id": user_id},
-        {"_id": 0}
-    ).sort("returned_at", -1).to_list(1000)
+    # Ordenar por fecha lo más inteligentemente posible
+    def get_sort_key(x):
+        return x.get("completed_at") or x.get("returned_at") or x.get("updated_at") or x.get("created_at") or ""
+
+    history.sort(key=get_sort_key, reverse=True)
     
-    for r in returned:
-        r["_history_status"] = "devuelto"
-        
-    # Unificar listas evitando duplicados
-    seen_ids = set(t["id"] for t in completed)
-    for r in returned:
-        if r["id"] not in seen_ids:
-            completed.append(r)
-            
-    # Ordenar final por fecha (completado o devuelto)
-    completed.sort(key=lambda x: x.get("completed_at") or x.get("returned_at") or "", reverse=True)
-    
-    return completed
+    # Debug: si sigue vacío, logueamos qué trips completados hay en general para ver discrepancias
+    if not history:
+        all_completed = await db.trips.find({"status": "completado"}, {"_id": 0}).limit(5).to_list(5)
+        logger.info(f"FETCH_HISTORY: EMPTY for user. Globals 'completado' count sample: {len(all_completed)}")
+        i = 0
+        for s in all_completed:
+            logger.info(f"Global Sample {i}: ID={s.get('id')} DriverID={s.get('driver_id')} DriverName='{s.get('driver_name')}'")
+            i += 1
+
+    return history
+
+    return history
 
 # ============ DEBUG ENDPOINT (TEMPORAL) ============
 @api_router.get("/debug/trips-status")
