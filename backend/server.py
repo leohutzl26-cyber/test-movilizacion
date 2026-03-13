@@ -257,13 +257,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
         if user.get("status") != "aprobado":
             raise HTTPException(status_code=403, detail="Usuario pendiente de aprobacion")
+        user["license_expired"] = False
         if user.get("role") == "conductor" and user.get("license_expiry"):
             try:
                 expiry = datetime.fromisoformat(user["license_expiry"])
                 if expiry.tzinfo is None:
                     expiry = expiry.replace(tzinfo=timezone.utc)
                 if expiry < datetime.now(timezone.utc):
-                    raise HTTPException(status_code=403, detail="Licencia de conducir vencida")
+                    user["license_expired"] = True
             except (ValueError, TypeError):
                 pass
         return user
