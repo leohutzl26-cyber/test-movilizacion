@@ -94,6 +94,7 @@ class VehicleCreate(BaseModel):
     plate: str
     brand: str
     model: str
+    type: str = "Auto/SUV"
     year: int = 2024
     mileage: float = 0
     next_maintenance_km: float = 10000
@@ -390,7 +391,16 @@ async def delete_user(user_id: str, user=Depends(require_roles("admin"))):
 
 @api_router.get("/drivers")
 async def list_drivers(user=Depends(require_roles("admin", "coordinador", "gestion_camas"))):
-    return await db.users.find({"role": "conductor"}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    drivers = await db.users.find({"role": "conductor"}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(1000)
+    v_map = {v["id"]: v for v in vehicles}
+    for d in drivers:
+        if d.get("vehicle_id"):
+            v = v_map.get(d["vehicle_id"])
+            if v:
+                d["vehicle_plate"] = v.get("plate", "")
+                d["vehicle_type"] = v.get("type", "Auto/SUV")
+    return drivers
 
 @api_router.put("/drivers/{driver_id}/extra-availability")
 async def toggle_extra_availability(driver_id: str, user=Depends(get_current_user)):
@@ -522,14 +532,24 @@ async def approve_trip_gestor(trip_id: str, data: TripUpdate, user=Depends(requi
 
 @api_router.get("/trips/active")
 async def active_trips(user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
-    return await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    trips = await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    for t in trips:
+        if t.get("vehicle_id"):
+            v = await db.vehicles.find_one({"id": t["vehicle_id"]}, {"_id": 0, "plate": 1, "type": 1})
+            if v:
+                t["vehicle_plate"] = v.get("plate", "")
+                t["vehicle_type"] = v.get("type", "Auto/SUV")
+    return trips
 
 @api_router.get("/trips/history")
 async def trips_history(user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
     trips = await db.trips.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
     vehicle_ids = list(set(t.get("vehicle_id") for t in trips if t.get("vehicle_id")))
-    vehicles_map = {v["id"]: v["plate"] for v in await db.vehicles.find({"id": {"$in": vehicle_ids}}, {"_id": 0, "id": 1, "plate": 1}).to_list(500)} if vehicle_ids else {}
-    for t in trips: t["vehicle_plate"] = vehicles_map.get(t.get("vehicle_id"), "")
+    vehicles_map = {v["id"]: {"plate": v["plate"], "type": v.get("type", "Auto/SUV")} for v in await db.vehicles.find({"id": {"$in": vehicle_ids}}, {"_id": 0, "id": 1, "plate": 1, "type": 1}).to_list(500)} if vehicle_ids else {}
+    for t in trips: 
+        v_info = vehicles_map.get(t.get("vehicle_id"), {})
+        t["vehicle_plate"] = v_info.get("plate", "")
+        t["vehicle_type"] = v_info.get("type", "Auto/SUV")
     return trips
 
 # --- AQUI AGREGAMOS PERMISO PARA EL CALENDARIO ---
@@ -558,15 +578,35 @@ async def trips_by_vehicle(date: str = None, user=Depends(require_roles("coordin
 @api_router.get("/trips/by-driver")
 async def trips_by_driver(date: str = None, user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
     target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    drivers = await db.users.find({"role": "conductor", "status": "aprobado"}, {"id": 1, "name": 1, "_id": 0}).to_list(500)
+    # Obtener conductores y sus veículos (si tienen en su perfil)
+    drivers = await db.users.find({"role": "conductor", "status": "aprobado"}, {"id": 1, "name": 1, "vehicle_id": 1, "_id": 0}).to_list(500)
+    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(500)
+    v_map = {v["id"]: v for v in vehicles}
+    
     trips = await db.trips.find({"scheduled_date": target_date, "status": {"$ne": "cancelado"}}, {"_id": 0}).sort("order_in_group", 1).to_list(5000)
     
     res = []
     for d in drivers:
+        d_veh = v_map.get(d.get("vehicle_id"))
+        if d_veh:
+            d["vehicle_plate"] = d_veh["plate"]
+            d["vehicle_type"] = d_veh.get("type", "Auto/SUV")
+        
         driver_trips = [t for t in trips if t.get("driver_id") == d["id"]]
+        # Asegurar que cada viaje también tenga el tipo de veículo asignado
+        for t in driver_trips:
+            t_veh = v_map.get(t.get("vehicle_id"))
+            if t_veh:
+                t["vehicle_type"] = t_veh.get("type", "Auto/SUV")
+                
         res.append({"driver": d, "trips": driver_trips})
         
     unassigned = [t for t in trips if not t.get("driver_id")]
+    for t in unassigned:
+        t_veh = v_map.get(t.get("vehicle_id"))
+        if t_veh:
+            t["vehicle_type"] = t_veh.get("type", "Auto/SUV")
+            
     if unassigned: 
         res.append({"driver": {"id": "unassigned", "name": "Sin Conductor"}, "trips": unassigned})
         

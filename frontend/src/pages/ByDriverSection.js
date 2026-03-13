@@ -1,10 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle } from "lucide-react";
+import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle, Car, Bus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import api from "@/lib/api";
+
+const VEHICLE_ICONS = {
+    Ambulancia: <Activity className="w-4 h-4 text-red-500" />,
+    camion: <Truck className="w-4 h-4 text-blue-600" />,
+    "Auto/SUV": <Car className="w-4 h-4 text-slate-600" />,
+    Camioneta: <Truck className="w-4 h-4 text-emerald-600" />,
+    Van: <Bus className="w-4 h-4 text-indigo-600" />
+};
 
 export default function ByDriverSection() {
     const [data, setData] = useState([]);
@@ -84,7 +92,14 @@ export default function ByDriverSection() {
                                         {col.driver.id === "unassigned" ? <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" /> : <User className="w-3.5 h-3.5 text-teal-600 shrink-0" />}
                                         <span className="truncate">{col.driver.name}</span>
                                     </h3>
-                                    {col.driver.vehicle_plate && <p className="text-[10px] font-mono font-bold text-teal-600/70 mt-0.5 leading-none">{col.driver.vehicle_plate}</p>}
+                                    {col.driver.vehicle_plate && (
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <div className="shrink-0">
+                                                {col.driver.vehicle_type ? VEHICLE_ICONS[col.driver.vehicle_type] : <Truck className="w-3 h-3 text-teal-600/50" />}
+                                            </div>
+                                            <p className="text-[10px] font-mono font-bold text-teal-600/70 leading-none">{col.driver.vehicle_plate}</p>
+                                        </div>
+                                    )}
                                 </div>
                                 <Badge variant="outline" className="ml-2 bg-white text-[10px] font-black h-5 border-slate-200">{col.trips.length}</Badge>
                             </div>
@@ -120,7 +135,7 @@ export default function ByDriverSection() {
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            {t.trip_type === "clinico" ? <Activity className="w-3 h-3 text-rose-500" /> : <Truck className="w-3 h-3 text-blue-500" />}
+                                                            {t.trip_type === "clinico" ? <Activity className="w-3 h-3 text-rose-500" /> : (t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <Truck className="w-3 h-3 text-blue-500" />)}
                                                         </div>
 
                                                         <p className="font-black text-[11px] text-slate-800 leading-tight mb-2 uppercase line-clamp-2" title={t.trip_type === "clinico" ? t.patient_name : t.task_details}>

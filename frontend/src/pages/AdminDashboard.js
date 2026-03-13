@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"; // IMPORTACIÓN CORREGIDA AQUÍ
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Shield, Trash2, Clock, MapPin, Search, Truck, Users } from "lucide-react";
+import { CheckCircle, XCircle, Shield, Trash2, Clock, MapPin, Search, Truck, Users, Activity, Car, Plus } from "lucide-react";
 import api from "@/lib/api";
 
 export default function AdminDashboard() {
@@ -223,6 +223,8 @@ function AuditLogs() {
 function VehiclesManager() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
 
   const fetchVehicles = useCallback(async () => {
     try { const r = await api.get("/vehicles"); setVehicles(r.data); }
@@ -231,6 +233,17 @@ function VehiclesManager() {
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post("/vehicles", formData);
+      toast.success("Vehículo creado exitosamente");
+      setIsDialogOpen(false);
+      setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
+      fetchVehicles();
+    } catch (e) { toast.error("Error al crear vehículo"); }
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm("¿Eliminar vehículo definitivamente?")) {
       try { await api.delete(`/vehicles/${id}`); toast.success("Eliminado"); fetchVehicles(); }
@@ -238,24 +251,39 @@ function VehiclesManager() {
     }
   };
 
+  const vehicleIcons = {
+    Ambulancia: <Activity className="w-4 h-4 text-red-500" />,
+    camion: <Truck className="w-4 h-4 text-blue-600" />,
+    "Auto/SUV": <Car className="w-4 h-4 text-slate-600" />,
+    Camioneta: <Truck className="w-4 h-4 text-emerald-600" />,
+    Van: <Users className="w-4 h-4 text-indigo-600" />
+  };
+
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Visualización de Flota</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Gestión de Flota</h1>
+        <Button onClick={() => setIsDialogOpen(true)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
+          <Plus className="w-4 h-4 mr-2" /> Agregar Vehículo
+        </Button>
+      </div>
+
       {loading ? <p className="text-slate-500">Cargando...</p> : (
         <Card className="shadow-sm">
           <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
-                <tr><th className="p-4">Patente</th><th className="p-4">Marca/Modelo</th><th className="p-4">Año</th><th className="p-4">Kilometraje</th><th className="p-4">Estado</th><th className="p-4 text-right">Acciones</th></tr>
+                <tr><th className="p-4">Tipo</th><th className="p-4">Patente</th><th className="p-4">Marca/Modelo</th><th className="p-4">Año</th><th className="p-4">Kilometraje</th><th className="p-4">Estado</th><th className="p-4 text-right">Acciones</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {vehicles.map(v => (
                   <tr key={v.id} className="hover:bg-slate-50">
+                    <td className="p-4">{vehicleIcons[v.type] || <Car className="w-4 h-4" />}</td>
                     <td className="p-4 font-bold text-slate-900">{v.plate}</td>
                     <td className="p-4 text-slate-600">{v.brand} {v.model}</td>
                     <td className="p-4 text-slate-600">{v.year}</td>
                     <td className="p-4 font-bold text-slate-700">{v.mileage?.toLocaleString()} km</td>
-                    <td className="p-4"><Badge variant="outline" className="uppercase text-[10px]">{v.status.replace(/_/g, " ")}</Badge></td>
+                    <td className="p-4"><Badge variant="outline" className="uppercase text-[10px]">{v.status?.replace(/_/g, " ")}</Badge></td>
                     <td className="p-4 text-right">
                       <Button size="icon" variant="ghost" onClick={() => handleDelete(v.id)} className="text-slate-400 hover:text-red-600 h-8 w-8"><Trash2 className="w-4 h-4"/></Button>
                     </td>
@@ -266,6 +294,42 @@ function VehiclesManager() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Nuevo Vehículo</DialogTitle></DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Patente *</Label><Input value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value.toUpperCase()})} placeholder="ABCD-12" required /></div>
+              <div className="space-y-2">
+                <Label>Tipo de Vehículo *</Label>
+                <Select value={formData.type} onValueChange={v => setFormData({...formData, type: v})}>
+                  <SelectTrigger><SelectValue placeholder="Seleccione Tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ambulancia">Ambulancia</SelectItem>
+                    <SelectItem value="camion">Camión</SelectItem>
+                    <SelectItem value="Auto/SUV">Auto / SUV</SelectItem>
+                    <SelectItem value="Camioneta">Camioneta</SelectItem>
+                    <SelectItem value="Van">Van</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Marca</Label><Input value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} placeholder="Ej: Toyota" /></div>
+              <div className="space-y-2"><Label>Modelo</Label><Input value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} placeholder="Ej: Hilux" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Año</Label><Input type="number" value={formData.year} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} /></div>
+              <div className="space-y-2"><Label>Kilometraje Inicial</Label><Input type="number" value={formData.mileage} onChange={e => setFormData({...formData, mileage: parseFloat(e.target.value)})} /></div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white font-bold">Guardar Vehículo</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
