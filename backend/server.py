@@ -416,7 +416,18 @@ async def update_license(driver_id: str, data: DriverLicenseUpdate, user=Depends
 
 @api_router.get("/vehicles")
 async def list_vehicles(user=Depends(get_current_user)):
-    return await db.vehicles.find({}, {"_id": 0}).to_list(1000)
+    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(1000)
+    for v in vehicles:
+        if v.get("status") == "en_uso":
+            # Buscar el viaje activo para este vehículo
+            active_trip = await db.trips.find_one({
+                "vehicle_id": v["id"],
+                "status": "en_curso"
+            }, {"_id": 0, "driver_name": 1, "destination": 1})
+            if active_trip:
+                v["current_driver"] = active_trip.get("driver_name")
+                v["current_destination"] = active_trip.get("destination")
+    return vehicles
 
 @api_router.post("/vehicles")
 async def create_vehicle(data: VehicleCreate, user=Depends(require_roles("admin"))):
@@ -682,6 +693,17 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
         if veh_id: await db.vehicles.update_one({"id": veh_id}, {"$set": {"mileage": data.mileage}})
 
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    
+    # Manejo automático de estado de vehículo
+    veh_id = trip.get("vehicle_id") or data.vehicle_id
+    if veh_id:
+        if data.status == "en_curso":
+            await db.vehicles.update_one({"id": veh_id}, {"$set": {"status": "en_uso"}})
+        elif data.status == "completado" or data.status == "cancelado":
+            # Verificar si el vehículo tiene otros viajes en curso (poco probable en este flujo)
+            # Por simplicidad, volvemos a disponible
+            await db.vehicles.update_one({"id": veh_id}, {"$set": {"status": "disponible"}})
+            
     return {"message": "Ok"}
 
 @api_router.put("/trips/{trip_id}/group")
@@ -764,6 +786,8 @@ async def get_stats(user=Depends(require_roles("admin", "coordinador", "gestion_
         "completed_trips": await db.trips.count_documents({"status": "completado"}),
         "total_vehicles": await db.vehicles.count_documents({}),
         "vehicles_available": await db.vehicles.count_documents({"status": "disponible"}),
+        "vehicles_en_uso": await db.vehicles.count_documents({"status": "en_uso"}),
+        "vehicles_fuera_de_servicio": await db.vehicles.count_documents({"status": "fuera_de_servicio"}),
         "total_drivers": await db.users.count_documents({"role": "conductor", "status": "aprobado"}),
         "pending_users": await db.users.count_documents({"status": "pendiente"})
     }

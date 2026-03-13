@@ -976,42 +976,148 @@ function CalendarSection() {
 function VehiclesSection() {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
-    const fetchVehicles = useCallback(async () => { try { const r = await api.get("/vehicles"); setVehicles(r.data || []); } catch { } finally { setLoading(false); } }, []);
-    useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+    const fetchVehicles = useCallback(async () => { 
+        try { 
+            const r = await api.get("/vehicles"); 
+            setVehicles(r.data || []); 
+        } catch { } 
+        finally { setLoading(false); } 
+    }, []);
+    
+    useEffect(() => { 
+        fetchVehicles(); 
+        const interval = setInterval(fetchVehicles, 20000);
+        return () => clearInterval(interval);
+    }, [fetchVehicles]);
 
-    const handleStatusChange = async (vehicleId, status) => {
-        try { await api.put(`/vehicles/${vehicleId}/status`, { status }); toast.success("Estado actualizado"); fetchVehicles(); }
-        catch (e) { toast.error("Error al cambiar estado"); }
+    const handleStatusToggle = async (v) => {
+        const newStatus = v.status === "fuera_de_servicio" ? "disponible" : "fuera_de_servicio";
+        try { 
+            await api.put(`/vehicles/${v.id}/status`, { status: newStatus }); 
+            toast.success(`Móvil ${v.plate} ${newStatus === "disponible" ? "habilitado" : "fuera de servicio"}`); 
+            fetchVehicles(); 
+        } catch (e) { toast.error("Error al actualizar estado"); }
     };
 
-    const statusColorsItems = { disponible: "bg-green-100 text-green-800 border-green-200", en_servicio: "bg-blue-100 text-blue-800 border-blue-200", en_limpieza: "bg-violet-100 text-violet-800 border-violet-200", en_taller: "bg-orange-100 text-orange-800 border-orange-200", fuera_de_servicio: "bg-red-100 text-red-800 border-red-200" };
-    const statusOptions = ["disponible", "en_servicio", "en_limpieza", "en_taller", "fuera_de_servicio"];
+    const statusConfig = {
+        disponible: { 
+            bg: "bg-emerald-50", 
+            border: "border-emerald-200", 
+            text: "text-emerald-700", 
+            badge: "bg-emerald-100 text-emerald-800",
+            label: "Disponible",
+            icon: <CheckCircle className="w-4 h-4" />
+        },
+        fuera_de_servicio: { 
+            bg: "bg-rose-50", 
+            border: "border-rose-200", 
+            text: "text-rose-700", 
+            badge: "bg-rose-100 text-rose-800",
+            label: "Fuera de Servicio",
+            icon: <AlertTriangle className="w-4 h-4" />
+        },
+        en_uso: { 
+            bg: "bg-blue-50", 
+            border: "border-blue-200", 
+            text: "text-blue-700", 
+            badge: "bg-blue-100 text-blue-800",
+            label: "En Uso (Ruta)",
+            icon: <Activity className="w-4 h-4" />
+        }
+    };
+
+    if (loading && vehicles.length === 0) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
     return (
-        <div className="animate-slide-up">
-            <h1 className="text-2xl font-bold text-slate-900 mb-6">Flota de Vehículos</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {vehicles.map(v => (
-                    <Card key={v.id} className="shadow-sm border-slate-200">
-                        <CardContent className="p-5">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
-                                        {VEHICLE_ICONS[v.type] || <Truck className="w-5 h-5 text-teal-600" />}
-                                    </div>
-                                    <span className="font-black text-xl text-slate-900">{v.plate}</span>
-                                </div>
-                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusColorsItems[v.status] || "bg-slate-100"}`}>{v.status.replace(/_/g, " ")}</span>
-                            </div>
-                            <p className="text-sm font-medium text-slate-600 mb-4">{v.brand} {v.model} ({v.year})</p>
-                            <Select value={v.status} onValueChange={val => handleStatusChange(v.id, val)}>
-                                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                                <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s} className="font-medium">{s.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </CardContent>
-                    </Card>
-                ))}
+        <div className="animate-slide-up space-y-6">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Control de Flota Operativa</h1>
+                    <p className="text-slate-500 text-xs font-bold uppercase">Estado actual de todos los móviles del hospital.</p>
+                </div>
+                <Badge variant="outline" className="h-8 px-4 font-black border-slate-200 bg-white">
+                    TOTAL: {vehicles.length} MÓVILES
+                </Badge>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {vehicles.sort((a,b) => a.plate.localeCompare(b.plate)).map(v => {
+                    const cfg = statusConfig[v.status] || statusConfig.disponible;
+                    return (
+                        <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
+                            <CardContent className="p-0">
+                                {/* Cabecera de Patente */}
+                                <div className="p-4 flex items-center justify-between border-b border-inherit">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-white shadow-sm border border-inherit`}>
+                                            {v.type === "Ambulancia" ? <Siren className={`w-5 h-5 ${cfg.text}`} /> : <Truck className={`w-5 h-5 ${cfg.text}`} />}
+                                        </div>
+                                        <span className={`font-black text-xl tracking-tighter ${cfg.text}`}>{v.plate}</span>
+                                    </div>
+                                    <Badge className={`${cfg.badge} border-none text-[9px] font-black uppercase px-2 py-0.5`}>
+                                        {cfg.label}
+                                    </Badge>
+                                </div>
+
+                                {/* Detalles del Vehículo */}
+                                <div className="p-4 space-y-4 min-h-[140px] flex flex-col justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Modelo</p>
+                                        <p className="text-sm font-black text-slate-700 uppercase truncate">{v.brand} {v.model}</p>
+                                        <p className="text-[10px] font-bold text-slate-400">{v.type} • {v.year}</p>
+                                    </div>
+
+                                    {v.status === "en_uso" ? (
+                                        <div className="bg-white/60 rounded-xl p-3 border border-blue-100 animate-in fade-in zoom-in-95 duration-300">
+                                            <div className="flex items-start gap-2 mb-2">
+                                                <User className="w-3 h-3 text-blue-600 mt-0.5" />
+                                                <div className="min-w-0">
+                                                    <p className="text-[8px] font-black text-blue-400 uppercase leading-none mb-0.5">Conductor</p>
+                                                    <p className="text-[11px] font-black text-blue-900 uppercase truncate">{v.current_driver || "Identificando..."}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-2">
+                                                <MapPin className="w-3 h-3 text-blue-600 mt-0.5" />
+                                                <div className="min-w-0">
+                                                    <p className="text-[8px] font-black text-blue-400 uppercase leading-none mb-0.5">Destino</p>
+                                                    <p className="text-[11px] font-black text-blue-900 uppercase truncate">{v.current_destination || "Identificando..."}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col justify-center h-[72px] text-center border-2 border-dashed border-inherit rounded-xl opacity-40">
+                                            <p className="text-[10px] font-black uppercase text-inherit tracking-tighter">Móvil en espera</p>
+                                        </div>
+                                    )}
+
+                                    {/* Botón de Acción rápida */}
+                                    <div className="pt-2">
+                                        <Button 
+                                            onClick={() => handleStatusToggle(v)}
+                                            disabled={v.status === "en_uso"}
+                                            variant="outline" 
+                                            className={`w-full h-9 text-[10px] font-black uppercase tracking-widest transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
+                                        >
+                                            {v.status === "fuera_de_servicio" ? (
+                                                <><CheckCircle className="w-3.5 h-3.5 mr-2" /> Habilitar Móvil</>
+                                            ) : (
+                                                <><XCircle className="w-3.5 h-3.5 mr-2" /> Fuera de Servicio</>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+            
+            {vehicles.length === 0 && (
+                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                    <Truck className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-400 font-bold uppercase tracking-widest">No se encontraron vehículos registrados</p>
+                </div>
+            )}
         </div>
     );
 }

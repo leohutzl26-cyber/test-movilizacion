@@ -183,7 +183,7 @@ function MyTripsSection() {
     try {
       const [t, v] = await Promise.all([api.get("/trips"), api.get("/vehicles")]);
       setTrips(t.data.filter(tr => tr.status !== "cancelado"));
-      setVehicles(v.data.filter(veh => veh.status === "disponible" || veh.status === "en_servicio"));
+      setVehicles(v.data.filter(veh => veh.status === "disponible"));
     } catch { } finally { setLoading(false); }
   }, []);
 
