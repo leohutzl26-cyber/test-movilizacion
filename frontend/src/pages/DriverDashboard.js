@@ -503,9 +503,15 @@ function DriverHistorySection() {
 
   const fetchHistory = useCallback(async () => {
     try { 
-      const r = await api.get("/trips/driver-history"); 
-      console.log("History data received:", r.data);
-      setTrips(r.data || []); 
+      console.log("[DEBUG] Fetching History V2...");
+      const r = await api.get("/trips/v2/history"); 
+      console.log("[DEBUG] History r.data:", r.data);
+      if (r.data && Array.isArray(r.data.trips)) {
+        setTrips(r.data.trips);
+      } else {
+        console.warn("[DEBUG] Unrecognized history format or null:", r.data);
+        setTrips([]);
+      }
     }
     catch (err) { 
       console.error("Error fetching history:", err.response?.status, err.response?.data);

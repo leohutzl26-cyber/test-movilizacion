@@ -905,11 +905,11 @@ async def validate_rut(rut: str):
 
 # ============ DRIVER HISTORY ============
 
-@api_router.get("/trips/driver-history")
-async def driver_history(user=Depends(get_current_user)):
+@api_router.get("/trips/v2/history")
+async def driver_history_v2(user=Depends(get_current_user)):
     user_id = user.get("id")
     user_name = user.get("name")
-    logger.info(f"!!! DRIVER_HISTORY_START !!! user_id={user_id} name={user_name}")
+    logger.info(f"!!! HISTORY_V2_START !!! user_id={user_id} name={user_name}")
     
     if not user_id:
         logger.error("DRIVER_HISTORY_ERROR: No user_id found in user object")
@@ -948,22 +948,9 @@ async def driver_history(user=Depends(get_current_user)):
         return x.get("completed_at") or x.get("returned_at") or x.get("updated_at") or x.get("created_at") or ""
 
     history.sort(key=get_sort_key, reverse=True)
-    logger.info(f"DRIVER_HISTORY_FINAL: Returning {len(history)} items")
+    logger.info(f"HISTORY_V2_FINAL: Returning {len(history)} items")
     
-    # Inyectamos UN viaje de prueba siempre para ver si el frontend lo muestra
-    dummy_trip = {
-        "id": "dummy-test-123",
-        "tracking_number": "TEST-ROLLBACK",
-        "status": "completado",
-        "driver_name": "SISTEMA (DEBUG)",
-        "origin": "Punto A",
-        "destination": "Punto B",
-        "completed_at": datetime.now(timezone.utc).isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    history.insert(0, dummy_trip)
-    
-    return history
+    return {"trips": history, "debug_user": user_id, "timestamp": datetime.now(timezone.utc).isoformat()}
 
 # ============ DEBUG ENDPOINT (TEMPORAL) ============
 @api_router.get("/debug/trips-status")
