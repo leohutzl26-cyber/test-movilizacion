@@ -650,8 +650,14 @@ async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(re
     return {"message": "Asignado"}
 
 @api_router.put("/trips/{trip_id}/unassign")
-async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin", "conductor", "gestion_camas"))): 
-    await db.trips.update_one({"id": trip_id}, {"$set": {"status": "pendiente", "driver_id": None, "driver_name": None, "vehicle_id": None}})
+async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", "admin", "conductor", "gestion_camas"))):
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    update_data = {"status": "pendiente", "driver_id": None, "driver_name": None, "vehicle_id": None}
+    if trip and trip.get("driver_id") and user["role"] == "conductor":
+        update_data["previous_driver_id"] = trip["driver_id"]
+        update_data["previous_driver_name"] = trip.get("driver_name")
+        update_data["returned_at"] = datetime.now(timezone.utc).isoformat()
+    await db.trips.update_one({"id": trip_id}, {"$set": update_data})
     return {"message": "Desasignado"}
     
 @api_router.put("/trips/{trip_id}/assign")
@@ -894,11 +900,21 @@ async def validate_rut(rut: str):
 
 @api_router.get("/trips/driver-history")
 async def driver_history(user=Depends(require_roles("conductor"))):
-    trips = await db.trips.find(
+    completed = await db.trips.find(
         {"driver_id": user["id"], "status": {"$in": ["completado", "cancelado"]}},
         {"_id": 0}
     ).sort("completed_at", -1).to_list(1000)
-    return trips
+    returned = await db.trips.find(
+        {"previous_driver_id": user["id"]},
+        {"_id": 0}
+    ).sort("returned_at", -1).to_list(1000)
+    for r in returned:
+        r["_history_status"] = "devuelto"
+    seen_ids = set(t["id"] for t in completed)
+    for r in returned:
+        if r["id"] not in seen_ids:
+            completed.append(r)
+    return completed
 
 # ============ COORDINATOR DASHBOARD STATS ============
 

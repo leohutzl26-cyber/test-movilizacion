@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User } from "lucide-react";
+import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw } from "lucide-react";
 import api from "@/lib/api";
 
 export default function DriverDashboard() {
@@ -178,6 +178,9 @@ function MyTripsSection() {
   const [cancelReason, setCancelReason] = useState("");
   const [detailsDialog, setDetailsDialog] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
+  const [activeTab, setActiveTab] = useState("hoy");
+
+  const today = new Date().toISOString().split("T")[0];
 
   const fetchAll = useCallback(async () => {
     try {
@@ -192,6 +195,10 @@ function MyTripsSection() {
     const interval = setInterval(fetchAll, 15000);
     return () => clearInterval(interval);
   }, [fetchAll]);
+
+  const tripsHoy = trips.filter(t => t.scheduled_date === today || t.status === "en_curso");
+  const tripsProgramados = trips.filter(t => t.scheduled_date !== today && t.status !== "en_curso");
+  const displayTrips = activeTab === "hoy" ? tripsHoy : tripsProgramados;
 
   // FUNCIÓN PARA ABRIR VENTANAS Y LIMPIAR LA MEMORIA SUCIA
   const openActionDialog = (trip, type) => {
@@ -274,10 +281,23 @@ function MyTripsSection() {
 
   return (
     <div className="max-w-4xl mx-auto animate-slide-up">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Mis Viajes Asignados</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-4">Mis Viajes Asignados</h1>
+
+      {/* Pestañas Hoy / Programados */}
+      <div className="flex gap-2 mb-6">
+        <button onClick={() => setActiveTab("hoy")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-black uppercase tracking-widest ${activeTab === "hoy" ? "border-teal-600 bg-teal-50 text-teal-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-teal-200"}`}>
+          <Play className="w-4 h-4" /> Hoy ({tripsHoy.length})
+        </button>
+        <button onClick={() => setActiveTab("programados")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-black uppercase tracking-widest ${activeTab === "programados" ? "border-indigo-600 bg-indigo-50 text-indigo-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-indigo-200"}`}>
+          <CalendarDays className="w-4 h-4" /> Programados ({tripsProgramados.length})
+        </button>
+      </div>
+
       <div className="space-y-6">
-        {trips.map(t => (
-          <Card key={t.id} className="shadow-md border-slate-200 overflow-hidden rounded-xl">
+        {displayTrips.map(t => {
+          const isToday = t.scheduled_date === today || t.status === "en_curso";
+          return (
+          <Card key={t.id} className={`shadow-md border-slate-200 overflow-hidden rounded-xl ${!isToday ? "opacity-80" : ""}`}>
             <CardContent className="p-0">
               <div className="p-5">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-100 pb-4 gap-3">
@@ -286,7 +306,7 @@ function MyTripsSection() {
                     <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider border ${statusColors[t.status]}`}>{sLabels[t.status] || t.status.replace(/_/g, " ")}</span>
                   </div>
                   <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="text-sm font-bold text-slate-700 bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300 shadow-sm flex-1 text-center md:flex-none">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
+                    <span className={`text-sm font-bold px-3 py-1.5 rounded-md border shadow-sm flex-1 text-center md:flex-none ${isToday ? "text-teal-700 bg-teal-100 border-teal-200" : "text-indigo-700 bg-indigo-100 border-indigo-200"}`}>{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
                     <Button variant="ghost" size="sm" onClick={() => setDetailsDialog(t)} className="h-10 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200"><FileText className="w-4 h-4 mr-1.5" />Info Completa</Button>
                   </div>
                 </div>
@@ -304,10 +324,17 @@ function MyTripsSection() {
                   </div>
                 </div>
 
-                {t.status === "asignado" && (
+                {t.status === "asignado" && isToday && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-slate-100">
                     <Button onClick={() => openActionDialog(t, "start")} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><Play className="w-6 h-6 mr-2 fill-current" /> Iniciar Viaje</Button>
                     <Button onClick={() => openActionDialog(t, "cancel")} variant="outline" className="h-14 text-red-600 border-red-200 hover:bg-red-50 rounded-xl px-6 font-bold sm:w-auto w-full transition-colors">Devolver</Button>
+                  </div>
+                )}
+
+                {t.status === "asignado" && !isToday && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <p className="text-xs text-indigo-600 font-bold flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Programado para {t.scheduled_date}</p>
+                    <Button onClick={() => openActionDialog(t, "cancel")} variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 font-bold">Devolver</Button>
                   </div>
                 )}
 
@@ -319,8 +346,9 @@ function MyTripsSection() {
               </div>
             </CardContent>
           </Card>
-        ))}
-        {trips.length === 0 && <div className="text-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm"><p className="text-xl font-bold text-slate-500">No tienes viajes asignados</p><p className="text-sm font-medium mt-2">Revisa la bolsa de viajes disponibles para tomar uno.</p></div>}
+          );
+        })}
+        {displayTrips.length === 0 && <div className="text-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm"><p className="text-xl font-bold text-slate-500">{activeTab === "hoy" ? "No tienes viajes para hoy" : "No tienes viajes programados"}</p><p className="text-sm font-medium mt-2">{activeTab === "hoy" ? "Revisa la bolsa de viajes disponibles para tomar uno." : "Los viajes futuros aparecerán aquí."}</p></div>}
       </div>
 
       <Dialog open={!!actionDialog} onOpenChange={closeActionDialog}>
@@ -455,7 +483,7 @@ function DriverHistorySection() {
   }, []);
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  const statusColors = { completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+  const statusColors = { completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", devuelto: "bg-amber-100 text-amber-800" };
 
   if (loading) return <div className="flex justify-center py-20"><Clock className="w-10 h-10 animate-spin text-teal-600" /></div>;
 
@@ -467,12 +495,16 @@ function DriverHistorySection() {
       </div>
       <div className="space-y-4">
         {trips.map(t => (
-          <Card key={t.id} className={`shadow-sm cursor-pointer hover:shadow-md transition-all border-l-4 ${t.status === "completado" ? "border-l-emerald-500" : "border-l-red-400"}`} onClick={() => setSelectedTrip(t)}>
+          <Card key={t.id} className={`shadow-sm cursor-pointer hover:shadow-md transition-all border-l-4 ${t._history_status === "devuelto" ? "border-l-amber-400" : t.status === "completado" ? "border-l-emerald-500" : "border-l-red-400"}`} onClick={() => setSelectedTrip(t)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold">{t.tracking_number}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{t.status === "completado" ? "Completado" : "Cancelado"}</span>
+                  {t._history_status === "devuelto" ? (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-800 flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Devuelto</span>
+                  ) : (
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{t.status === "completado" ? "Completado" : "Cancelado"}</span>
+                  )}
                   <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
                 </div>
                 <span className="text-xs font-medium text-slate-500">{t.scheduled_date}</span>
