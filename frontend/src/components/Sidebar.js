@@ -23,6 +23,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "users", label: "Usuarios", icon: Users },
       { id: "vehicles", label: "Flota", icon: Truck },
       { id: "destinations", label: "Destinos", icon: MapPin },
+      { id: "drivers", label: "Conductores", icon: ClipboardList },
       { id: "audit", label: "Auditoría", icon: Shield },
     ],
     coordinador: [
@@ -31,7 +32,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "by_driver", label: "Pizarra de Conducción", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
-      { id: "drivers", label: "Conductores", icon: Users },
       { id: "history", label: "Historial", icon: History },
     ],
     conductor: [
