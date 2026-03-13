@@ -1247,6 +1247,7 @@ function GestorNewTripSection() {
               <div className="space-y-1"><Label>Servicio de Origen</Label>{!useCustomService ? <Select onValueChange={v => v === "otro" ? setUseCustomService(true) : setForm({ ...form, patient_unit: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.patient_unit} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />}</div>
               <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
               <div className="space-y-1"><Label>Hora Citación</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
+              <div className="space-y-1"><Label>Hora Salida</Label><Input type="time" value={form.departure_time} onChange={e => setForm({ ...form, departure_time: e.target.value })} /></div>
             </>}
             <div className="space-y-1"><Label>Fecha</Label><Input type="date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} /></div>
           </div>
