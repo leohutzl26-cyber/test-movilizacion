@@ -846,6 +846,94 @@ async def get_stats(user=Depends(require_roles("admin", "coordinador", "gestion_
         "pending_users": await db.users.count_documents({"status": "pendiente"})
     }
 
+@api_router.get("/stats/advanced")
+async def get_advanced_stats(user=Depends(require_roles("admin"))):
+    now = datetime.now(timezone.utc)
+    
+    # --- Trends: trips per day for the last 30 days ---
+    daily_trends = []
+    for i in range(29, -1, -1):
+        day = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+        count = await db.trips.count_documents({"scheduled_date": day})
+        completed = await db.trips.count_documents({"scheduled_date": day, "status": "completado"})
+        daily_trends.append({"date": day, "total": count, "completados": completed})
+    
+    # --- Distribution by status ---
+    status_dist = []
+    for s in ["pendiente", "por_visar", "asignado", "en_curso", "completado", "cancelado"]:
+        c = await db.trips.count_documents({"status": s})
+        if c > 0:
+            status_dist.append({"name": s.replace("_", " ").title(), "value": c})
+    
+    # --- Distribution by trip type ---
+    type_dist = []
+    for t in ["clinico", "no_clinico"]:
+        c = await db.trips.count_documents({"trip_type": t})
+        if c > 0:
+            label = "Clínico" if t == "clinico" else "No Clínico"
+            type_dist.append({"name": label, "value": c})
+    
+    # --- Top 5 destinations ---
+    all_trips = await db.trips.find({}, {"destination": 1, "_id": 0}).to_list(50000)
+    dest_count = {}
+    for t in all_trips:
+        d = t.get("destination", "Desconocido")
+        dest_count[d] = dest_count.get(d, 0) + 1
+    top_destinations = sorted([{"name": k, "viajes": v} for k, v in dest_count.items()], key=lambda x: x["viajes"], reverse=True)[:5]
+    
+    # --- Top 5 drivers by completed trips ---
+    completed_trips = await db.trips.find({"status": "completado", "driver_name": {"$ne": None}}, {"driver_name": 1, "_id": 0}).to_list(50000)
+    driver_count = {}
+    for t in completed_trips:
+        d = t.get("driver_name", "Sin Conductor")
+        driver_count[d] = driver_count.get(d, 0) + 1
+    top_drivers = sorted([{"name": k, "viajes": v} for k, v in driver_count.items()], key=lambda x: x["viajes"], reverse=True)[:5]
+    
+    # --- Total mileage ---
+    mileage_trips = await db.trips.find({"start_mileage": {"$exists": True}, "end_mileage": {"$exists": True}}, {"start_mileage": 1, "end_mileage": 1, "_id": 0}).to_list(50000)
+    total_km = sum((t.get("end_mileage", 0) - t.get("start_mileage", 0)) for t in mileage_trips if t.get("end_mileage", 0) > t.get("start_mileage", 0))
+    
+    # --- Priority distribution ---
+    priority_dist = []
+    for p in ["urgente", "normal", "programado"]:
+        c = await db.trips.count_documents({"priority": p})
+        if c > 0:
+            priority_dist.append({"name": p.title(), "value": c})
+    
+    # --- Cancelled trips count + rate ---
+    cancelled = await db.trips.count_documents({"status": "cancelado"})
+    total = await db.trips.count_documents({})
+    cancel_rate = round((cancelled / total * 100), 1) if total > 0 else 0
+    
+    # --- Today's stats ---
+    today = now.strftime("%Y-%m-%d")
+    trips_today = await db.trips.count_documents({"scheduled_date": today})
+    completed_today = await db.trips.count_documents({"scheduled_date": today, "status": "completado"})
+    
+    # --- Total users by role ---
+    users_by_role = []
+    for r in ["solicitante", "conductor", "coordinador", "gestion_camas", "admin"]:
+        c = await db.users.count_documents({"role": r, "status": "aprobado"})
+        label_map = {"solicitante": "Solicitantes", "conductor": "Conductores", "coordinador": "Coordinadores", "gestion_camas": "Gestión Camas", "admin": "Admins"}
+        if c > 0:
+            users_by_role.append({"name": label_map.get(r, r), "value": c})
+    
+    return {
+        "daily_trends": daily_trends,
+        "status_distribution": status_dist,
+        "type_distribution": type_dist,
+        "priority_distribution": priority_dist,
+        "top_destinations": top_destinations,
+        "top_drivers": top_drivers,
+        "total_km": round(total_km, 1),
+        "cancel_rate": cancel_rate,
+        "cancelled_trips": cancelled,
+        "trips_today": trips_today,
+        "completed_today": completed_today,
+        "users_by_role": users_by_role,
+    }
+
+
 @api_router.get("/audit-logs")
 async def get_audit_logs(user=Depends(require_roles("admin"))):
     return await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(5000)
