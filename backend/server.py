@@ -382,17 +382,26 @@ async def list_users(user=Depends(require_roles("admin"))):
 
 @api_router.put("/users/{user_id}/approve")
 async def approve_user(user_id: str, user=Depends(require_roles("admin"))):
-    await db.users.update_one({"id": user_id}, {"$set": {"status": "aprobado"}})
+    target_user = await db.users.find_one({"id": user_id})
+    if target_user:
+        await db.users.update_one({"id": user_id}, {"$set": {"status": "aprobado"}})
+        await log_action(user["id"], user["name"], user["role"], "aprobar_usuario", "usuario", user_id, f"Aprobado: {target_user.get('email')}")
     return {"message": "Aprobado"}
 
 @api_router.put("/users/{user_id}/reject")
 async def reject_user(user_id: str, user=Depends(require_roles("admin"))):
-    await db.users.update_one({"id": user_id}, {"$set": {"status": "rechazado"}})
+    target_user = await db.users.find_one({"id": user_id})
+    if target_user:
+        await db.users.update_one({"id": user_id}, {"$set": {"status": "rechazado"}})
+        await log_action(user["id"], user["name"], user["role"], "rechazar_usuario", "usuario", user_id, f"Rechazado: {target_user.get('email')}")
     return {"message": "Rechazado"}
 
 @api_router.put("/users/{user_id}/role")
 async def update_role(user_id: str, data: UserRoleUpdate, user=Depends(require_roles("admin"))):
-    await db.users.update_one({"id": user_id}, {"$set": {"role": data.role}})
+    target_user = await db.users.find_one({"id": user_id})
+    if target_user:
+        await db.users.update_one({"id": user_id}, {"$set": {"role": data.role}})
+        await log_action(user["id"], user["name"], user["role"], "cambiar_rol", "usuario", user_id, f"Rol de {target_user.get('email')} cambiado a {data.role}")
     return {"message": "Rol actualizado"}
 
 @api_router.delete("/users/{user_id}")
@@ -610,6 +619,7 @@ async def trips_calendar(start_date: str = None, end_date: str = None, user=Depe
 async def reorder_trips(data: TripReorder, user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
     for i, t_id in enumerate(data.trip_ids):
         await db.trips.update_one({"id": t_id}, {"$set": {"order_in_group": i}})
+    await log_action(user["id"], user["name"], user["role"], "reordenar", "traslados", "multi", f"Reordenados {len(data.trip_ids)} traslados")
     return {"message": "Ok"}
 
 @api_router.get("/trips/by-vehicle")
@@ -679,14 +689,23 @@ async def edit_trip(trip_id: str, data: TripUpdate, user=Depends(get_current_use
         update_data["clinical_team"] = ", ".join(staff_names)
         
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    
+    trip = await db.trips.find_one({"id": trip_id})
+    folio = trip.get("tracking_number", "N/A")
+    fields = ", ".join(update_data.keys())
+    await log_action(user["id"], user["name"], user["role"], "editar", "traslado", trip_id, f"Actualizados campos ({fields}) en folio {folio}")
+    
     return {"message": "Viaje actualizado"}
 
 @api_router.put("/trips/{trip_id}/manager-assign")
 async def manager_assign_trip(trip_id: str, data: ManagerAssign, user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
+    trip = await db.trips.find_one({"id": trip_id})
     driver = await db.users.find_one({"id": data.driver_id, "role": "conductor"}, {"_id": 0})
     update_data = {"driver_id": data.driver_id, "driver_name": driver["name"], "status": "asignado"}
     if data.vehicle_id: update_data["vehicle_id"] = data.vehicle_id
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    
+    await log_action(user["id"], user["name"], user["role"], "manager_assign", "traslado", trip_id, f"Folio {trip['tracking_number']} asignado a conductor {driver['name']}")
     return {"message": "Asignado"}
 
 @api_router.put("/trips/{trip_id}/unassign")
@@ -698,16 +717,22 @@ async def unassign_trip(trip_id: str, user=Depends(require_roles("coordinador", 
         update_data["previous_driver_name"] = trip.get("driver_name")
         update_data["returned_at"] = datetime.now(timezone.utc).isoformat()
     await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    
+    await log_action(user["id"], user["name"], user["role"], "desasignar", "traslado", trip_id, f"Folio {trip['tracking_number']} desasignado (Sin conductor)")
     return {"message": "Desasignado"}
     
 @api_router.put("/trips/{trip_id}/assign")
 async def assign_trip(trip_id: str, user=Depends(require_roles("conductor"))):
+    trip = await db.trips.find_one({"id": trip_id})
     await db.trips.update_one({"id": trip_id}, {"$set": {"driver_id": user["id"], "driver_name": user["name"], "status": "asignado"}})
+    await log_action(user["id"], user["name"], user["role"], "tomar_traslado", "traslado", trip_id, f"Folio {trip['tracking_number']} tomado por conductor {user['name']}")
     return {"message": "Asignado"}
 
 @api_router.put("/trips/{trip_id}/clinical-team")
 async def assign_clinical_team(trip_id: str, data: ClinicalTeamUpdate, user=Depends(require_roles("admin", "coordinador", "gestion_camas", "solicitante"))):
+    trip = await db.trips.find_one({"id": trip_id})
     await db.trips.update_one({"id": trip_id}, {"$set": {"clinical_team": data.clinical_team, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    await log_action(user["id"], user["name"], user["role"], "equipo_clinico", "traslado", trip_id, f"Asignado equipo clínico: {data.clinical_team} en folio {trip['tracking_number']}")
     return {"message": "Personal clínico asignado correctamente"}
 
 @api_router.put("/trips/{trip_id}/status")
@@ -746,15 +771,22 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
         if data.status == "en_curso":
             await db.vehicles.update_one({"id": veh_id}, {"$set": {"status": "en_uso"}})
         elif data.status == "completado" or data.status == "cancelado":
-            # Verificar si el vehículo tiene otros viajes en curso (poco probable en este flujo)
-            # Por simplicidad, volvemos a disponible
             await db.vehicles.update_one({"id": veh_id}, {"$set": {"status": "disponible"}})
+            
+    # REGISTRO DE AUDITORÍA DE ESTADO
+    detail_msg = f"Cambio de estado a {data.status} para folio {trip['tracking_number']}"
+    if data.status == "cancelado" and data.cancel_reason: detail_msg += f". Motivo: {data.cancel_reason}"
+    if data.mileage is not None: detail_msg += f". Km: {data.mileage}"
+    
+    await log_action(user["id"], user["name"], user["role"], data.status, "traslado", trip_id, detail_msg)
             
     return {"message": "Ok"}
 
 @api_router.put("/trips/{trip_id}/group")
 async def group_trip(trip_id: str, data: TripGroupUpdate, user=Depends(require_roles("conductor"))):
+    trip = await db.trips.find_one({"id": trip_id})
     await db.trips.update_one({"id": trip_id}, {"$set": {"group_id": data.group_id, "order_in_group": data.order_in_group}})
+    await log_action(user["id"], user["name"], user["role"], "agrupar", "traslado", trip_id, f"Traslado folio {trip.get('tracking_number')} agrupado en {data.group_id}")
     return {"message": "Ok"}
 
 @api_router.delete("/trips/clear-all")
