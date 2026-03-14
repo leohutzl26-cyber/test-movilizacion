@@ -13,7 +13,7 @@ import string
 import random
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime, timezone, timedelta
 from passlib.context import CryptContext
 from jose import jwt, JWTError
@@ -560,8 +560,28 @@ async def active_trips(user=Depends(require_roles("coordinador", "admin", "gesti
     return trips
 
 @api_router.get("/trips/history")
-async def trips_history(user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
-    trips = await db.trips.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+async def trips_history(
+    status: Optional[str] = None,
+    trip_type: Optional[str] = None,
+    patient_name: Optional[str] = None,
+    folio: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user=Depends(require_roles("coordinador", "admin", "gestion_camas"))
+):
+    query: dict[str, Any] = {}
+
+    if status: query["status"] = status
+    if trip_type: query["trip_type"] = trip_type
+    if patient_name: query["patient_name"] = {"$regex": patient_name, "$options": "i"}
+    if folio: query["tracking_number"] = {"$regex": folio, "$options": "i"}
+    
+    if start_date or end_date:
+        query["scheduled_date"] = {}
+        if start_date: query["scheduled_date"]["$gte"] = start_date
+        if end_date: query["scheduled_date"]["$lte"] = end_date
+
+    trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(5000)
     vehicle_ids = list(set(t.get("vehicle_id") for t in trips if t.get("vehicle_id")))
     vehicles_map = {v["id"]: {"plate": v["plate"], "type": v.get("type", "Auto/SUV")} for v in await db.vehicles.find({"id": {"$in": vehicle_ids}}, {"_id": 0, "id": 1, "plate": 1, "type": 1}).to_list(500)} if vehicle_ids else {}
     for t in trips: 
@@ -634,6 +654,10 @@ async def trips_by_driver(date: str = None, user=Depends(require_roles("coordina
 @api_router.get("/trips/{trip_id}")
 async def get_trip_detail(trip_id: str, user=Depends(get_current_user)):
     return await db.trips.find_one({"id": trip_id}, {"_id": 0})
+
+@api_router.get("/trips/{trip_id}/audit")
+async def get_trip_audit(trip_id: str, user=Depends(require_roles("admin", "coordinador"))):
+    return await db.audit_logs.find({"entity_id": trip_id}, {"_id": 0}).sort("timestamp", 1).to_list(1000)
 
 @api_router.put("/trips/{trip_id}")
 async def edit_trip(trip_id: str, data: TripUpdate, user=Depends(get_current_user)):
@@ -723,6 +747,23 @@ async def update_trip_status(trip_id: str, data: TripStatusUpdate, user=Depends(
 async def group_trip(trip_id: str, data: TripGroupUpdate, user=Depends(require_roles("conductor"))):
     await db.trips.update_one({"id": trip_id}, {"$set": {"group_id": data.group_id, "order_in_group": data.order_in_group}})
     return {"message": "Ok"}
+
+@api_router.delete("/trips/clear-all")
+async def clear_all_trips(user=Depends(require_roles("admin"))):
+    await db.trips.delete_many({})
+    await log_action(user["id"], user["name"], user["role"], "limpiar_todo", "traslado", "all", "Se eliminaron todos los viajes de la base de datos")
+    return {"message": "Todos los viajes han sido eliminados correctamente"}
+
+@api_router.delete("/trips/{trip_id}")
+async def delete_trip(trip_id: str, user=Depends(require_roles("admin"))):
+    trip = await db.trips.find_one({"id": trip_id})
+
+    if not trip: raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    
+    await db.trips.delete_one({"id": trip_id})
+    await log_action(user["id"], user["name"], user["role"], "eliminar", "traslado", trip_id, f"Eliminado viaje con folio {trip.get('tracking_number')}")
+    return {"message": "Viaje eliminado correctamente"}
+
 
 # ============ ENDPOINTS BITÁCORA ============
 

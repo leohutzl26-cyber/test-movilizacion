@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter } from "lucide-react";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
@@ -242,7 +243,9 @@ export default function ShiftManagerDashboard_UTF8() {
 }
 
 function DispatchSection() {
+    const { user } = useAuth();
     const [trips, setTrips] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState("pendiente");
     const [stats, setStats] = useState({ pendiente: 0, asignado: 0, en_curso: 0, completado: 0 });
@@ -307,7 +310,19 @@ function DispatchSection() {
         } catch (e) { toast.error("Error al devolver traslado"); }
     };
 
+    const handleDeleteTrip = async (tripId) => {
+        if (!window.confirm("¿Seguro que deseas ELIMINAR PERMANENTEMENTE este viaje de la base de datos?")) return;
+        try {
+            await api.delete(`/trips/${tripId}`);
+            toast.success("Viaje eliminado permanentemente");
+            fetchTrips();
+        } catch (e) {
+            toast.error("Error al eliminar el viaje");
+        }
+    };
+
     const handleEditSubmission = async (e) => {
+
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
@@ -435,9 +450,16 @@ function DispatchSection() {
                                                         <RotateCcw className="w-3 h-3 mr-1" /> Devolver
                                                     </Button>
                                                     <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-8 w-8 p-0 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700" title="Cancelar Traslado">
-                                                        <Trash2 className="w-3 h-3" />
+                                                        <XCircle className="w-3 h-3" />
                                                     </Button>
+                                                    {user?.role === 'admin' && (
+                                                        <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-8 w-8 p-0 text-red-700 border-red-200 bg-red-50 hover:bg-red-100" title="ELIMINAR PERMANENTEMENTE">
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </Button>
+                                                    )}
                                                 </div>
+
+
                                             </>
                                         )}
                                         {t.status === "en_curso" && <Badge className="bg-blue-100 text-blue-700 border-none font-black text-[9px] uppercase">En Ruta</Badge>}
@@ -1466,96 +1488,344 @@ function NewTripSection({ onNavigate }) {
     );
 }
 
+
+function TripAuditDetailDialog({ trip, open, onOpenChange }) {
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (open && trip?.id) {
+            setLoading(true);
+            api.get(`/trips/${trip.id}/audit`)
+                .then(res => setLogs(res.data || []))
+                .catch(() => toast.error("Error al cargar auditoría"))
+                .finally(() => setLoading(false));
+        }
+    }, [open, trip]);
+
+    if (!trip) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-3xl bg-white rounded-[2rem] overflow-hidden border-none shadow-2xl p-0">
+                <DialogHeader className="p-8 pb-0">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
+                            <History className="w-6 h-6 text-teal-400" />
+                        </div>
+                        <div>
+                            <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Registro de Acciones</DialogTitle>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Folio: <span className="text-teal-600 font-mono">#{trip.tracking_number}</span></p>
+                        </div>
+                    </div>
+                </DialogHeader>
+
+                <div className="p-8 pt-4">
+                    <div className="bg-slate-50 rounded-3xl border border-slate-100 p-6 min-h-[400px] max-h-[60vh] overflow-y-auto custom-scrollbar">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                <RefreshCw className="w-10 h-10 text-teal-500 animate-spin" />
+                                <p className="text-xs font-black text-teal-800 uppercase tracking-widest animate-pulse">Consultando Bóveda de Auditoría...</p>
+                            </div>
+                        ) : logs.length > 0 ? (
+                            <div className="space-y-6 relative">
+                                <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-slate-200"></div>
+                                {logs.map((log, idx) => (
+                                    <div key={log.id || idx} className="relative pl-12">
+                                        <div className="absolute left-0 top-1 w-10 h-10 bg-white rounded-xl border-2 border-slate-200 flex items-center justify-center z-10 shadow-sm">
+                                            {log.action === "crear_traslado" ? <Plus className="w-4 h-4 text-emerald-500" /> :
+                                             log.action === "aprobar" ? <CheckCircle className="w-4 h-4 text-purple-500" /> :
+                                             log.action === "eliminar" ? <Trash2 className="w-4 h-4 text-rose-500" /> :
+                                             <Activity className="w-4 h-4 text-blue-500" />}
+                                        </div>
+                                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-teal-200 transition-all">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Usuario / Rol</p>
+                                                    <p className="text-xs font-black text-slate-900 uppercase">{log.user_name} <span className="text-slate-400 ml-1 opacity-60">[{log.user_role}]</span></p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Fecha y Hora</p>
+                                                    <p className="text-[11px] font-mono font-black text-slate-600">{new Date(log.timestamp).toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2 border-t border-slate-50">
+                                                <p className="text-[10px] font-black text-teal-700 uppercase tracking-widest mb-1 italic">Acción: {log.action.replace(/_/g, " ")}</p>
+                                                <p className="text-sm font-bold text-slate-700 leading-relaxed">{log.details || "Sin detalles adicionales"}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+                                <ShieldAlert className="w-16 h-16 opacity-20 mb-4" />
+                                <p className="text-sm font-black uppercase tracking-[0.2em]">No se registran acciones auditables</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="mt-8 flex justify-end">
+                        <Button onClick={() => onOpenChange(false)} className="bg-slate-900 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-lg hover:bg-slate-800">Cerrar Detalle</Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function HistorySection() {
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedTrip, setSelectedTrip] = useState(null);
+    const [auditOpen, setAuditOpen] = useState(false);
+    
+    const [filters, setFilters] = useState({
+        folio: "",
+        patient: "",
+        status: "all",
+        trip_type: "all",
+        start_date: "",
+        end_date: ""
+    });
 
     const fetchHistory = useCallback(async () => {
+        setLoading(true);
         try {
-            const res = await api.get("/trips/history");
+            const params = new URLSearchParams();
+            if (filters.folio) params.append("folio", filters.folio);
+            if (filters.patient) params.append("patient_name", filters.patient);
+            if (filters.status !== "all") params.append("status", filters.status);
+            if (filters.trip_type !== "all") params.append("trip_type", filters.trip_type);
+            if (filters.start_date) params.append("start_date", filters.start_date);
+            if (filters.end_date) params.append("end_date", filters.end_date);
+
+            const res = await api.get(`/trips/history?${params.toString()}`);
             setTrips(res.data || []);
-        } catch (e) { toast.error("Error al cargar historial"); }
-        finally { setLoading(false); }
-    }, []);
+        } catch (e) { 
+            toast.error("Error al cargar historial"); 
+        } finally { 
+            setLoading(false); 
+        }
+    }, [filters]);
 
-    useEffect(() => { fetchHistory(); }, [fetchHistory]);
+    useEffect(() => {
+        fetchHistory();
+    }, [fetchHistory]);
 
-    if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
+    const handleExportExcel = () => {
+        if (trips.length === 0) {
+            toast.error("No hay datos para exportar");
+            return;
+        }
+
+        const dataToExport = trips.map(t => ({
+            "Folio": t.tracking_number,
+            "Tipo": t.trip_type === "clinico" ? "Clínico" : "No Clínico",
+            "Paciente/Cometido": t.trip_type === "clinico" ? t.patient_name : t.task_details,
+            "RUT": t.rut || "N/A",
+            "Origen": t.origin,
+            "Destino": t.destination,
+            "Servicio Origen": t.patient_unit || "N/A",
+            "Estado": (t.status || "").replace(/_/g, " ").toUpperCase(),
+            "Conductor": t.driver_name || "No asignado",
+            "Móvil": t.vehicle_plate || "N/A",
+            "Fecha Programada": t.scheduled_date,
+            "KM Inicial": t.start_mileage || 0,
+            "KM Final": t.end_mileage || 0,
+            "Distancia (KM)": (t.end_mileage && t.start_mileage) ? (t.end_mileage - t.start_mileage) : 0,
+            "Creado el": new Date(t.created_at).toLocaleString(),
+            "Finalizado el": t.completed_at ? new Date(t.completed_at).toLocaleString() : "N/A"
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Historial Traslados");
+        XLSX.writeFile(wb, `Historial_Traslados_${new Date().toISOString().split('T')[0]}.xlsx`);
+        toast.success("Excel generado con éxito");
+    };
+
+    const clearFilters = () => {
+        setFilters({ folio: "", patient: "", status: "all", trip_type: "all", start_date: "", end_date: "" });
+    };
 
     const sColorsLocal = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
 
     return (
         <div className="animate-slide-up space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Historial de Traslados</h1>
-                <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Registros</p>
-                    <p className="text-lg font-black text-slate-900">{trips.length}</p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        <History className="w-8 h-8 text-teal-600" />
+                        Historial de Traslados
+                    </h1>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1 ml-11">Consulta y Control Central de Movilizaciones</p>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <Button onClick={handleExportExcel} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 h-12 font-black uppercase tracking-widest shadow-lg flex items-center gap-2 flex-1 md:flex-none">
+                        <FileDown className="w-5 h-5" />
+                        Descargar .XLSX
+                    </Button>
+                    <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm hidden sm:block">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Registros Encontrados</p>
+                        <p className="text-lg font-black text-slate-900">{trips.length}</p>
+                    </div>
                 </div>
             </div>
+
+            {/* Panel de Filtros */}
+            <Card className="shadow-sm border-slate-200 bg-white/50 backdrop-blur-sm rounded-3xl overflow-hidden">
+                <CardContent className="p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Search className="w-3 h-3" /> Folio</Label>
+                            <Input placeholder="Ej: TR-2603..." className="h-10 text-xs font-bold uppercase rounded-xl border-slate-200" value={filters.folio} onChange={e => setFilters({...filters, folio: e.target.value})} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><User className="w-3 h-3" /> Paciente</Label>
+                            <Input placeholder="Buscar por nombre..." className="h-10 text-xs font-bold rounded-xl border-slate-200" value={filters.patient} onChange={e => setFilters({...filters, patient: e.target.value})} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Filter className="w-3 h-3" /> Estado</Label>
+                            <Select value={filters.status} onValueChange={v => setFilters({...filters, status: v})}>
+                                <SelectTrigger className="h-10 text-xs font-bold rounded-xl border-slate-200 uppercase"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">TODOS LOS ESTADOS</SelectItem>
+                                    <SelectItem value="pendiente">PENDIENTE</SelectItem>
+                                    <SelectItem value="asignado">ASIGNADO</SelectItem>
+                                    <SelectItem value="en_curso">RECORRIENDO</SelectItem>
+                                    <SelectItem value="completado">COMPLETADO</SelectItem>
+                                    <SelectItem value="cancelado">CANCELADO</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Stethoscope className="w-3 h-3" /> Tipo</Label>
+                            <Select value={filters.trip_type} onValueChange={v => setFilters({...filters, trip_type: v})}>
+                                <SelectTrigger className="h-10 text-xs font-bold rounded-xl border-slate-200 uppercase"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">TODOS LOS TIPOS</SelectItem>
+                                    <SelectItem value="clinico">CLÍNICO</SelectItem>
+                                    <SelectItem value="no_clinico">NO CLÍNICO</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><CalendarDays className="w-3 h-3" /> Desde</Label>
+                            <Input type="date" className="h-10 text-xs font-bold rounded-xl border-slate-200" value={filters.start_date} onChange={e => setFilters({...filters, start_date: e.target.value})} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><CalendarDays className="w-3 h-3" /> Hasta</Label>
+                            <div className="flex gap-2">
+                                <Input type="date" className="h-10 text-xs font-bold rounded-xl border-slate-200 flex-1" value={filters.end_date} onChange={e => setFilters({...filters, end_date: e.target.value})} />
+                                <Button variant="ghost" size="icon" onClick={clearFilters} className="h-10 w-10 text-slate-400 hover:text-rose-500 transition-colors bg-white rounded-xl border border-slate-200 shrink-0"><RotateCcw className="w-4 h-4" /></Button>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
             
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-900 border-b border-slate-800">
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Folio</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em] w-[140px]">Folio</th>
                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Detalle Solicitud</th>
                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Trayecto Centralizado</th>
                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Responsable Operativo</th>
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Estado Final</th>
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Programada</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Estado / Fecha</th>
+                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em] text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {trips.map(t => (
-                                <tr key={t.id} className="hover:bg-slate-50 transition-all cursor-default">
-                                    <td className="px-6 py-5">
-                                        <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 font-mono text-[11px] font-black">#{t.tracking_number}</span>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <p className="font-black text-slate-900 text-sm leading-tight uppercase">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
-                                        <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">{t.transfer_reason || "Gral."}</p>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="space-y-1.5">
-                                            <p className="text-xs font-black text-slate-700 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div> {t.origin}</p>
-                                            <p className="text-xs font-black text-slate-400 flex items-center gap-2"><ArrowRight className="w-3 h-3" /> {t.destination}</p>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        {t.driver_name ? (
-                                            <div className="bg-teal-50/50 p-2 rounded-xl border border-teal-100 w-fit min-w-[140px] flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-teal-100">
-                                                    {VEHICLE_ICONS[t.vehicle_type] || <User className="w-4 h-4 text-teal-600" />}
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-teal-800 uppercase leading-none mb-1">{t.driver_name}</p>
-                                                    <p className="text-[10px] text-teal-600/70 font-bold font-mono uppercase italic">{t.vehicle_plate || "Sin Móvil"}</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-slate-300 italic font-bold">No registrado</span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <Badge className={`text-[10px] font-black uppercase tracking-widest border-none px-3 py-1 rounded-full shadow-sm ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600"}`}>{(t.status || "").replace(/_/g, " ")}</Badge>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <p className="text-xs font-black text-slate-600 whitespace-nowrap">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</p>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-20 text-center">
+                                        <RefreshCw className="w-10 h-10 text-teal-500 animate-spin mx-auto mb-4" />
+                                        <p className="text-xs font-black text-teal-800 uppercase tracking-[0.3em]">Actualizando Historial...</p>
                                     </td>
                                 </tr>
-                            ))}
+                            ) : trips.length > 0 ? (
+                                trips.map(t => (
+                                    <tr key={t.id} className="hover:bg-slate-50/80 transition-all cursor-default group">
+                                        <td className="px-6 py-5">
+                                            <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 font-mono text-[11px] font-black group-hover:bg-white group-hover:border-teal-200 group-hover:text-teal-700 transition-colors">#{t.tracking_number}</span>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <p className="font-black text-slate-900 text-sm leading-tight uppercase line-clamp-1">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                                            <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest flex items-center gap-1.5">
+                                                {t.trip_type === "clinico" ? <Stethoscope className="w-3 h-3" /> : <ClipboardList className="w-3 h-3" />}
+                                                {t.transfer_reason || "Gral."} 
+                                                <span className="opacity-40 px-1.5">|</span> 
+                                                RUT: {t.rut || "S/R"}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="space-y-1.5">
+                                                <p className="text-xs font-black text-slate-700 flex items-center gap-2 max-w-[200px] truncate"><div className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0"></div> {t.origin}</p>
+                                                <p className="text-xs font-black text-slate-400 flex items-center gap-2 max-w-[200px] truncate"><ArrowRight className="w-3 h-3 shrink-0" /> {t.destination}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            {t.driver_name ? (
+                                                <div className="bg-teal-50/30 p-2 rounded-xl border border-teal-100/50 w-fit min-w-[140px] flex items-center gap-3 group-hover:bg-white transition-colors">
+                                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-teal-100 shadow-sm shrink-0 text-teal-600">
+                                                        {t.vehicle_type === "Ambulancia" ? <Siren className="w-4 h-4" /> : 
+                                                         t.vehicle_type === "Van" ? <Bus className="w-4 h-4" /> : <Car className="w-4 h-4" />}
+                                                    </div>
+                                                    <div className="truncate">
+                                                        <p className="text-[10px] font-black text-teal-800 uppercase leading-none mb-1 truncate">{t.driver_name}</p>
+                                                        <p className="text-[10px] text-teal-600/70 font-bold font-mono uppercase italic leading-none">{t.vehicle_plate || "Sin Móvil"}</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-300 italic font-bold">No asignado</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <Badge className={`text-[9px] font-black uppercase tracking-widest border-none px-3 py-1 rounded-full shadow-sm mb-2 ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600"}`}>{(t.status || "").replace(/_/g, " ")}</Badge>
+                                            <p className="text-[11px] font-black text-slate-400 flex items-center gap-1.5 leading-none">
+                                                <CalendarDays className="w-3 h-3" />
+                                                {t.scheduled_date || new Date(t.created_at).toLocaleDateString()}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex justify-center">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="icon" 
+                                                    className="w-10 h-10 rounded-xl border-slate-200 hover:border-teal-500 hover:bg-teal-50 hover:text-teal-600 transition-all shadow-sm"
+                                                    onClick={() => {
+                                                        setSelectedTrip(t);
+                                                        setAuditOpen(true);
+                                                    }}
+                                                >
+                                                    <Eye className="w-5 h-5" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-32 text-center bg-slate-50/30">
+                                        <ClipboardList className="w-20 h-20 text-slate-200 mx-auto mb-4" />
+                                        <p className="text-xl font-black text-slate-300 uppercase tracking-[0.3em]">Bóveda de Datos Vacía</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Intente ajustando los filtros de búsqueda</p>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
-                {trips.length === 0 && (
-                    <div className="text-center py-32 bg-slate-50/50">
-                        <ClipboardList className="w-20 h-20 text-slate-200 mx-auto mb-4" />
-                        <p className="text-xl font-black text-slate-300 uppercase tracking-[0.3em]">Bóveda de Datos Vacía</p>
-                    </div>
-                )}
             </div>
+
+            <TripAuditDetailDialog 
+                trip={selectedTrip} 
+                open={auditOpen} 
+                onOpenChange={setAuditOpen} 
+            />
         </div>
     );
 }
