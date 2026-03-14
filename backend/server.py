@@ -59,17 +59,11 @@ app = FastAPI()
 # ============ CORS CONFIGURATION (MUST BE TOP LEVEL) ============
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:5173",
-        "https://movilizacion-hcu.onrender.com",
-        "https://test-movilizacion.onrender.com",
-        "https://movilizacion-hcu-backend.onrender.com",
-    ],
+    allow_origins=["*"],  # Permitimos todos para evitar problemas de matching en Render
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"], # Importante para descargas
 )
 
 @app.get("/")
