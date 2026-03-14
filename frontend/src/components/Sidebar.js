@@ -21,6 +21,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     admin: [
       { id: "dashboard", label: "Panel Analítico", icon: Home },
       { id: "users", label: "Usuarios", icon: Users },
+      { id: "trips", label: "Gestión de Viajes", icon: FileText },
       { id: "vehicles", label: "Flota", icon: Truck },
       { id: "destinations", label: "Destinos", icon: MapPin },
       { id: "drivers", label: "Conductores", icon: ClipboardList },
