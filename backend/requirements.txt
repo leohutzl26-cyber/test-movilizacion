@@ -10,4 +10,5 @@ passlib[bcrypt]
 bcrypt==4.0.1
 pydantic[email]
 pydantic-settings
-#nuevo
+openpyxl
+reportlab

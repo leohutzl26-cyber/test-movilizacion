@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight } from "lucide-react";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "destinations", label: "Destinos", icon: MapPin },
       { id: "drivers", label: "Conductores", icon: ClipboardList },
       { id: "audit", label: "Auditoría", icon: Shield },
+      { id: "reports", label: "Libro de Recorrido", icon: BookOpen },
     ],
     coordinador: [
       { id: "dispatch", label: "Bandeja de Entrada", icon: Home },
@@ -34,6 +35,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "history", label: "Historial", icon: History },
+      { id: "reports", label: "Libro de Recorrido", icon: BookOpen },
     ],
     conductor: [
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },

@@ -15,6 +15,7 @@ import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, T
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
+import LogbookReport from "@/components/LogbookReport";
 
 // ========== RUT VALIDATION (MÓDULO 11) ==========
 function validateRut(rut) {
@@ -236,6 +237,7 @@ export default function ShiftManagerDashboard_UTF8() {
                     {section === "vehicles" && <VehiclesSection />}
                     {section === "drivers" && <DriversSection />}
                     {section === "history" && <HistorySection />}
+                    {section === "reports" && <LogbookReport />}
                 </div>
             </main>
         </div>

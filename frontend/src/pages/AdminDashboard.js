@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import api from "@/lib/api";
+import LogbookReport from "@/components/LogbookReport";
 
 const COLORS_PIE = ["#0d9488", "#f59e0b", "#6366f1", "#ef4444", "#22c55e", "#8b5cf6"];
 const COLORS_STATUS = { "Pendiente": "#f59e0b", "Por Visar": "#a855f7", "Asignado": "#3b82f6", "En Curso": "#0d9488", "Completado": "#22c55e", "Cancelado": "#ef4444" };
@@ -29,6 +30,7 @@ export default function AdminDashboard() {
         {section === "trips" && <TripsManager />}
         {section === "vehicles" && <VehiclesManager />}
         {section === "drivers" && <DriversManager />}
+        {section === "reports" && <LogbookReport />}
       </main>
     </div>
   );
