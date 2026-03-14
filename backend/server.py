@@ -1176,9 +1176,8 @@ async def dashboard_stats(user=Depends(require_roles("coordinador", "admin", "ge
 from fastapi.responses import StreamingResponse
 import io
 
-@api_router.get("/reports/logbook")
-async def get_logbook_data(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
-    """Devuelve datos del libro de recorrido para un vehículo y rango de fechas."""
+async def _fetch_logbook_data(vehicle_id: str, start_date: str, end_date: str) -> dict:
+    """Función interna para obtener datos del libro de recorrido."""
     vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehículo no encontrado")
@@ -1204,11 +1203,14 @@ async def get_logbook_data(vehicle_id: str, start_date: str, end_date: str, user
 
     # Enriquecer datos con el autorizador de cada viaje
     for t in trips:
-        audit = await db.audit_logs.find_one(
-            {"entity_id": t["id"], "action": {"$in": ["aprobar", "manager_assign", "despachar"]}},
-            {"_id": 0, "user_name": 1, "user_role": 1}
-        )
-        t["authorized_by"] = audit["user_name"] if audit else t.get("requester_name", "Sistema")
+        try:
+            audit = await db.audit_logs.find_one(
+                {"entity_id": t["id"], "action": {"$in": ["aprobar", "manager_assign", "despachar"]}},
+                {"_id": 0, "user_name": 1, "user_role": 1}
+            )
+            t["authorized_by"] = audit["user_name"] if audit else t.get("requester_name", "Sistema")
+        except Exception:
+            t["authorized_by"] = t.get("requester_name", "Sistema")
 
     return {
         "vehicle": vehicle,
@@ -1218,13 +1220,17 @@ async def get_logbook_data(vehicle_id: str, start_date: str, end_date: str, user
         "incident_logs": incident_logs
     }
 
+@api_router.get("/reports/logbook")
+async def get_logbook_data(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
+    return await _fetch_logbook_data(vehicle_id, start_date, end_date)
 
-@api_router.get("/reports/logbook/excel")
+
+@api_router.get("/reports/logbook-excel")
 async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
-    data = await get_logbook_data(vehicle_id, start_date, end_date, user)
+    data = await _fetch_logbook_data(vehicle_id, start_date, end_date)
     vehicle = data["vehicle"]
     trips = data["trips"]
     fuel_logs = data["fuel_logs"]
@@ -1373,7 +1379,7 @@ async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, 
     )
 
 
-@api_router.get("/reports/logbook/pdf")
+@api_router.get("/reports/logbook-pdf")
 async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
     from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib import colors
@@ -1382,7 +1388,7 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-    data = await get_logbook_data(vehicle_id, start_date, end_date, user)
+    data = await _fetch_logbook_data(vehicle_id, start_date, end_date)
     vehicle = data["vehicle"]
     trips = data["trips"]
     fuel_logs = data["fuel_logs"]

@@ -51,7 +51,7 @@ export default function LogbookReport() {
     const setLoading = format === "pdf" ? setLoadingPdf : setLoadingExcel;
     setLoading(true);
     try {
-      const url = format === "pdf" ? "/reports/logbook/pdf" : "/reports/logbook/excel";
+      const url = format === "pdf" ? "/reports/logbook-pdf" : "/reports/logbook-excel";
       const res = await api.get(url, {
         params: { vehicle_id: vehicleId, start_date: startDate, end_date: endDate },
         responseType: "blob"
