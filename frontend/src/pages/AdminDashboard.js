@@ -38,15 +38,26 @@ function AdminOverview({ onNavigate }) {
   const [stats, setStats] = useState(null);
   const [advanced, setAdvanced] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    Promise.all([
-      api.get("/stats").then(r => r.data),
-      api.get("/stats/advanced").then(r => r.data),
-    ]).then(([s, a]) => {
-      setStats(s);
-      setAdvanced(a);
-    }).catch(() => {}).finally(() => setLoading(false));
+    const fetchData = async () => {
+      try {
+        const statsRes = await api.get("/stats");
+        setStats(statsRes.data);
+      } catch (e) {
+        console.error("Error cargando stats:", e);
+        setError("Error al cargar estadísticas básicas");
+      }
+      try {
+        const advRes = await api.get("/stats/advanced");
+        setAdvanced(advRes.data);
+      } catch (e) {
+        console.error("Error cargando stats avanzadas:", e);
+      }
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   if (loading) {
@@ -60,7 +71,27 @@ function AdminOverview({ onNavigate }) {
     );
   }
 
-  if (!stats || !advanced) return null;
+  if (!stats && !advanced) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center space-y-4">
+        <AlertTriangle className="w-16 h-16 text-amber-400 mx-auto" />
+        <p className="text-slate-700 font-bold text-lg">No se pudieron cargar las estadísticas</p>
+        <p className="text-slate-500 text-sm">{error || "Verifique que el backend esté corriendo."}</p>
+        <Button onClick={() => window.location.reload()} className="bg-teal-600 hover:bg-teal-700 text-white mt-2">
+          <RefreshCw className="w-4 h-4 mr-2" /> Reintentar
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (!stats) return null;
+
+  // Fallback si las estadísticas avanzadas no están disponibles aún
+  const adv = advanced || {
+    trips_today: 0, completed_today: 0, cancel_rate: 0, cancelled_trips: 0,
+    total_km: 0, daily_trends: [], status_distribution: [], type_distribution: [],
+    priority_distribution: [], top_destinations: [], top_drivers: [], users_by_role: []
+  };
 
   const completionRate = stats.total_trips > 0 ? Math.round(stats.completed_trips / stats.total_trips * 100) : 0;
 
@@ -80,8 +111,8 @@ function AdminOverview({ onNavigate }) {
       {/* KPI Cards Row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard 
-          label="Traslados Hoy" value={advanced.trips_today} 
-          sub={`${advanced.completed_today} completados`}
+          label="Traslados Hoy" value={adv.trips_today} 
+          sub={`${adv.completed_today} completados`}
           icon={<CalendarDays className="w-5 h-5" />} color="teal" onClick={() => onNavigate("trips")} />
         <KPICard 
           label="En Curso" value={stats.active_trips} 
@@ -92,8 +123,8 @@ function AdminOverview({ onNavigate }) {
           sub={`${stats.completed_trips} completados`}
           icon={<TrendingUp className="w-5 h-5" />} color="emerald" />
         <KPICard 
-          label="Tasa Cancelación" value={`${advanced.cancel_rate}%`} 
-          sub={`${advanced.cancelled_trips} cancelados`}
+          label="Tasa Cancelación" value={`${adv.cancel_rate}%`} 
+          sub={`${adv.cancelled_trips} cancelados`}
           icon={<Ban className="w-5 h-5" />} color="red" />
       </div>
 
@@ -108,7 +139,7 @@ function AdminOverview({ onNavigate }) {
           sub="Requieren acción"
           icon={<Clock className="w-5 h-5" />} color="amber" onClick={() => onNavigate("trips")} />
         <KPICard 
-          label="Km Recorridos" value={advanced.total_km.toLocaleString()} 
+          label="Km Recorridos" value={adv.total_km.toLocaleString()} 
           sub="Kilometraje total"
           icon={<Gauge className="w-5 h-5" />} color="violet" />
         <KPICard 
@@ -123,7 +154,7 @@ function AdminOverview({ onNavigate }) {
           <h2 className="text-lg font-bold text-slate-900 mb-1">Tendencia de Traslados</h2>
           <p className="text-xs text-slate-400 mb-4">Últimos 30 días</p>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={advanced.daily_trends} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+            <AreaChart data={adv.daily_trends} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
               <defs>
                 <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -158,8 +189,8 @@ function AdminOverview({ onNavigate }) {
             <p className="text-xs text-slate-400 mb-4">Distribución actual</p>
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={advanced.status_distribution} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} style={{ fontSize: 10, fontWeight: 700 }}>
-                  {advanced.status_distribution.map((entry, i) => (
+                <Pie data={adv.status_distribution} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} style={{ fontSize: 10, fontWeight: 700 }}>
+                  {adv.status_distribution.map((entry, i) => (
                     <Cell key={i} fill={COLORS_STATUS[entry.name] || COLORS_PIE[i % COLORS_PIE.length]} />
                   ))}
                 </Pie>
@@ -177,7 +208,7 @@ function AdminOverview({ onNavigate }) {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Por Tipo</p>
-                {advanced.type_distribution.map((t, i) => (
+                {adv.type_distribution.map((t, i) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ background: COLORS_PIE[i] }} />
@@ -189,7 +220,7 @@ function AdminOverview({ onNavigate }) {
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Por Prioridad</p>
-                {advanced.priority_distribution.map((p, i) => {
+                {adv.priority_distribution.map((p, i) => {
                   const priColor = { "Urgente": "#ef4444", "Normal": "#3b82f6", "Programado": "#22c55e" };
                   return (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
@@ -214,9 +245,9 @@ function AdminOverview({ onNavigate }) {
           <CardContent className="p-6">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Top 5 Destinos</h2>
             <p className="text-xs text-slate-400 mb-4">Destinos más frecuentes</p>
-            {advanced.top_destinations.length > 0 ? (
+            {adv.top_destinations.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={advanced.top_destinations} layout="vertical" margin={{ left: 10, right: 20 }}>
+                <BarChart data={adv.top_destinations} layout="vertical" margin={{ left: 10, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10, fill: "#475569", fontWeight: 600 }} />
@@ -235,10 +266,10 @@ function AdminOverview({ onNavigate }) {
           <CardContent className="p-6">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Top 5 Conductores</h2>
             <p className="text-xs text-slate-400 mb-4">Más viajes completados</p>
-            {advanced.top_drivers.length > 0 ? (
+            {adv.top_drivers.length > 0 ? (
               <div className="space-y-3">
-                {advanced.top_drivers.map((d, i) => {
-                  const maxViajes = advanced.top_drivers[0]?.viajes || 1;
+                {adv.top_drivers.map((d, i) => {
+                  const maxViajes = adv.top_drivers[0]?.viajes || 1;
                   const pct = Math.round(d.viajes / maxViajes * 100);
                   const medals = ["🥇", "🥈", "🥉"];
                   return (
@@ -299,10 +330,10 @@ function AdminOverview({ onNavigate }) {
         <Card className="shadow-sm border-0 ring-1 ring-slate-200/60 cursor-pointer hover:ring-teal-300 transition-all" onClick={() => onNavigate("users")}>
           <CardContent className="p-6">
             <h2 className="text-lg font-bold text-slate-900 mb-4">Usuarios por Rol</h2>
-            {advanced.users_by_role.length > 0 ? (
+            {adv.users_by_role.length > 0 ? (
               <div className="space-y-3">
-                {advanced.users_by_role.map((u, i) => {
-                  const total = advanced.users_by_role.reduce((a, b) => a + b.value, 0);
+                {adv.users_by_role.map((u, i) => {
+                  const total = adv.users_by_role.reduce((a, b) => a + b.value, 0);
                   const pct = Math.round(u.value / total * 100);
                   return (
                     <div key={i} className="space-y-1">
