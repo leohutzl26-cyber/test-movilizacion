@@ -1216,7 +1216,13 @@ async def _fetch_logbook_data(vehicle_id: str, start_date: str, end_date: str) -
         except:
             t["authorized_by"] = t.get("requester_name", "Sistema")
 
-    return {"vehicle": vehicle, "trips": trips, "fuel_logs": fuel, "incident_logs": incidents}
+    return {
+        "vehicle": vehicle,
+        "period": {"start": start_date, "end": end_date},
+        "trips": trips,
+        "fuel_logs": fuel,
+        "incident_logs": incidents
+    }
 
 @api_router.get("/reports/logbook")
 async def get_logbook_preview(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
