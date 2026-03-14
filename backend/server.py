@@ -1279,8 +1279,9 @@ async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, 
         output = io.BytesIO(); wb.save(output); content = output.getvalue(); output.close()
         return Response(content=content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate', 'VEH')}_{start_date}.xlsx"})
     except Exception as e:
+        logger.error(f"Excel error: {e}")
         traceback.print_exc()
-        logging.error(f"Excel error: {e}"); raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/reports/logbook-pdf")
 async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
@@ -1339,8 +1340,9 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
         doc.build(elements); content = output.getvalue(); output.close()
         return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate', 'VEH')}_{start_date}.pdf"})
     except Exception as e:
+        logger.error(f"PDF error: {e}")
         traceback.print_exc()
-        logging.error(f"PDF error: {e}"); raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 app.include_router(api_router)
 
