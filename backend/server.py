@@ -299,7 +299,11 @@ async def log_action(user_id: str, user_name: str, user_role: str, action: str, 
         "details": details,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
-    await db.audit_logs.insert_one(entry)
+    print(f"AUDIT LOG: {action} on {entity_type} ({entity_id}) by {user_name} - {details}")
+    try:
+        await db.audit_logs.insert_one(entry)
+    except Exception as e:
+        logger.error(f"Error saving audit log: {e}")
 
 # ============ ENDPOINTS GENERALES ============
 
