@@ -1184,6 +1184,8 @@ async def dashboard_stats(user=Depends(require_roles("coordinador", "admin", "ge
 
 # ============ REPORTS: LIBRO DE CONTROL DE RECORRIDO ============
 
+import traceback
+
 async def _fetch_logbook_data(vehicle_id: str, start_date: str, end_date: str) -> dict:
     vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
     if not vehicle: raise HTTPException(status_code=404, detail="Vehículo no encontrado")
@@ -1197,13 +1199,13 @@ async def _fetch_logbook_data(vehicle_id: str, start_date: str, end_date: str) -
     fuel = await db.logbook.find({
         "vehicle_id": vehicle_id,
         "type": "fuel",
-        "timestamp": {"$gte": start_date, "$lte": end_date + "T23:59:59"}
+        "timestamp": {"$gte": start_date, "$lte": f"{end_date}T23:59:59"}
     }, {"_id": 0}).sort("timestamp", 1).to_list(500)
 
     incidents = await db.logbook.find({
         "vehicle_id": vehicle_id,
         "type": "incident",
-        "timestamp": {"$gte": start_date, "$lte": end_date + "T23:59:59"}
+        "timestamp": {"$gte": start_date, "$lte": f"{end_date}T23:59:59"}
     }, {"_id": 0}).sort("timestamp", 1).to_list(500)
 
     for t in trips:
@@ -1235,13 +1237,12 @@ async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, 
         v = data["vehicle"]
         wb = Workbook(); ws = wb.active; ws.title = "Libro de Recorrido"
         
-        # Estilos resumidos
         h_fill = PatternFill(start_color="1a5276", end_color="1a5276", fill_type="solid")
         white_font = Font(color="FFFFFF", bold=True)
         thin = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
 
         ws.merge_cells("A1:M1")
-        ws["A1"] = f"LIBRO DE RECORRIDO - {v.get('plate')} ({start_date} al {end_date})"
+        ws["A1"] = f"LIBRO DE RECORRIDO - {v.get('plate', 'N/A')} ({v.get('brand', '')} {v.get('model', '')})"
         ws["A1"].font = Font(size=14, bold=True)
         ws["A1"].alignment = Alignment(horizontal="center")
 
@@ -1251,14 +1252,18 @@ async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, 
             c.fill = h_fill; c.font = white_font; c.border = thin
 
         row = 4
-        total_km = 0
+        total_km = 0.0
         for t in data["trips"]:
-            s_km = t.get("start_mileage", 0) or 0
-            e_km = t.get("end_mileage", 0) or 0
-            k_r = round(e_km - s_km, 1) if e_km > s_km else 0
+            try:
+                s_km = float(t.get("start_mileage") or 0)
+                e_km = float(t.get("end_mileage") or 0)
+            except (ValueError, TypeError):
+                s_km, e_km = 0.0, 0.0
+                
+            k_r = round(max(0, e_km - s_km), 1)
             total_km += k_r
-            h_s = t.get("departure_time") or (t.get("created_at", "")[:16].split("T")[1] if "T" in t.get("created_at", "") else "")
-            h_l = (t["completed_at"][:16].split("T")[1] if t.get("completed_at") and "T" in t["completed_at"] else "")
+            h_s = t.get("departure_time") or (t.get("created_at", "")[11:16] if "T" in t.get("created_at", "") else "")
+            h_l = (t.get("completed_at", "")[11:16] if t.get("completed_at") and "T" in t.get("completed_at", "") else "")
             
             vals = [t.get("scheduled_date", ""), h_s, h_l, s_km, e_km, k_r, t.get("origin", ""), t.get("destination", ""), t.get("transfer_reason", ""), t.get("driver_name", ""), t.get("clinical_team", ""), t.get("authorized_by", ""), t.get("tracking_number", "")]
             for i, val in enumerate(vals, 1):
@@ -1270,8 +1275,10 @@ async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, 
         ws.cell(row=row, column=6, value=total_km).font = Font(bold=True)
 
         output = io.BytesIO(); wb.save(output); content = output.getvalue(); output.close()
-        return Response(content=content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate')}_{start_date}.xlsx"})
+        return Response(content=content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate', 'VEH')}_{start_date}.xlsx"})
     except Exception as e:
+        print("EXCEL ERROR TRACEBACK:")
+        traceback.print_exc()
         logging.error(f"Excel error: {e}"); raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/reports/logbook-pdf")
@@ -1286,38 +1293,53 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
         styles.add(ParagraphStyle(name="CB", fontSize=8, fontName="Helvetica-Bold"))
         
         elements = [Paragraph(f"LIBRO DE RECORRIDO - HOSPITAL DE CURICÓ", styles["Title"]), Spacer(1, 5*mm)]
-        elements.append(Paragraph(f"Vehículo: {v.get('plate')} ({v.get('brand')} {v.get('model')})&nbsp;&nbsp;&nbsp;Período: {start_date} al {end_date}", styles["Normal"]))
+        elements.append(Paragraph(f"Vehículo: {v.get('plate', 'N/A')} ({v.get('brand', '')} {v.get('model', '')})&nbsp;&nbsp;&nbsp;Período: {start_date} al {end_date}", styles["Normal"]))
         elements.append(Spacer(1, 5*mm))
 
         h = ["Fecha", "Salida", "Llegada", "Km Ini", "Km Fin", "Km Rec", "Origen", "Destino", "Motivo", "Conductor", "Autorizado"]
         t_data = [[Paragraph(x, styles["CB"]) for x in h]]
-        total_km = 0
+        total_km = 0.0
         for t in data["trips"]:
-            s_km = t.get("start_mileage", 0) or 0
-            e_km = t.get("end_mileage", 0) or 0
-            k_r = round(e_km - s_km, 1) if e_km > s_km else 0
+            try:
+                s_km = float(t.get("start_mileage") or 0)
+                e_km = float(t.get("end_mileage") or 0)
+            except (ValueError, TypeError):
+                s_km, e_km = 0.0, 0.0
+            k_r = round(max(0, e_km - s_km), 1)
             total_km += k_r
-            t_data.append([t.get("scheduled_date", ""), "", "", str(s_km), str(e_km), str(k_r), Paragraph(t.get("origin","")[:20], styles["CT"]), Paragraph(t.get("destination","")[:20], styles["CT"]), Paragraph(t.get("transfer_reason","")[:25], styles["CT"]), Paragraph(t.get("driver_name",""), styles["CT"]), Paragraph(t.get("authorized_by",""), styles["CT"])])
+            
+            orig = (t.get("origin") or "")[:25]
+            dest = (t.get("destination") or "")[:25]
+            motv = (t.get("transfer_reason") or t.get("task_details") or "")[:30]
+            drvr = (t.get("driver_name") or "")[:20]
+            auth = (t.get("authorized_by") or "")[:20]
+            
+            t_data.append([
+                t.get("scheduled_date", ""), "", "", str(s_km), str(e_km), str(k_r), 
+                Paragraph(orig, styles["CT"]), Paragraph(dest, styles["CT"]), 
+                Paragraph(motv, styles["CT"]), Paragraph(drvr, styles["CT"]), 
+                Paragraph(auth, styles["CT"])
+            ])
 
         t = Table(t_data, colWidths=[55, 35, 35, 40, 40, 40, 75, 75, 90, 70, 70])
         t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a5276")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.5, colors.grey), ("FONTSIZE", (0, 0), (-1, -1), 6.5), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
         elements.append(t)
         
-        # Observaciones si hay incidentes
         if data["incident_logs"]:
             elements.append(Spacer(1, 10*mm))
             elements.append(Paragraph("OBSERVACIONES / NOVEDADES", styles["CB"]))
             for inc in data["incident_logs"]:
-                elements.append(Paragraph(f"- {inc.get('timestamp','')[:10]}: {inc.get('description')}", styles["CT"]))
+                elements.append(Paragraph(f"- {str(inc.get('timestamp',''))[:10]}: {str(inc.get('description',''))}", styles["CT"]))
 
-        # Firmas
         elements.append(Spacer(1, 15*mm))
         elements.append(Paragraph("_______________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_______________________________", styles["Normal"]))
         elements.append(Paragraph("<b>FIRMA CONDUCTOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FIRMA JEFATURA</b>", styles["Normal"]))
 
         doc.build(elements); content = output.getvalue(); output.close()
-        return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate')}_{start_date}.pdf"})
+        return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate', 'VEH')}_{start_date}.pdf"})
     except Exception as e:
+        print("PDF ERROR TRACEBACK:")
+        traceback.print_exc()
         logging.error(f"PDF error: {e}"); raise HTTPException(status_code=500, detail=str(e))
 
 app.include_router(api_router)
