@@ -18,6 +18,21 @@ from datetime import datetime, timezone, timedelta
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 import resend
+from fastapi.responses import Response, StreamingResponse
+import io
+
+# Report dependencies
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+except ImportError as e:
+    logging.warning(f"Librerías de reportes no instaladas: {e}")
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1171,375 +1186,135 @@ async def dashboard_stats(user=Depends(require_roles("coordinador", "admin", "ge
         "avg_km_per_trip": avg_km,
     }
 
+
+
 # ============ REPORTS: LIBRO DE CONTROL DE RECORRIDO ============
 
-from fastapi.responses import StreamingResponse
-import io
-
 async def _fetch_logbook_data(vehicle_id: str, start_date: str, end_date: str) -> dict:
-    """Función interna para obtener datos del libro de recorrido."""
     vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
-    if not vehicle:
-        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    if not vehicle: raise HTTPException(status_code=404, detail="Vehículo no encontrado")
 
     trips = await db.trips.find({
         "vehicle_id": vehicle_id,
         "scheduled_date": {"$gte": start_date, "$lte": end_date},
         "status": {"$in": ["completado", "en_curso", "asignado"]}
-    }, {"_id": 0}).sort("scheduled_date", 1).to_list(50000)
+    }, {"_id": 0}).sort("scheduled_date", 1).to_list(1000)
 
-    # Obtener registros de bitácora (combustible, incidentes)
-    fuel_logs = await db.logbook.find({
+    fuel = await db.logbook.find({
         "vehicle_id": vehicle_id,
         "type": "fuel",
         "timestamp": {"$gte": start_date, "$lte": end_date + "T23:59:59"}
-    }, {"_id": 0}).sort("timestamp", 1).to_list(5000)
+    }, {"_id": 0}).sort("timestamp", 1).to_list(500)
 
-    incident_logs = await db.logbook.find({
+    incidents = await db.logbook.find({
         "vehicle_id": vehicle_id,
         "type": "incident",
         "timestamp": {"$gte": start_date, "$lte": end_date + "T23:59:59"}
-    }, {"_id": 0}).sort("timestamp", 1).to_list(5000)
+    }, {"_id": 0}).sort("timestamp", 1).to_list(500)
 
-    # Enriquecer datos con el autorizador de cada viaje
     for t in trips:
         try:
             audit = await db.audit_logs.find_one(
                 {"entity_id": t["id"], "action": {"$in": ["aprobar", "manager_assign", "despachar"]}},
-                {"_id": 0, "user_name": 1, "user_role": 1}
+                {"_id": 0, "user_name": 1}
             )
             t["authorized_by"] = audit["user_name"] if audit else t.get("requester_name", "Sistema")
-        except Exception:
+        except:
             t["authorized_by"] = t.get("requester_name", "Sistema")
 
-    return {
-        "vehicle": vehicle,
-        "period": {"start": start_date, "end": end_date},
-        "trips": trips,
-        "fuel_logs": fuel_logs,
-        "incident_logs": incident_logs
-    }
-
-@api_router.get("/reports/logbook")
-async def get_logbook_data(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
-    return await _fetch_logbook_data(vehicle_id, start_date, end_date)
-
+    return {"vehicle": vehicle, "trips": trips, "fuel_logs": fuel, "incident_logs": incidents}
 
 @api_router.get("/reports/logbook-excel")
 async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    try:
+        data = await _fetch_logbook_data(vehicle_id, start_date, end_date)
+        v = data["vehicle"]
+        wb = Workbook(); ws = wb.active; ws.title = "Libro de Recorrido"
+        
+        # Estilos resumidos
+        h_fill = PatternFill(start_color="1a5276", end_color="1a5276", fill_type="solid")
+        white_font = Font(color="FFFFFF", bold=True)
+        thin = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
 
-    data = await _fetch_logbook_data(vehicle_id, start_date, end_date)
-    vehicle = data["vehicle"]
-    trips = data["trips"]
-    fuel_logs = data["fuel_logs"]
+        ws.merge_cells("A1:M1")
+        ws["A1"] = f"LIBRO DE RECORRIDO - {v.get('plate')} ({start_date} al {end_date})"
+        ws["A1"].font = Font(size=14, bold=True)
+        ws["A1"].alignment = Alignment(horizontal="center")
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Libro de Recorrido"
+        headers = ["Fecha", "Salida", "Llegada", "Km Ini", "Km Fin", "Km Rec", "Origen", "Destino", "Motivo", "Conductor", "Pasajeros", "Autorizado", "Folio"]
+        for i, h in enumerate(headers, 1):
+            c = ws.cell(row=3, column=i, value=h)
+            c.fill = h_fill; c.font = white_font; c.border = thin
 
-    # Estilos
-    header_font = Font(name="Arial", bold=True, size=12)
-    subheader_font = Font(name="Arial", bold=True, size=10)
-    cell_font = Font(name="Arial", size=9)
-    bold_cell = Font(name="Arial", bold=True, size=9)
-    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    left = Alignment(horizontal="left", vertical="center", wrap_text=True)
-    thin_border = Border(
-        left=Side(style="thin"), right=Side(style="thin"),
-        top=Side(style="thin"), bottom=Side(style="thin")
-    )
-    header_fill = PatternFill(start_color="1a5276", end_color="1a5276", fill_type="solid")
-    header_text = Font(name="Arial", bold=True, size=9, color="FFFFFF")
-
-    # Encabezado
-    ws.merge_cells("A1:M1")
-    ws["A1"] = "LIBRO DE CONTROL DE RECORRIDO - HOSPITAL DE CURICÓ"
-    ws["A1"].font = Font(name="Arial", bold=True, size=14)
-    ws["A1"].alignment = center
-
-    ws.merge_cells("A2:M2")
-    ws["A2"] = "Unidad de Movilización"
-    ws["A2"].font = header_font
-    ws["A2"].alignment = center
-
-    ws["A4"] = "Vehículo:"
-    ws["A4"].font = subheader_font
-    ws["B4"] = f"{vehicle.get('plate', '')} - {vehicle.get('brand', '')} {vehicle.get('model', '')} ({vehicle.get('year', '')})"
-    ws["B4"].font = cell_font
-
-    ws["A5"] = "Período:"
-    ws["A5"].font = subheader_font
-    ws["B5"] = f"Desde {start_date} hasta {end_date}"
-    ws["B5"].font = cell_font
-
-    # Columnas de la tabla principal
-    columns = ["Fecha", "Hora Salida", "Hora Llegada", "Km Salida", "Km Llegada", "Km Recorridos",
-                "Origen", "Destino", "Motivo/Cometido", "Conductor", "Pasajeros/Apoyo", "Autorizado Por", "Folio"]
-    row = 7
-    for col_idx, col_name in enumerate(columns, 1):
-        cell = ws.cell(row=row, column=col_idx, value=col_name)
-        cell.font = header_text
-        cell.fill = header_fill
-        cell.alignment = center
-        cell.border = thin_border
-
-    # Datos de viajes
-    total_km = 0
-    for t in trips:
-        row += 1
-        start_km = t.get("start_mileage", 0) or 0
-        end_km = t.get("end_mileage", 0) or 0
-        km_recorridos = round(end_km - start_km, 1) if end_km > start_km else 0
-        total_km += km_recorridos
-
-        # Determinar motivo
-        motivo = t.get("transfer_reason") or t.get("task_details") or t.get("notes") or t.get("diagnosis") or "Sin especificar"
-
-        # Pasajeros
-        pasajeros = t.get("clinical_team") or t.get("patient_name") or ""
-        if t.get("accompaniment"):
-            pasajeros += f" + {t['accompaniment']}"
-
-        # Hora salida/llegada
-        hora_salida = ""
-        hora_llegada = ""
-        if t.get("updated_at") and t.get("status") in ["en_curso", "completado"]:
-            hora_salida = t.get("departure_time") or (t.get("created_at", "")[:16].split("T")[1] if "T" in t.get("created_at", "") else "")
-        if t.get("completed_at"):
-            hora_llegada = t["completed_at"][:16].split("T")[1] if "T" in t["completed_at"] else ""
-
-        values = [
-            t.get("scheduled_date", ""),
-            hora_salida,
-            hora_llegada,
-            start_km,
-            end_km,
-            km_recorridos,
-            t.get("origin", ""),
-            t.get("destination", ""),
-            motivo,
-            t.get("driver_name", "Sin asignar"),
-            pasajeros,
-            t.get("authorized_by", ""),
-            t.get("tracking_number", "")
-        ]
-        for col_idx, val in enumerate(values, 1):
-            cell = ws.cell(row=row, column=col_idx, value=val)
-            cell.font = cell_font
-            cell.alignment = left if col_idx >= 7 else center
-            cell.border = thin_border
-
-    # Fila totales
-    row += 1
-    ws.cell(row=row, column=5, value="TOTAL KM:").font = bold_cell
-    ws.cell(row=row, column=6, value=total_km).font = bold_cell
-    ws.cell(row=row, column=1, value=f"Total Viajes: {len(trips)}").font = bold_cell
-
-    # Hoja de Combustible
-    if fuel_logs:
-        row += 3
-        ws.merge_cells(f"A{row}:F{row}")
-        ws.cell(row=row, column=1, value="REGISTRO DE CARGAS DE COMBUSTIBLE").font = header_font
-
-        row += 1
-        fuel_cols = ["Fecha", "Kilometraje", "Litros", "Monto ($)", "N° Boleta", "Conductor"]
-        for col_idx, col_name in enumerate(fuel_cols, 1):
-            cell = ws.cell(row=row, column=col_idx, value=col_name)
-            cell.font = header_text
-            cell.fill = PatternFill(start_color="7d3c98", end_color="7d3c98", fill_type="solid")
-            cell.alignment = center
-            cell.border = thin_border
-
-        for fl in fuel_logs:
+        row = 4
+        total_km = 0
+        for t in data["trips"]:
+            s_km = t.get("start_mileage", 0) or 0
+            e_km = t.get("end_mileage", 0) or 0
+            k_r = round(e_km - s_km, 1) if e_km > s_km else 0
+            total_km += k_r
+            h_s = t.get("departure_time") or (t.get("created_at", "")[:16].split("T")[1] if "T" in t.get("created_at", "") else "")
+            h_l = (t["completed_at"][:16].split("T")[1] if t.get("completed_at") and "T" in t["completed_at"] else "")
+            
+            vals = [t.get("scheduled_date", ""), h_s, h_l, s_km, e_km, k_r, t.get("origin", ""), t.get("destination", ""), t.get("transfer_reason", ""), t.get("driver_name", ""), t.get("clinical_team", ""), t.get("authorized_by", ""), t.get("tracking_number", "")]
+            for i, val in enumerate(vals, 1):
+                cell = ws.cell(row=row, column=i, value=val)
+                cell.border = thin
             row += 1
-            fuel_date = fl.get("timestamp", "")[:10]
-            fuel_vals = [fuel_date, fl.get("mileage", 0), fl.get("liters", 0), fl.get("amount", 0), fl.get("receipt_number", ""), fl.get("driver_name", "")]
-            for col_idx, val in enumerate(fuel_vals, 1):
-                cell = ws.cell(row=row, column=col_idx, value=val)
-                cell.font = cell_font
-                cell.alignment = center
-                cell.border = thin_border
+        
+        ws.cell(row=row, column=5, value="TOTAL KM:").font = Font(bold=True)
+        ws.cell(row=row, column=6, value=total_km).font = Font(bold=True)
 
-    # Ancho de columnas
-    widths = [12, 12, 12, 12, 12, 13, 22, 22, 35, 20, 25, 20, 15]
-    for i, w in enumerate(widths, 1):
-        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = w
-
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
-
-    filename = f"Libro_Recorrido_{vehicle.get('plate', 'VEH')}_{start_date}_{end_date}.xlsx"
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
-
+        output = io.BytesIO(); wb.save(output); content = output.getvalue(); output.close()
+        return Response(content=content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate')}_{start_date}.xlsx"})
+    except Exception as e:
+        logging.error(f"Excel error: {e}"); raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/reports/logbook-pdf")
 async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
-    from reportlab.lib.pagesizes import landscape, letter
-    from reportlab.lib import colors
-    from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    try:
+        data = await _fetch_logbook_data(vehicle_id, start_date, end_date)
+        v = data["vehicle"]
+        output = io.BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=landscape(letter), topMargin=10*mm, bottomMargin=10*mm)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name="CT", fontSize=6.5, leading=8))
+        styles.add(ParagraphStyle(name="CB", fontSize=8, fontName="Helvetica-Bold"))
+        
+        elements = [Paragraph(f"LIBRO DE RECORRIDO - HOSPITAL DE CURICÓ", styles["Title"]), Spacer(1, 5*mm)]
+        elements.append(Paragraph(f"Vehículo: {v.get('plate')} ({v.get('brand')} {v.get('model')})&nbsp;&nbsp;&nbsp;Período: {start_date} al {end_date}", styles["Normal"]))
+        elements.append(Spacer(1, 5*mm))
 
-    data = await _fetch_logbook_data(vehicle_id, start_date, end_date)
-    vehicle = data["vehicle"]
-    trips = data["trips"]
-    fuel_logs = data["fuel_logs"]
-    incident_logs = data["incident_logs"]
+        h = ["Fecha", "Salida", "Llegada", "Km Ini", "Km Fin", "Km Rec", "Origen", "Destino", "Motivo", "Conductor", "Autorizado"]
+        t_data = [[Paragraph(x, styles["CB"]) for x in h]]
+        total_km = 0
+        for t in data["trips"]:
+            s_km = t.get("start_mileage", 0) or 0
+            e_km = t.get("end_mileage", 0) or 0
+            k_r = round(e_km - s_km, 1) if e_km > s_km else 0
+            total_km += k_r
+            t_data.append([t.get("scheduled_date", ""), "", "", str(s_km), str(e_km), str(k_r), Paragraph(t.get("origin","")[:20], styles["CT"]), Paragraph(t.get("destination","")[:20], styles["CT"]), Paragraph(t.get("transfer_reason","")[:25], styles["CT"]), Paragraph(t.get("driver_name",""), styles["CT"]), Paragraph(t.get("authorized_by",""), styles["CT"])])
 
-    output = io.BytesIO()
-    doc = SimpleDocTemplate(output, pagesize=landscape(letter), topMargin=15*mm, bottomMargin=15*mm, leftMargin=10*mm, rightMargin=10*mm)
+        t = Table(t_data, colWidths=[55, 35, 35, 40, 40, 40, 75, 75, 90, 70, 70])
+        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a5276")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.5, colors.grey), ("FONTSIZE", (0, 0), (-1, -1), 6.5), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+        elements.append(t)
+        
+        # Observaciones si hay incidentes
+        if data["incident_logs"]:
+            elements.append(Spacer(1, 10*mm))
+            elements.append(Paragraph("OBSERVACIONES / NOVEDADES", styles["CB"]))
+            for inc in data["incident_logs"]:
+                elements.append(Paragraph(f"- {inc.get('timestamp','')[:10]}: {inc.get('description')}", styles["CT"]))
 
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="CellText", fontSize=6.5, leading=8, fontName="Helvetica"))
-    styles.add(ParagraphStyle(name="CellBold", fontSize=6.5, leading=8, fontName="Helvetica-Bold"))
-    styles.add(ParagraphStyle(name="TitleCenter", fontSize=13, alignment=TA_CENTER, fontName="Helvetica-Bold", spaceAfter=2*mm))
-    styles.add(ParagraphStyle(name="SubTitle", fontSize=9, alignment=TA_CENTER, fontName="Helvetica", spaceAfter=3*mm))
-    styles.add(ParagraphStyle(name="SectionTitle", fontSize=10, fontName="Helvetica-Bold", spaceAfter=2*mm, spaceBefore=5*mm))
+        # Firmas
+        elements.append(Spacer(1, 15*mm))
+        elements.append(Paragraph("_______________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_______________________________", styles["Normal"]))
+        elements.append(Paragraph("<b>FIRMA CONDUCTOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FIRMA JEFATURA</b>", styles["Normal"]))
 
-    elements = []
-
-    # Encabezado
-    elements.append(Paragraph("LIBRO DE CONTROL DE RECORRIDO", styles["TitleCenter"]))
-    elements.append(Paragraph("HOSPITAL DE CURICÓ - UNIDAD DE MOVILIZACIÓN", styles["SubTitle"]))
-    elements.append(Paragraph(
-        f"<b>Vehículo:</b> {vehicle.get('plate', '')} — {vehicle.get('brand', '')} {vehicle.get('model', '')} ({vehicle.get('year', '')})&nbsp;&nbsp;&nbsp;&nbsp;"
-        f"<b>Período:</b> {start_date} al {end_date}",
-        ParagraphStyle(name="VehicleInfo", fontSize=8, fontName="Helvetica", alignment=TA_CENTER, spaceAfter=4*mm)
-    ))
-
-    # Tabla principal
-    col_headers = ["Fecha", "H.Salida", "H.Llegada", "Km Ini", "Km Fin", "Km Rec.", "Origen", "Destino", "Motivo / Cometido", "Conductor", "Pasajeros", "Autorizado", "Folio"]
-    table_data = [[Paragraph(h, styles["CellBold"]) for h in col_headers]]
-
-    total_km = 0
-    for t in trips:
-        start_km = t.get("start_mileage", 0) or 0
-        end_km = t.get("end_mileage", 0) or 0
-        km_rec = round(end_km - start_km, 1) if end_km > start_km else 0
-        total_km += km_rec
-
-        motivo = t.get("transfer_reason") or t.get("task_details") or t.get("notes") or t.get("diagnosis") or "—"
-        pasajeros = t.get("clinical_team") or t.get("patient_name") or ""
-        if t.get("accompaniment"):
-            pasajeros += f", {t['accompaniment']}"
-
-        hora_s = t.get("departure_time") or (t.get("created_at", "")[:16].split("T")[1] if "T" in t.get("created_at", "") else "—")
-        hora_l = (t["completed_at"][:16].split("T")[1] if t.get("completed_at") and "T" in t["completed_at"] else "—")
-
-        row_data = [
-            Paragraph(t.get("scheduled_date", ""), styles["CellText"]),
-            Paragraph(str(hora_s), styles["CellText"]),
-            Paragraph(str(hora_l), styles["CellText"]),
-            Paragraph(str(start_km), styles["CellText"]),
-            Paragraph(str(end_km), styles["CellText"]),
-            Paragraph(str(km_rec), styles["CellBold"]),
-            Paragraph(t.get("origin", ""), styles["CellText"]),
-            Paragraph(t.get("destination", ""), styles["CellText"]),
-            Paragraph(motivo[:80], styles["CellText"]),
-            Paragraph(t.get("driver_name", "—"), styles["CellText"]),
-            Paragraph(pasajeros[:50], styles["CellText"]),
-            Paragraph(t.get("authorized_by", "—"), styles["CellText"]),
-            Paragraph(t.get("tracking_number", ""), styles["CellText"]),
-        ]
-        table_data.append(row_data)
-
-    # Fila de totales
-    total_row = ["", "", "", "", Paragraph("TOTAL:", styles["CellBold"]), Paragraph(str(round(total_km, 1)), styles["CellBold"]),
-                 "", "", "", Paragraph(f"Total viajes: {len(trips)}", styles["CellBold"]), "", "", ""]
-    table_data.append(total_row)
-
-    col_widths = [55, 38, 38, 35, 35, 35, 70, 70, 100, 55, 65, 55, 50]
-    t = Table(table_data, colWidths=col_widths, repeatRows=1)
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a5276")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTSIZE", (0, 0), (-1, 0), 6.5),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#f0f4f8")]),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#eaf2f8")),
-    ]))
-    elements.append(t)
-
-    # Sección de Combustible
-    if fuel_logs:
-        elements.append(Spacer(1, 6*mm))
-        elements.append(Paragraph("REGISTRO DE CARGAS DE COMBUSTIBLE", styles["SectionTitle"]))
-        fuel_headers = ["Fecha", "Km al Cargar", "Litros", "Monto ($)", "N° Boleta", "Conductor"]
-        fuel_data = [[Paragraph(h, styles["CellBold"]) for h in fuel_headers]]
-        for fl in fuel_logs:
-            fuel_data.append([
-                Paragraph(fl.get("timestamp", "")[:10], styles["CellText"]),
-                Paragraph(str(fl.get("mileage", 0)), styles["CellText"]),
-                Paragraph(str(fl.get("liters", 0)), styles["CellText"]),
-                Paragraph(f"${fl.get('amount', 0):,.0f}", styles["CellText"]),
-                Paragraph(fl.get("receipt_number", "—"), styles["CellText"]),
-                Paragraph(fl.get("driver_name", "—"), styles["CellText"]),
-            ])
-        ft = Table(fuel_data, colWidths=[70, 70, 50, 70, 70, 100])
-        ft.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#7d3c98")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
-        elements.append(ft)
-
-    # Observaciones / Incidentes
-    if incident_logs:
-        elements.append(Spacer(1, 6*mm))
-        elements.append(Paragraph("OBSERVACIONES Y NOVEDADES", styles["SectionTitle"]))
-        for inc in incident_logs:
-            elements.append(Paragraph(
-                f"<b>{inc.get('timestamp', '')[:10]} — {inc.get('incident_type', '').upper()} ({inc.get('severity', '')}):</b> "
-                f"{inc.get('description', '')} — Reportado por: {inc.get('driver_name', 'N/A')}",
-                styles["CellText"]
-            ))
-            elements.append(Spacer(1, 2*mm))
-
-    # Cuadro de Firmas
-    elements.append(Spacer(1, 12*mm))
-    elements.append(Paragraph("CUADRO DE FIRMAS Y VALIDACIÓN", styles["SectionTitle"]))
-    sig_data = [
-        ["", ""],
-        ["", ""],
-        ["", ""],
-        ["_______________________________", "_______________________________"],
-        [Paragraph("<b>Firma Conductor(es)</b>", ParagraphStyle(name="s1", fontSize=8, alignment=TA_CENTER, fontName="Helvetica-Bold")),
-         Paragraph("<b>Firma Jefatura</b><br/>(Jefe de Movilización / Dir. Administrativo)", ParagraphStyle(name="s2", fontSize=8, alignment=TA_CENTER, fontName="Helvetica-Bold"))],
-        ["Nombre: _______________________", "Nombre: _______________________"],
-        ["RUT: __________________________", "RUT: __________________________"],
-        ["", "Timbre: "],
-    ]
-    sig_table = Table(sig_data, colWidths=[280, 280])
-    sig_table.setStyle(TableStyle([
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-    ]))
-    elements.append(sig_table)
-
-    doc.build(elements)
-    output.seek(0)
-
-    filename = f"Libro_Recorrido_{vehicle.get('plate', 'VEH')}_{start_date}_{end_date}.pdf"
-    return StreamingResponse(
-        output,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+        doc.build(elements); content = output.getvalue(); output.close()
+        return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate')}_{start_date}.pdf"})
+    except Exception as e:
+        logging.error(f"PDF error: {e}"); raise HTTPException(status_code=500, detail=str(e))
 
 app.include_router(api_router)
 
