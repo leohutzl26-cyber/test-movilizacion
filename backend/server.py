@@ -526,11 +526,15 @@ async def create_trip(data: TripCreate, user=Depends(require_roles("solicitante"
 
 @api_router.get("/trips")
 async def list_trips(user=Depends(get_current_user)):
-    query = {}
-    if user["role"] == "solicitante": query["requester_id"] = user["id"]
-    elif user["role"] == "conductor": query["driver_id"] = user["id"]
-    trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    return trips
+    try:
+        query = {}
+        if user["role"] == "solicitante": query["requester_id"] = user["id"]
+        elif user["role"] == "conductor": query["driver_id"] = user["id"]
+        trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+        return trips
+    except Exception as e:
+        logger.error(f"Error list_trips: {e}")
+        return []
 
 @api_router.get("/trips/pool")
 async def trip_pool(user=Depends(require_roles("conductor", "coordinador", "gestion_camas"))):
@@ -568,14 +572,20 @@ async def approve_trip_gestor(trip_id: str, data: TripUpdate, user=Depends(requi
 
 @api_router.get("/trips/active")
 async def active_trips(user=Depends(require_roles("coordinador", "admin", "gestion_camas"))):
-    trips = await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    for t in trips:
-        if t.get("vehicle_id"):
-            v = await db.vehicles.find_one({"id": t["vehicle_id"]}, {"_id": 0, "plate": 1, "type": 1})
-            if v:
-                t["vehicle_plate"] = v.get("plate", "")
-                t["vehicle_type"] = v.get("type", "Auto/SUV")
-    return trips
+    try:
+        trips = await db.trips.find({"status": {"$in": ["pendiente", "asignado", "en_curso"]}}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+        for t in trips:
+            if t.get("vehicle_id"):
+                try:
+                    v = await db.vehicles.find_one({"id": t["vehicle_id"]}, {"_id": 0, "plate": 1, "type": 1})
+                    if v:
+                        t["vehicle_plate"] = v.get("plate", "")
+                        t["vehicle_type"] = v.get("type", "Auto/SUV")
+                except: pass
+        return trips
+    except Exception as e:
+        logger.error(f"Error active_trips: {e}")
+        return []
 
 @api_router.get("/trips/history")
 async def trips_history(
@@ -587,26 +597,40 @@ async def trips_history(
     end_date: Optional[str] = None,
     user=Depends(require_roles("coordinador", "admin", "gestion_camas"))
 ):
-    query: dict[str, Any] = {}
+    try:
+        query: dict[str, Any] = {}
+        if status: query["status"] = status
+        if trip_type: query["trip_type"] = trip_type
+        if patient_name: query["patient_name"] = {"$regex": patient_name, "$options": "i"}
+        if folio: query["tracking_number"] = {"$regex": folio, "$options": "i"}
+        
+        if start_date or end_date:
+            query["scheduled_date"] = {}
+            if start_date: query["scheduled_date"]["$gte"] = start_date
+            if end_date: query["scheduled_date"]["$lte"] = end_date
 
-    if status: query["status"] = status
-    if trip_type: query["trip_type"] = trip_type
-    if patient_name: query["patient_name"] = {"$regex": patient_name, "$options": "i"}
-    if folio: query["tracking_number"] = {"$regex": folio, "$options": "i"}
-    
-    if start_date or end_date:
-        query["scheduled_date"] = {}
-        if start_date: query["scheduled_date"]["$gte"] = start_date
-        if end_date: query["scheduled_date"]["$lte"] = end_date
+        trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(5000)
+        vehicle_ids = list(set(t.get("vehicle_id") for t in trips if t.get("vehicle_id")))
+        
+        vehicles_map = {}
+        if vehicle_ids:
+            try:
+                found_vehs = await db.vehicles.find({"id": {"$in": vehicle_ids}}, {"_id": 0, "id": 1, "plate": 1, "type": 1}).to_list(len(vehicle_ids))
+                for v in found_vehs:
+                    if "id" in v:
+                        vehicles_map[v["id"]] = {"plate": v.get("plate", ""), "type": v.get("type", "Auto/SUV")}
+            except Exception as ev:
+                logger.error(f"Error lookup vehicles map: {ev}")
 
-    trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(5000)
-    vehicle_ids = list(set(t.get("vehicle_id") for t in trips if t.get("vehicle_id")))
-    vehicles_map = {v["id"]: {"plate": v["plate"], "type": v.get("type", "Auto/SUV")} for v in await db.vehicles.find({"id": {"$in": vehicle_ids}}, {"_id": 0, "id": 1, "plate": 1, "type": 1}).to_list(500)} if vehicle_ids else {}
-    for t in trips: 
-        v_info = vehicles_map.get(t.get("vehicle_id"), {})
-        t["vehicle_plate"] = v_info.get("plate", "")
-        t["vehicle_type"] = v_info.get("type", "Auto/SUV")
-    return trips
+        for t in trips: 
+            v_info = vehicles_map.get(t.get("vehicle_id"), {})
+            t["vehicle_plate"] = v_info.get("plate", "")
+            t["vehicle_type"] = v_info.get("type", "Auto/SUV")
+        return trips
+    except Exception as e:
+        logger.error(f"Error trips_history: {e}")
+        traceback.print_exc()
+        return []
 
 # --- AQUI AGREGAMOS PERMISO PARA EL CALENDARIO ---
 @api_router.get("/trips/calendar")
