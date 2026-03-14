@@ -1218,6 +1218,10 @@ async def _fetch_logbook_data(vehicle_id: str, start_date: str, end_date: str) -
 
     return {"vehicle": vehicle, "trips": trips, "fuel_logs": fuel, "incident_logs": incidents}
 
+@api_router.get("/reports/logbook")
+async def get_logbook_preview(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
+    return await _fetch_logbook_data(vehicle_id, start_date, end_date)
+
 @api_router.get("/reports/logbook-excel")
 async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, user=Depends(require_roles("admin", "coordinador"))):
     try:
