@@ -1185,10 +1185,12 @@ async def dashboard_stats(user=Depends(require_roles("coordinador", "admin", "ge
 # ============ REPORTS: LIBRO DE CONTROL DE RECORRIDO ============
 
 import traceback
+from html import escape
 
 async def _fetch_logbook_data(vehicle_id: str, start_date: str, end_date: str) -> dict:
     vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
-    if not vehicle: raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
 
     trips = await db.trips.find({
         "vehicle_id": vehicle_id,
@@ -1277,7 +1279,6 @@ async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, 
         output = io.BytesIO(); wb.save(output); content = output.getvalue(); output.close()
         return Response(content=content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate', 'VEH')}_{start_date}.xlsx"})
     except Exception as e:
-        print("EXCEL ERROR TRACEBACK:")
         traceback.print_exc()
         logging.error(f"Excel error: {e}"); raise HTTPException(status_code=500, detail=str(e))
 
@@ -1293,7 +1294,7 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
         styles.add(ParagraphStyle(name="CB", fontSize=8, fontName="Helvetica-Bold"))
         
         elements = [Paragraph(f"LIBRO DE RECORRIDO - HOSPITAL DE CURICÓ", styles["Title"]), Spacer(1, 5*mm)]
-        elements.append(Paragraph(f"Vehículo: {v.get('plate', 'N/A')} ({v.get('brand', '')} {v.get('model', '')})&nbsp;&nbsp;&nbsp;Período: {start_date} al {end_date}", styles["Normal"]))
+        elements.append(Paragraph(f"Vehículo: {escape(v.get('plate', 'N/A'))} ({escape(v.get('brand', ''))} {escape(v.get('model', ''))})&nbsp;&nbsp;&nbsp;Período: {start_date} al {end_date}", styles["Normal"]))
         elements.append(Spacer(1, 5*mm))
 
         h = ["Fecha", "Salida", "Llegada", "Km Ini", "Km Fin", "Km Rec", "Origen", "Destino", "Motivo", "Conductor", "Autorizado"]
@@ -1308,11 +1309,11 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
             k_r = round(max(0, e_km - s_km), 1)
             total_km += k_r
             
-            orig = (t.get("origin") or "")[:25]
-            dest = (t.get("destination") or "")[:25]
-            motv = (t.get("transfer_reason") or t.get("task_details") or "")[:30]
-            drvr = (t.get("driver_name") or "")[:20]
-            auth = (t.get("authorized_by") or "")[:20]
+            orig = escape((t.get("origin") or "")[:25])
+            dest = escape((t.get("destination") or "")[:25])
+            motv = escape((t.get("transfer_reason") or t.get("task_details") or "")[:35])
+            drvr = escape((t.get("driver_name") or "")[:20])
+            auth = escape((t.get("authorized_by") or "")[:20])
             
             t_data.append([
                 t.get("scheduled_date", ""), "", "", str(s_km), str(e_km), str(k_r), 
@@ -1329,7 +1330,7 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
             elements.append(Spacer(1, 10*mm))
             elements.append(Paragraph("OBSERVACIONES / NOVEDADES", styles["CB"]))
             for inc in data["incident_logs"]:
-                elements.append(Paragraph(f"- {str(inc.get('timestamp',''))[:10]}: {str(inc.get('description',''))}", styles["CT"]))
+                elements.append(Paragraph(f"- {str(inc.get('timestamp',''))[:10]}: {escape(str(inc.get('description','')))}", styles["CT"]))
 
         elements.append(Spacer(1, 15*mm))
         elements.append(Paragraph("_______________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_______________________________", styles["Normal"]))
@@ -1338,7 +1339,6 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
         doc.build(elements); content = output.getvalue(); output.close()
         return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate', 'VEH')}_{start_date}.pdf"})
     except Exception as e:
-        print("PDF ERROR TRACEBACK:")
         traceback.print_exc()
         logging.error(f"PDF error: {e}"); raise HTTPException(status_code=500, detail=str(e))
 
