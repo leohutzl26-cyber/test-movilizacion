@@ -1369,6 +1369,8 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
                 s_km, e_km = 0.0, 0.0
             k_r = round(max(0, e_km - s_km), 1)
             total_km += k_r
+            h_s = t.get("departure_time") or (t.get("created_at", "")[11:16] if "T" in t.get("created_at", "") else "")
+            h_l = (t.get("completed_at", "")[11:16] if t.get("completed_at") and "T" in t.get("completed_at", "") else "")
             
             orig = escape((t.get("origin") or "")[:25])
             dest = escape((t.get("destination") or "")[:25])
@@ -1377,7 +1379,7 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
             auth = escape((t.get("authorized_by") or "")[:20])
             
             t_data.append([
-                t.get("scheduled_date", ""), "", "", str(s_km), str(e_km), str(k_r), 
+                t.get("scheduled_date", ""), h_s, h_l, str(s_km), str(e_km), str(k_r), 
                 Paragraph(orig, styles["CT"]), Paragraph(dest, styles["CT"]), 
                 Paragraph(motv, styles["CT"]), Paragraph(drvr, styles["CT"]), 
                 Paragraph(auth, styles["CT"])
