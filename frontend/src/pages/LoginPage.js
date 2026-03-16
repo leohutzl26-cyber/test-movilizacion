@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { UserPlus, LogIn, KeyRound } from "lucide-react";
+import { UserPlus, LogIn, KeyRound, Fingerprint } from "lucide-react";
+import { startAuthentication } from '@simplewebauthn/browser';
 import api from "@/lib/api";
 
 export default function LoginPage() {
@@ -57,8 +58,37 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, setAuthData } = useAuth();
   const navigate = useNavigate();
+
+  const handleBiometricLogin = async () => {
+    if (!email) {
+      toast.error("Ingrese su correo institucional primero");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/webauthn/login-options', { email });
+      const asseResp = await startAuthentication(res.data);
+      const verifyRes = await api.post('/auth/webauthn/login-verify', { email, response: asseResp });
+      
+      const { token, user } = verifyRes.data;
+      setAuthData(token, user);
+      
+      toast.success(`Bienvenido, ${user.name}`);
+      const routes = { admin: "/admin", coordinador: "/manager", solicitante: "/requester", conductor: "/driver", gestion_camas: "/gestion-camas" };
+      navigate(routes[user.role] || "/");
+    } catch (err) {
+      console.error(err);
+      if (err.name === 'NotAllowedError') {
+         toast.error("Autenticación cancelada");
+      } else {
+         toast.error(err.response?.data?.detail || "Error en autenticación biométrica");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,6 +126,21 @@ function LoginForm() {
       </div>
       <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white h-11" disabled={loading} data-testid="login-submit-btn">
         {loading ? "Ingresando..." : "Ingresar"}
+      </Button>
+
+      <div className="relative py-2">
+        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
+        <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">O BIEN</span></div>
+      </div>
+
+      <Button 
+        type="button" 
+        variant="outline" 
+        onClick={handleBiometricLogin} 
+        className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 h-11 font-bold"
+        disabled={loading}
+      >
+        <Fingerprint className="w-4 h-4 mr-2 text-teal-600" /> Ingresar con Huella / FaceID
       </Button>
     </form>
   );

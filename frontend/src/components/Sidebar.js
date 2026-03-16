@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight, BookOpen, BadgeAlert } from "lucide-react";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight, BookOpen, BadgeAlert, Fingerprint } from "lucide-react";
 import { useState } from "react";
+import { startRegistration } from '@simplewebauthn/browser';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,6 +89,25 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     finally { setLoading(false); }
   };
 
+  const handleRegisterBiometrics = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/auth/webauthn/register-options');
+      const attResp = await startRegistration(res.data);
+      await api.post('/auth/webauthn/register-verify', { response: attResp });
+      toast.success('Biometría vinculada con éxito');
+    } catch (err) {
+      console.error(err);
+      if (err.name === 'NotAllowedError') {
+         toast.error('Registro cancelado o no soportado');
+      } else {
+         toast.error(err.response?.data?.detail || 'Error al configurar biometría');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="lg:hidden fixed top-0 left-0 w-full h-14 bg-teal-700 flex items-center justify-between px-4 z-50 shadow-md">
@@ -156,6 +176,9 @@ export default function Sidebar({ activeSection, onSectionChange }) {
           </div>
           <button onClick={() => setPasswordDialog(true)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2">
             <Key className="w-4 h-4" /> Cambiar Contraseña
+          </button>
+          <button onClick={handleRegisterBiometrics} disabled={loading} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2 disabled:opacity-50">
+            <Fingerprint className="w-4 h-4 text-teal-600" /> Activar Huella / FaceID
           </button>
           <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
             <LogOut className="w-4 h-4" /> Cerrar Sesión

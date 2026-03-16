@@ -20,6 +20,19 @@ from jose import jwt, JWTError
 import resend
 from fastapi.responses import Response, StreamingResponse
 import io
+from webauthn import (
+    generate_registration_options,
+    verify_registration_response,
+    generate_authentication_options,
+    verify_authentication_response,
+    options_to_json,
+)
+from webauthn.helpers.structs import (
+    AttestationConveyancePreference,
+    AuthenticatorSelectionCriteria,
+    UserVerificationRequirement,
+    AuthenticatorAttachment,
+)
 
 # Report dependencies
 try:
@@ -53,6 +66,11 @@ resend_api_key = os.environ.get('RESEND_API_KEY')
 if resend_api_key:
     resend.api_key = resend_api_key
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+
+# WebAuthn Config
+RP_ID = os.environ.get("RP_ID", "localhost")
+RP_NAME = "Movilizacion HCU"
+ORIGIN = os.environ.get("ORIGIN", "http://localhost:3000")
 
 app = FastAPI()
 
@@ -247,6 +265,13 @@ class IncidentRecord(BaseModel):
     description: str
     severity: str
 
+class WebAuthnRegistrationVerify(BaseModel):
+    response: dict
+
+class WebAuthnLoginVerify(BaseModel):
+    email: str
+    response: dict
+
 # ============ AUTH UTILITIES ============
 
 def create_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -304,6 +329,127 @@ async def log_action(user_id: str, user_name: str, user_role: str, action: str, 
         await db.audit_logs.insert_one(entry)
     except Exception as e:
         logger.error(f"Error saving audit log: {e}")
+
+# ============ WEBAUTHN ENDPOINTS ============
+
+@api_router.get("/auth/webauthn/register-options")
+async def webauthn_register_options(user=Depends(get_current_user)):
+    user_id = user["id"].encode("utf-8")
+    options = generate_registration_options(
+        rp_id=RP_ID,
+        rp_name=RP_NAME,
+        user_id=user_id,
+        user_name=user["email"],
+        user_display_name=user["name"],
+        attestation=AttestationConveyancePreference.NONE,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            authenticator_attachment=AuthenticatorAttachment.PLATFORM,
+            user_verification=UserVerificationRequirement.PREFERRED,
+        ),
+    )
+    # Store challenge securely
+    await db.webauthn_challenges.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"challenge": options.challenge, "created_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
+    return Response(content=options_to_json(options), media_type="application/json")
+
+@api_router.post("/auth/webauthn/register-verify")
+async def webauthn_register_verify(data: WebAuthnRegistrationVerify, user=Depends(get_current_user)):
+    challenge_doc = await db.webauthn_challenges.find_one({"user_id": user["id"]})
+    if not challenge_doc:
+        raise HTTPException(status_code=400, detail="Challenge not found")
+    
+    try:
+        verification = verify_registration_response(
+            credential=data.response,
+            expected_challenge=challenge_doc["challenge"],
+            expected_rp_id=RP_ID,
+            expected_origin=ORIGIN,
+        )
+        
+        credential = {
+            "id": verification.credential_id,
+            "public_key": verification.public_key,
+            "sign_count": verification.sign_count,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$push": {"webauthn_credentials": credential}}
+        )
+        await db.webauthn_challenges.delete_one({"user_id": user["id"]})
+        return {"message": "Biometría vinculada con éxito"}
+    except Exception as e:
+        logger.error(f"WebAuthn registration error: {e}")
+        raise HTTPException(status_code=400, detail="Error de verificación biométrica")
+
+@api_router.post("/auth/webauthn/login-options")
+async def webauthn_login_options(data: ForgotPassword):
+    user = await db.users.find_one({"email": data.email.lower()})
+    if not user or not user.get("webauthn_credentials"):
+        raise HTTPException(status_code=400, detail="El usuario no tiene biometría vinculada")
+    
+    options = generate_authentication_options(
+        rp_id=RP_ID,
+        allow_credentials=[
+            {"id": cred["id"], "type": "public-key"} for cred in user["webauthn_credentials"]
+        ],
+        user_verification=UserVerificationRequirement.PREFERRED,
+    )
+    
+    await db.webauthn_challenges.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"challenge": options.challenge, "created_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
+    return Response(content=options_to_json(options), media_type="application/json")
+
+@api_router.post("/auth/webauthn/login-verify")
+async def webauthn_login_verify(data: WebAuthnLoginVerify):
+    user = await db.users.find_one({"email": data.email.lower()})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+    challenge_doc = await db.webauthn_challenges.find_one({"user_id": user["id"]})
+    if not challenge_doc:
+        raise HTTPException(status_code=400, detail="Sesión de biometría expirada")
+    
+    cred_id = data.response.get("id")
+    db_cred = next((c for c in user["webauthn_credentials"] if c["id"] == cred_id), None)
+    
+    if not db_cred:
+        raise HTTPException(status_code=400, detail="Credencial no reconocida")
+        
+    try:
+        verification = verify_authentication_response(
+            credential=data.response,
+            expected_challenge=challenge_doc["challenge"],
+            expected_rp_id=RP_ID,
+            expected_origin=ORIGIN,
+            credential_public_key=db_cred["public_key"],
+            credential_current_sign_count=db_cred["sign_count"]
+        )
+        
+        await db.users.update_one(
+            {"id": user["id"], "webauthn_credentials.id": cred_id},
+            {"$set": {"webauthn_credentials.$.sign_count": verification.new_sign_count}}
+        )
+        await db.webauthn_challenges.delete_one({"user_id": user["id"]})
+        
+        token = create_token({"sub": user["id"], "role": user["role"]})
+        return {
+            "token": token,
+            "user": {
+                "id": user["id"], "email": user["email"], "name": user["name"],
+                "role": user["role"], "shift_type": user.get("shift_type"), "extra_available": user.get("extra_available", False)
+            }
+        }
+    except Exception as e:
+        logger.error(f"WebAuthn login error: {e}")
+        raise HTTPException(status_code=400, detail="Error de autenticación biométrica")
 
 # ============ ENDPOINTS GENERALES ============
 

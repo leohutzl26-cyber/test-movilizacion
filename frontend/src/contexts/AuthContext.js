@@ -46,7 +46,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const value = { user, token, loading, login, register, logout, isAuthenticated: !!token };
+  const setAuthData = useCallback((t, u) => {
+    localStorage.setItem("token", t);
+    localStorage.setItem("user", JSON.stringify(u));
+    setToken(t);
+    setUser(u);
+  }, []);
+
+  const value = { user, token, loading, login, register, logout, setAuthData, isAuthenticated: !!token };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
