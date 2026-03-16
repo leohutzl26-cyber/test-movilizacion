@@ -324,6 +324,17 @@ function DispatchSection() {
         }
     };
 
+    const handleUnassign = async (tripId) => {
+        if (!window.confirm("¿Deseas desasignar el conductor de este traslado? Volverá a estado pendiente.")) return;
+        try {
+            await api.put(`/trips/${tripId}/unassign`);
+            toast.success("Traslado desasignado correctamente");
+            fetchTrips();
+        } catch (e) {
+            toast.error("Error al desasignar traslado");
+        }
+    };
+
     const handleEditSubmission = async (e) => {
 
         e.preventDefault();
@@ -445,6 +456,11 @@ function DispatchSection() {
                                                 <Button onClick={() => setAssignDialog(t)} className="w-full h-8 bg-teal-600 hover:bg-teal-700 text-white text-[9px] font-black uppercase shadow-sm">
                                                     {t.driver_id ? "Reasignar" : "Asignar"}
                                                 </Button>
+                                                {t.driver_id && t.status === "asignado" && (
+                                                    <Button onClick={() => handleUnassign(t.id)} variant="ghost" className="w-full h-8 text-[9px] font-black uppercase text-amber-600 hover:bg-amber-50 shadow-sm border border-amber-100 italic">
+                                                        <RotateCcw className="w-3 h-3 mr-1" /> Desasignar
+                                                    </Button>
+                                                )}
                                                 <div className="flex w-full gap-1">
                                                     <Button onClick={() => setEditDialog(t)} variant="outline" className="flex-1 h-8 text-[9px] font-black uppercase text-teal-600 border-teal-100 hover:bg-teal-50" title="Editar Traslado">
                                                         <Edit className="w-3 h-3 mr-1" /> Editar
@@ -666,6 +682,15 @@ function AssignSection() {
         } catch (e) { toast.error("Error al asignar"); }
     };
 
+    const handleUnassign = async (tripId) => {
+        if (!window.confirm("¿Seguro que deseas desasignar el conductor? El viaje volverá a estado pendiente.")) return;
+        try {
+            await api.put(`/trips/${tripId}/unassign`);
+            toast.success("Conductor desasignado");
+            fetchAll();
+        } catch (e) { toast.error("Error al desasignar"); }
+    };
+
     const filteredTrips = filter === "all" ? trips : trips.filter(t => t.status === filter);
 
     if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
@@ -709,6 +734,11 @@ function AssignSection() {
                                 <Button onClick={() => setAssignDialog(t)} className={`h-11 w-full font-black uppercase text-[10px] shadow-lg rounded-xl transition-all active:scale-95 ${t.driver_id ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"}`}>
                                     <ClipboardList className="w-4 h-4 mr-2" />{t.driver_id ? "Reasignar" : "Asignar Móvil"}
                                 </Button>
+                                {t.driver_id && t.status === "asignado" && (
+                                    <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-10 w-full font-black uppercase text-[10px] text-red-600 border-red-100 hover:bg-red-50 rounded-xl transition-all">
+                                        <RotateCcw className="w-4 h-4 mr-2" /> Quitar Conductor
+                                    </Button>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
