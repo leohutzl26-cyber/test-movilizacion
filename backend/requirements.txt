@@ -12,3 +12,4 @@ pydantic[email]
 pydantic-settings
 openpyxl
 reportlab
+webauthn
