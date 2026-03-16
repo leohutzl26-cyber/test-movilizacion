@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight, BookOpen } from "lucide-react";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight, BookOpen, BadgeAlert } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
