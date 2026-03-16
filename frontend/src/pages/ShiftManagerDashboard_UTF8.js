@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter, BadgeAlert, Droplets } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter } from "lucide-react";
 import api from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
@@ -236,7 +236,6 @@ export default function ShiftManagerDashboard_UTF8() {
                     {section === "by_driver" && <ByDriverSection />}
                     {section === "vehicles" && <VehiclesSection />}
                     {section === "drivers" && <DriversSection />}
-                    {section === "logbook_monitor" && <LogbookMonitorSection />}
                     {section === "history" && <HistorySection />}
                     {section === "reports" && <LogbookReport />}
                 </div>
@@ -1829,124 +1828,6 @@ function HistorySection() {
                 open={auditOpen} 
                 onOpenChange={setAuditOpen} 
             />
-        </div>
-    );
-}
-
-function LogbookMonitorSection() {
-    const [logs, setLogs] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState("all");
-
-    const fetchLogs = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await api.get(`/logbook-list/all${filter !== "all" ? `?type=${filter}` : ""}`);
-            setLogs(res.data || []);
-        } catch (e) { toast.error("Error al cargar bitácoras"); }
-        finally { setLoading(false); }
-    }, [filter]);
-
-    useEffect(() => {
-        fetchLogs();
-        const interval = setInterval(fetchLogs, 30000);
-        return () => clearInterval(interval);
-    }, [fetchLogs]);
-
-    const activeIncidents = logs.filter(l => l.type === "incident" && l.severity === "alta");
-
-    return (
-        <div className="animate-slide-up space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Monitor de Bitácoras Operativas</h1>
-                    <p className="text-slate-500 text-xs font-bold uppercase">Consolidado en tiempo real de combustible e incidentes.</p>
-                </div>
-                <div className="flex gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-                    {[{ k: "all", l: "Todos" }, { k: "fuel", l: "Combustible" }, { k: "incident", l: "Incidentes" }].map(v => (
-                        <button key={v.k} onClick={() => setFilter(v.k)} className={`px-4 py-2 rounded-lg text-xs font-black uppercase transition-all ${filter === v.k ? "bg-teal-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-50"}`}>{v.l}</button>
-                    ))}
-                </div>
-            </div>
-
-            {activeIncidents.length > 0 && (
-                <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 flex items-start gap-4 animate-pulse">
-                    <div className="w-12 h-12 bg-rose-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg">
-                        <BadgeAlert className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                        <h3 className="text-rose-800 font-black uppercase text-sm">Alertas de Gravedad Alta</h3>
-                        <p className="text-rose-600 text-xs font-bold">Se han reportado {activeIncidents.length} incidentes críticos que requieren atención inmediata.</p>
-                    </div>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-4">
-                {loading && logs.length === 0 ? (
-                    <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-teal-600" /></div>
-                ) : (
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50 border-b border-slate-100">
-                                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase">Fecha / Hora</th>
-                                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase">Móvil / Conductor</th>
-                                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase">Tipo</th>
-                                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase">Detalle</th>
-                                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase text-right">Información Adicional</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {logs.map((l, i) => (
-                                    <tr key={i} className={`hover:bg-slate-50/50 transition-colors ${l.severity === "alta" ? "bg-rose-50/30" : ""}`}>
-                                        <td className="p-4">
-                                            <p className="text-xs font-black text-slate-700">{new Date(l.timestamp).toLocaleDateString()}</p>
-                                            <p className="text-[10px] font-mono text-slate-400">{new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 font-black text-[10px]">{l.vehicle_id.substring(0,2)}</div>
-                                                <div>
-                                                    <p className="text-xs font-black text-slate-900 uppercase">{l.driver_name}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase">ID: {l.vehicle_id.substring(0,8)}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            {l.type === "fuel" ? (
-                                                <Badge className="bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase"><Droplets className="w-3 h-3 mr-1" /> Carga Comb.</Badge>
-                                            ) : (
-                                                <Badge className={`${l.severity === "alta" ? "bg-rose-100 text-rose-700" : l.severity === "media" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"} border-none font-black text-[9px] uppercase`}><AlertTriangle className="w-3 h-3 mr-1" /> Incidente {l.incident_type}</Badge>
-                                            )}
-                                        </td>
-                                        <td className="p-4">
-                                            <p className="text-xs font-medium text-slate-600 max-w-xs line-clamp-2">{l.description || `Carga de ${l.liters}L registrada.`}</p>
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            {l.type === "fuel" ? (
-                                                <div className="space-y-0.5">
-                                                    <p className="text-xs font-black text-emerald-700">${l.amount?.toLocaleString()}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase">{l.liters} Litros | Km: {l.mileage}</p>
-                                                </div>
-                                            ) : (
-                                                <p className={`text-[10px] font-black uppercase ${l.severity === "alta" ? "text-rose-600" : "text-slate-400"}`}>{l.severity} Prioridad</p>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {logs.length === 0 && (
-                                    <tr>
-                                        <td colSpan="5" className="p-20 text-center">
-                                            <ClipboardList className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No hay registros en la bitácora</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
         </div>
     );
 }

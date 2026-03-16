@@ -34,14 +34,12 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "by_driver", label: "Pizarra de Conducción", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
-      { id: "logbook_monitor", label: "Consolidado Bitácora", icon: BadgeAlert },
       { id: "history", label: "Historial", icon: History },
       { id: "reports", label: "Libro de Recorrido", icon: BookOpen },
     ],
     conductor: [
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },
       { id: "trips", label: "Mis Viajes", icon: Truck },
-      { id: "logbook", label: "Bitácora Móvil", icon: BookOpen },
       { id: "history", label: "Historial", icon: History },
     ],
     solicitante: [
