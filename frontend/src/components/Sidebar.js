@@ -36,7 +36,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "logbook_monitor", label: "Monitor Bitácora", icon: BadgeAlert },
       { id: "history", label: "Historial", icon: History },
-      { id: "reports", label: "Libro de Recorrido", icon: BookOpen },
+      { id: "reports", label: "Bitácora Electrónica", icon: BookOpen },
     ],
     conductor: [
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },

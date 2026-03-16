@@ -1343,6 +1343,30 @@ async def export_logbook_excel(vehicle_id: str, start_date: str, end_date: str, 
         ws.cell(row=row, column=5, value="TOTAL KM:").font = Font(bold=True)
         ws.cell(row=row, column=6, value=total_km).font = Font(bold=True)
 
+        # --- SHEET: FUEL ---
+        if data["fuel_logs"]:
+            ws_f = wb.create_sheet("Cargas Combustible")
+            f_headers = ["Fecha", "Hora", "Km Al cargar", "Litros", "Monto", "N° Boleta", "Conductor"]
+            for i, h in enumerate(f_headers, 1):
+                c = ws_f.cell(row=1, column=i, value=h)
+                c.fill = h_fill; c.font = white_font; c.border = thin
+            for f_row, log in enumerate(data["fuel_logs"], 2):
+                v_list = [log.get("timestamp", "")[:10], log.get("timestamp", "")[11:16], log.get("mileage"), log.get("liters"), log.get("amount"), log.get("receipt_number", ""), log.get("driver_name", "")]
+                for col, val in enumerate(v_list, 1):
+                    ws_f.cell(row=f_row, column=col, value=val).border = thin
+
+        # --- SHEET: INCIDENTS ---
+        if data["incident_logs"]:
+            ws_i = wb.create_sheet("Incidentes")
+            i_headers = ["Fecha", "Hora", "Tipo", "Gravedad", "Descripción", "Conductor"]
+            for i, h in enumerate(i_headers, 1):
+                c = ws_i.cell(row=1, column=i, value=h)
+                c.fill = h_fill; c.font = white_font; c.border = thin
+            for i_row, log in enumerate(data["incident_logs"], 2):
+                v_list = [log.get("timestamp", "")[:10], log.get("timestamp", "")[11:16], log.get("incident_type"), log.get("severity"), log.get("description"), log.get("driver_name", "")]
+                for col, val in enumerate(v_list, 1):
+                    ws_i.cell(row=i_row, column=col, value=val).border = thin
+
         output = io.BytesIO(); wb.save(output); content = output.getvalue(); output.close()
         return Response(content=content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=Libro_{v.get('plate', 'VEH')}_{start_date}.xlsx"})
     except Exception as e:
@@ -1396,11 +1420,21 @@ async def export_logbook_pdf(vehicle_id: str, start_date: str, end_date: str, us
         t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a5276")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.5, colors.grey), ("FONTSIZE", (0, 0), (-1, -1), 6.5), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
         elements.append(t)
         
+        if data["fuel_logs"]:
+            elements.append(Spacer(1, 10*mm))
+            elements.append(Paragraph("REGISTRO DE CARGAS DE COMBUSTIBLE", styles["CB"]))
+            f_data = [["Fecha", "Km", "Litros", "Monto", "Boleta", "Conductor"]]
+            for f in data["fuel_logs"]:
+                f_data.append([f.get("timestamp", "")[:10], str(f.get("mileage")), str(f.get("liters")), f"${f.get('amount')}", f.get("receipt_number", ""), f.get("driver_name", "")[:15]])
+            ft = Table(f_data, colWidths=[60, 50, 50, 60, 60, 80])
+            ft.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey), ("FONTSIZE", (0, 0), (-1, -1), 7), ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey)]))
+            elements.append(ft)
+
         if data["incident_logs"]:
             elements.append(Spacer(1, 10*mm))
-            elements.append(Paragraph("OBSERVACIONES / NOVEDADES", styles["CB"]))
+            elements.append(Paragraph("OBSERVACIONES / NOVEDADES TÉCNICAS", styles["CB"]))
             for inc in data["incident_logs"]:
-                elements.append(Paragraph(f"- {str(inc.get('timestamp',''))[:10]}: {escape(str(inc.get('description','')))}", styles["CT"]))
+                elements.append(Paragraph(f"<b>{str(inc.get('timestamp',''))[:10]} ({inc.get('incident_type', 'N/A')})</b>: {escape(str(inc.get('description','')))} - <i>{inc.get('driver_name','')}</i>", styles["CT"]))
 
         elements.append(Spacer(1, 15*mm))
         elements.append(Paragraph("_______________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_______________________________", styles["Normal"]))
