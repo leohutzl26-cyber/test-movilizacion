@@ -68,9 +68,9 @@ if resend_api_key:
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
 # WebAuthn Config
-RP_ID = os.environ.get("RP_ID", "localhost")
+RP_ID = os.environ.get("RP_ID", "movilizacion-hcu.onrender.com")
 RP_NAME = "Movilizacion HCU"
-ORIGIN = os.environ.get("ORIGIN", "http://localhost:3000")
+ORIGIN = os.environ.get("ORIGIN", "https://movilizacion-hcu.onrender.com")
 
 app = FastAPI()
 
