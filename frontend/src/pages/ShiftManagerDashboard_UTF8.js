@@ -1837,6 +1837,7 @@ function LogbookMonitorSection() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [vehicles, setVehicles] = useState([]);
 
   const fetchLogs = useCallback(async () => {
@@ -1862,6 +1863,16 @@ function LogbookMonitorSection() {
 
   const getVehiclePlate = (id) => vehicles.find(v => v.id === id)?.plate || "N/A";
 
+  const filteredLogs = logs.filter(log => {
+    const plate = getVehiclePlate(log.vehicle_id).toLowerCase();
+    const driver = (log.driver_name || "").toLowerCase();
+    const desc = (log.description || "").toLowerCase();
+    const type = (log.incident_type || "").toLowerCase();
+    const search = searchTerm.toLowerCase();
+    
+    return plate.includes(search) || driver.includes(search) || desc.includes(search) || type.includes(search);
+  });
+
   return (
     <div className="space-y-6 animate-slide-up pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1869,27 +1880,41 @@ function LogbookMonitorSection() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Consolidado de Bitácora</h1>
           <p className="text-slate-500 font-medium italic">Seguimiento en tiempo real de incidentes y recargas</p>
         </div>
-        <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
-          {[
-            { id: "all", label: "Todos", icon: ClipboardList },
-            { id: "incident", label: "Incidentes", icon: AlertTriangle },
-            { id: "fuel", label: "Combustible", icon: Droplets }
-          ].map(t => (
-            <button key={t.id} onClick={() => setFilter(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${filter === t.id ? "bg-slate-900 text-white shadow-lg" : "text-slate-500 hover:bg-slate-50"}`}>
-              <t.icon className="w-3.5 h-3.5" /> {t.label}
-            </button>
-          ))}
+        <div className="flex flex-col md:flex-row gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input 
+              placeholder="Buscar patente, conductor..." 
+              className="pl-10 h-11 bg-white border-2 border-slate-200 rounded-xl w-full md:w-64 focus:border-teal-500 transition-all font-medium"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
+            {[
+              { id: "all", label: "Todos", icon: ClipboardList },
+              { id: "incident", label: "Incidentes", icon: AlertTriangle },
+              { id: "fuel", label: "Combustible", icon: Droplets }
+            ].map(t => (
+              <button key={t.id} onClick={() => setFilter(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${filter === t.id ? "bg-slate-900 text-white shadow-lg" : "text-slate-500 hover:bg-slate-50"}`}>
+                <t.icon className="w-3.5 h-3.5" /> {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {loading ? (
           <div className="h-40 flex items-center justify-center bg-white rounded-3xl border border-dashed border-slate-200"><RefreshCw className="w-8 h-8 text-slate-300 animate-spin" /></div>
-        ) : logs.length === 0 ? (
-          <Card className="rounded-[2rem] border-dashed border-2 p-12 text-center bg-white"><p className="text-slate-400 font-bold">No se han registrado novedades hoy</p></Card>
+        ) : filteredLogs.length === 0 ? (
+          <Card className="rounded-[2rem] border-dashed border-2 p-12 text-center bg-white">
+            <Search className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No se encontraron registros</p>
+          </Card>
         ) : (
           <div className="space-y-4">
-            {logs.map((log) => (
+            {filteredLogs.map((log) => (
               <Card key={log.id} className={`overflow-hidden rounded-3xl border-none shadow-sm transition-all hover:shadow-md ${log.type === "incident" ? "bg-amber-50" : "bg-emerald-50"}`}>
                 <div className="flex flex-col md:flex-row">
                   <div className={`w-full md:w-32 p-4 flex md:flex-col items-center justify-center gap-2 text-center border-b md:border-b-0 md:border-r border-white/50 ${log.type === "incident" ? "bg-amber-500 text-white" : "bg-emerald-600 text-white"}`}>
