@@ -893,6 +893,13 @@ async def get_vehicle_logbook(vehicle_id: str, date: str = None, user=Depends(ge
     }, {"_id": 0}).to_list(100)
     
     return {"trips": trips, "logs": logs}
+    
+@api_router.get("/logbook-list/all")
+async def get_all_logbook(type: str = None, user=Depends(require_roles("admin", "coordinador"))):
+    query = {}
+    if type: query["type"] = type
+    logs = await db.logbook.find(query, {"_id": 0}).sort("timestamp", -1).to_list(1000)
+    return logs
 
 # ============ OTHER ENDPOINTS ============
 
