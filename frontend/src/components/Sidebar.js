@@ -31,12 +31,19 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     coordinador: [
       { id: "dispatch", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
-      { id: "by_driver", label: "Pizarra de Conducción", icon: BarChart3 },
+      { id: "by_driver", label: "Pizarra por Conductores", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
-      { id: "logbook_monitor", label: "Monitor Bitácora", icon: BadgeAlert },
+      { 
+        id: "bitacora", 
+        label: "Bitácora", 
+        icon: BookOpen,
+        subItems: [
+          { id: "logbook_monitor", label: "Monitor Bitácora", icon: BadgeAlert },
+          { id: "reports", label: "Bitácora Electrónica", icon: BookOpen },
+        ]
+      },
       { id: "history", label: "Historial", icon: History },
-      { id: "reports", label: "Bitácora Electrónica", icon: BookOpen },
     ],
     conductor: [
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },
