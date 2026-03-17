@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { MapPin, ArrowRight, ShieldAlert, BadgeAlert, Droplets, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter } from "lucide-react";
@@ -1553,24 +1554,23 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                         </div>
                         <div>
                             <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Registro de Acciones</DialogTitle>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Folio: <span className="text-teal-600 font-mono">#{trip.tracking_number}</span></p>
+                            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                Folio: <span className="text-teal-600 font-mono">#{trip.tracking_number}</span> — Historial de cambios
+                            </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>
 
-                <div className="p-8 pt-4 flex flex-col min-h-0">
-                    <div 
-                        className="bg-slate-50 rounded-3xl border border-slate-100 p-6 overflow-y-auto scrollbar-auto"
-                        style={{ maxHeight: '50vh', minHeight: '350px', display: 'block' }}
-                    >
+                <div className="p-8 pt-4">
+                    <ScrollArea className="h-[400px] bg-slate-50 rounded-3xl border border-slate-100 p-6">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">
                                 <RefreshCw className="w-10 h-10 text-teal-500 animate-spin" />
                                 <p className="text-xs font-black text-teal-800 uppercase tracking-widest animate-pulse">Consultando Bóveda de Auditoría...</p>
                             </div>
                         ) : logs.length > 0 ? (
-                            <div className="space-y-6 relative">
-                                <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-slate-200"></div>
+                            <div className="space-y-6 relative pb-4">
+                                <div className="absolute left-[19px] top-2 bottom-6 w-0.5 bg-slate-200"></div>
                                 {logs.map((log, idx) => (
                                     <div key={log.id || idx} className="relative pl-12">
                                         <div className="absolute left-0 top-1 w-10 h-10 bg-white rounded-xl border-2 border-slate-200 flex items-center justify-center z-10 shadow-sm">
@@ -1604,7 +1604,7 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                                 <p className="text-sm font-black uppercase tracking-[0.2em]">No se registran acciones auditables</p>
                             </div>
                         )}
-                    </div>
+                    </ScrollArea>
                     
                     <div className="mt-8 flex justify-end">
                         <Button onClick={() => onOpenChange(false)} className="bg-slate-900 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-lg hover:bg-slate-800">Cerrar Detalle</Button>
