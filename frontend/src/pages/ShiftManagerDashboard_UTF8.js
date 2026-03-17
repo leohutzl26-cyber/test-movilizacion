@@ -1301,6 +1301,9 @@ function NewTripSection({ onNavigate }) {
             
             setErrors(newErrors);
 
+            if (staffRows.length === 0 && form.transfer_reason !== "Alta") { 
+                toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; 
+            }
             if (staffRows.length > 0 && staffRows.some(r => !r.type)) { 
                 toast.error("Seleccione el tipo de personal para todas las filas añadidas"); return; 
             }
@@ -1469,7 +1472,9 @@ function NewTripSection({ onNavigate }) {
 
                         {tripType === "clinico" && (
                             <div className="space-y-4">
-                                <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><Plus className="w-5 h-5" /> Personal Clínico Acompañante (Opcional)</h3>
+                                <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2">
+                                    <Plus className="w-5 h-5" /> Personal Clínico Requerido {form.transfer_reason !== "Alta" ? "*" : "(Opcional para Altas)"}
+                                </h3>
                                 
                                 <Button type="button" variant="outline" onClick={addStaffRow} className="border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-10 flex items-center gap-2">
                                     <Plus className="w-4 h-4" /> Añadir Personal Clínico
@@ -1540,7 +1545,7 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl bg-white rounded-[2rem] overflow-hidden border-none shadow-2xl p-0">
+            <DialogContent className="max-w-3xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[95vh] overflow-y-auto">
                 <DialogHeader className="p-8 pb-0">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
@@ -1553,8 +1558,11 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                     </div>
                 </DialogHeader>
 
-                <div className="p-8 pt-4">
-                    <div className="bg-slate-50 rounded-3xl border border-slate-100 p-6 min-h-[400px] max-h-[60vh] overflow-y-auto custom-scrollbar">
+                <div className="p-8 pt-4 overflow-hidden flex flex-col">
+                    <div 
+                        className="bg-slate-50 rounded-3xl border border-slate-100 p-6 overflow-y-auto"
+                        style={{ maxHeight: '50vh', minHeight: '300px' }}
+                    >
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">
                                 <RefreshCw className="w-10 h-10 text-teal-500 animate-spin" />

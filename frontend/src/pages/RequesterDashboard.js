@@ -147,8 +147,8 @@ function NewTripSection() {
       if (!form.patient_name || !form.patient_unit || !form.transfer_reason || !finalOrigin || !finalDest) {
         toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
       }
-      if (staffRows.length === 0) { toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; }
-      if (staffRows.some(r => !r.type)) { toast.error("Seleccione el tipo de personal para todas las filas añadidas"); return; }
+      if (staffRows.length === 0 && form.transfer_reason !== "Alta") { toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; }
+      if (staffRows.length > 0 && staffRows.some(r => !r.type)) { toast.error("Seleccione el tipo de personal para todas las filas añadidas"); return; }
       if (form.patient_requirements.length === 0) { toast.error("Seleccione requerimientos del paciente"); return; }
     } else {
       if (!finalOrigin || !finalDest || !form.task_details) {
@@ -348,7 +348,8 @@ function NewTripSection() {
                 <Button type="button" variant="outline" onClick={addStaffRow} className="border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-10 flex items-center gap-2">
                   <Plus className="w-4 h-4" /> Añadir Personal Clínico
                 </Button>
-                {staffRows.length === 0 && <p className="text-xs text-amber-600 font-medium">⚠ Traslados clínicos requieren al menos un funcionario clínico</p>}
+                {staffRows.length === 0 && form.transfer_reason !== "Alta" && <p className="text-xs text-amber-600 font-medium">⚠ Traslados clínicos requieren al menos un funcionario clínico</p>}
+                {staffRows.length === 0 && form.transfer_reason === "Alta" && <p className="text-xs text-teal-600 font-medium italic">ℹ Los traslados de tipo ALTA pueden ir sin personal clínico</p>}
               </div>
             )}
 
