@@ -1562,15 +1562,23 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                 </DialogHeader>
 
                 <div className="p-8 pt-4">
-                    <ScrollArea className="h-[400px] bg-slate-50 rounded-3xl border border-slate-100 p-6">
+                    <div 
+                        className="bg-slate-50 rounded-3xl border border-slate-100 p-6 custom-scrollbar"
+                        style={{ 
+                            height: '400px', 
+                            overflowY: 'scroll', 
+                            WebkitOverflowScrolling: 'touch',
+                            display: 'block'
+                        }}
+                    >
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">
                                 <RefreshCw className="w-10 h-10 text-teal-500 animate-spin" />
                                 <p className="text-xs font-black text-teal-800 uppercase tracking-widest animate-pulse">Consultando Bóveda de Auditoría...</p>
                             </div>
                         ) : logs.length > 0 ? (
-                            <div className="space-y-6 relative pb-4">
-                                <div className="absolute left-[19px] top-2 bottom-6 w-0.5 bg-slate-200"></div>
+                            <div className="space-y-6 relative pb-10">
+                                <div className="absolute left-[19px] top-2 bottom-10 w-0.5 bg-slate-200"></div>
                                 {logs.map((log, idx) => (
                                     <div key={log.id || idx} className="relative pl-12">
                                         <div className="absolute left-0 top-1 w-10 h-10 bg-white rounded-xl border-2 border-slate-200 flex items-center justify-center z-10 shadow-sm">
@@ -1597,6 +1605,7 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                                         </div>
                                     </div>
                                 ))}
+                                <div className="h-4 w-full"></div> {/* Espacio extra al final */}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-20 text-slate-300">
@@ -1604,7 +1613,7 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                                 <p className="text-sm font-black uppercase tracking-[0.2em]">No se registran acciones auditables</p>
                             </div>
                         )}
-                    </ScrollArea>
+                    </div>
                     
                     <div className="mt-8 flex justify-end">
                         <Button onClick={() => onOpenChange(false)} className="bg-slate-900 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-lg hover:bg-slate-800">Cerrar Detalle</Button>
