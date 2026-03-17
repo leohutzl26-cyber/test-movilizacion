@@ -1558,10 +1558,10 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                     </div>
                 </DialogHeader>
 
-                <div className="p-8 pt-4 overflow-hidden flex flex-col">
+                <div className="p-8 pt-4 flex flex-col min-h-0">
                     <div 
-                        className="bg-slate-50 rounded-3xl border border-slate-100 p-6 overflow-y-auto"
-                        style={{ maxHeight: '50vh', minHeight: '300px' }}
+                        className="bg-slate-50 rounded-3xl border border-slate-100 p-6 overflow-y-auto scrollbar-auto"
+                        style={{ maxHeight: '50vh', minHeight: '350px', display: 'block' }}
                     >
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">
