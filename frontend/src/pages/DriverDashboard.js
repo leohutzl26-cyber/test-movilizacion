@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw } from "lucide-react";
+import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw, Siren } from "lucide-react";
 import api from "@/lib/api";
 
 export default function DriverDashboard() {
@@ -51,6 +51,11 @@ function TripPoolSection({ onNavigate }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [activeTab, setActiveTab] = useState("ambulance");
+
+  const ambulanceTrips = trips.filter(t => t.trip_type === "clinico");
+  const otherTrips = trips.filter(t => t.trip_type !== "clinico");
+  const displayTrips = activeTab === "ambulance" ? ambulanceTrips : otherTrips;
 
   const fetchPool = useCallback(async () => {
     try { const r = await api.get("/trips/pool"); console.log("Pool data:", r.data); setTrips(r.data || []); }
@@ -76,8 +81,18 @@ function TripPoolSection({ onNavigate }) {
         <h1 className="text-2xl font-bold text-slate-900">Bolsa de Viajes</h1>
         <Badge variant="outline" className="text-sm bg-white shadow-sm border-teal-200 text-teal-800 px-3 py-1">{trips.length} en espera</Badge>
       </div>
+
+      <div className="flex gap-2 mb-6">
+        <button onClick={() => setActiveTab("ambulance")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-black uppercase tracking-widest ${activeTab === "ambulance" ? "border-red-600 bg-red-50 text-red-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-red-200"}`}>
+          <Siren className="w-4 h-4" /> Ambulancias ({ambulanceTrips.length})
+        </button>
+        <button onClick={() => setActiveTab("others")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-black uppercase tracking-widest ${activeTab === "others" ? "border-teal-600 bg-teal-50 text-teal-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-teal-200"}`}>
+          <Truck className="w-4 h-4" /> Otros ({otherTrips.length})
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {trips.map(t => (
+        {displayTrips.map(t => (
           <Card key={t.id} className={`shadow-md transition-all hover:shadow-lg border-t-4 ${t.priority === "urgente" ? "border-t-red-500" : t.priority === "alta" ? "border-t-orange-400" : "border-t-teal-500"}`}>
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
@@ -123,11 +138,13 @@ function TripPoolSection({ onNavigate }) {
             </CardContent>
           </Card>
         ))}
-        {trips.length === 0 && (
+        {displayTrips.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm">
-            <CheckCircle className="w-16 h-16 mb-4 text-teal-100" />
-            <p className="text-xl font-bold text-slate-500">No hay viajes pendientes</p>
-            <p className="text-sm font-medium mt-1">Buen trabajo, la bolsa está vacía.</p>
+            <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-slate-50">
+                {activeTab === "ambulance" ? <Siren className="w-10 h-10 text-slate-200" /> : <Truck className="w-10 h-10 text-slate-200" />}
+            </div>
+            <p className="text-xl font-bold text-slate-500">No hay {activeTab === "ambulance" ? "ambulancias" : "otros viajes"} disponibles</p>
+            <p className="text-sm font-medium mt-1">La bolsa de {activeTab === "ambulance" ? "ambulancias" : "otros traslados"} está vacía.</p>
           </div>
         )}
       </div>
