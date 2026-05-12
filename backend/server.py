@@ -75,16 +75,9 @@ ORIGIN = os.environ.get("ORIGIN", "https://movilizacion-hcu.onrender.com")
 app = FastAPI()
 
 # ============ CORS CONFIGURATION (MUST BE TOP LEVEL) ============
-allowed_origins = [
-    "https://test-movilizacion-hcu.onrender.com",
-    "https://movilizacion-hcu.onrender.com",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],  # Permitimos todos para evitar problemas de matching en Render
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
