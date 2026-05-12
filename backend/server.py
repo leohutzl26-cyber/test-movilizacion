@@ -1,5 +1,5 @@
 import google.generativeai as genai
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -11,6 +11,7 @@ import uuid
 import base64
 import string
 import random
+import traceback
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Any
@@ -18,7 +19,7 @@ from datetime import datetime, timezone, timedelta
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 import resend
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response, StreamingResponse, JSONResponse
 import io
 from webauthn import (
     generate_registration_options,
@@ -93,7 +94,25 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "Movilizacion HCU Backend Running"}
+    try:
+        await client.admin.command('ping')
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"disconnected: {str(e)}"
+    return {"status": "ok", "message": "Movilizacion HCU Backend Running", "db": db_status}
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"GLOBAL ERROR: {str(exc)}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": "https://movilizacion-hcu.onrender.com",
+            "Access-Control-Allow-Credentials": "true"
+        }
+    )
 
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
