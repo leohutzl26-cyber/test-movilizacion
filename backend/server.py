@@ -75,23 +75,24 @@ ORIGIN = os.environ.get("ORIGIN", "https://movilizacion-hcu.onrender.com")
 app = FastAPI()
 
 # ============ CORS CONFIGURATION (MUST BE TOP LEVEL) ============
-# Definimos los orígenes permitidos explícitamente para evitar errores con allow_credentials=True
-ALLOWED_ORIGINS = [
-    "https://movilizacion-hcu.onrender.com",
-    "https://test-movilizacion.onrender.com",
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:3000"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False, # No usamos cookies, así que podemos usar "*"
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"], # Importante para descargas
+    expose_headers=["Content-Disposition"],
 )
+
+# Manejador de errores global para depuración
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"GLOBAL ERROR: {exc}")
+    return Response(
+        content=f'{{"detail": "Internal Server Error: {str(exc)}"}}',
+        status_code=500,
+        media_type="application/json"
+    )
 
 @app.get("/")
 async def root():
@@ -484,7 +485,8 @@ async def register(data: UserRegister):
 
 @api_router.post("/auth/login")
 async def login(data: UserLogin):
-    user = await db.users.find_one({"email": data.email}, {"_id": 0})
+    logger.info(f"Login attempt for: {data.email}")
+    user = await db.users.find_one({"email": data.email.lower()}, {"_id": 0})
     if not user or not pwd_context.verify(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     if user["status"] != "aprobado":
