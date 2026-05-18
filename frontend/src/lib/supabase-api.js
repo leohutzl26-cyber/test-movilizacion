@@ -19,12 +19,20 @@ const callSupabaseFunction = async (functionName, body = {}) => {
       body: JSON.stringify(body)
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Request failed');
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Non-JSON response:", responseText);
+      throw new Error(`Error del servidor (Estado ${response.status})`);
     }
 
-    return await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Request failed');
+    }
+
+    return data;
   } catch (error) {
     console.error(`Supabase Function ${functionName} error:`, error);
     throw error;
