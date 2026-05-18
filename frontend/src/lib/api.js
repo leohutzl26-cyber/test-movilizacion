@@ -1,4 +1,4 @@
-import { supabaseApi } from './supabase-api';
+import supabaseApi from './supabase-api';
 
 const generateFolio = () => `TR-${Math.floor(Math.random() * 1000000)}`;
 
