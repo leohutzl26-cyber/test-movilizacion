@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, customFetch } from './supabase';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -10,7 +10,7 @@ const getAuthHeaders = () => {
 const callSupabaseFunction = async (functionName, body = {}) => {
   try {
     const baseUrl = process.env.REACT_APP_API_URL || '';
-    const response = await fetch(`${baseUrl}/api/${functionName}`, {
+    const response = await customFetch(`${baseUrl}/api/${functionName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

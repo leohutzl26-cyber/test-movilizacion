@@ -9,7 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Workaround a prueba de balas: Usamos XMLHttpRequest puro para esquivar 
 // cualquier extensión o interceptor de fetch que esté bloqueando los streams.
-const customFetch = (url, options) => {
+export const customFetch = (url, options) => {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(options.method || 'GET', url);
