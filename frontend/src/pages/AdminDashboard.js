@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
-import api from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import LogbookReport from "@/components/LogbookReport";
 
 const COLORS_PIE = ["#0d9488", "#f59e0b", "#6366f1", "#ef4444", "#22c55e", "#8b5cf6"];
@@ -38,362 +38,90 @@ export default function AdminDashboard() {
 
 function AdminOverview({ onNavigate }) {
   const [stats, setStats] = useState(null);
-  const [advanced, setAdvanced] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStats = async () => {
       try {
-        const statsRes = await api.get("/stats");
-        setStats(statsRes.data);
+        const { data: trips } = await supabase.from('trips').select('status');
+        const { data: vehicles } = await supabase.from('vehicles').select('status');
+        const { data: profiles } = await supabase.from('profiles').select('status');
+
+        const activeTrips = trips?.filter(t => t.status === 'en_curso').length || 0;
+        const pendingTrips = trips?.filter(t => t.status === 'pendiente').length || 0;
+        const completedTrips = trips?.filter(t => t.status === 'completado').length || 0;
+        const pendingUsers = profiles?.filter(p => p.status === 'pendiente').length || 0;
+
+        setStats({
+          total_trips: trips?.length || 0,
+          active_trips: activeTrips,
+          pending_trips: pendingTrips,
+          completed_trips: completedTrips,
+          pending_users: pendingUsers,
+          vehicles_available: vehicles?.filter(v => v.status === 'disponible').length || 0,
+          vehicles_en_uso: vehicles?.filter(v => v.status === 'en_uso').length || 0,
+          vehicles_fuera_de_servicio: vehicles?.filter(v => v.status === 'fuera_de_servicio').length || 0,
+        });
       } catch (e) {
-        console.error("Error cargando stats:", e);
-        setError("Error al cargar estadísticas básicas");
+        console.error("Error cargando estadísticas:", e);
+      } finally {
+        setLoading(false);
       }
-      try {
-        const advRes = await api.get("/stats/advanced");
-        setAdvanced(advRes.data);
-      } catch (e) {
-        console.error("Error cargando stats avanzadas:", e);
-      }
-      setLoading(false);
     };
-    fetchData();
+    fetchStats();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto" />
-          <p className="text-slate-500 font-medium">Cargando panel analítico...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><RefreshCw className="animate-spin" /></div>;
 
-  if (!stats && !advanced) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center space-y-4">
-        <AlertTriangle className="w-16 h-16 text-amber-400 mx-auto" />
-        <p className="text-slate-700 font-bold text-lg">No se pudieron cargar las estadísticas</p>
-        <p className="text-slate-500 text-sm">{error || "Verifique que el backend esté corriendo."}</p>
-        <Button onClick={() => window.location.reload()} className="bg-teal-600 hover:bg-teal-700 text-white mt-2">
-          <RefreshCw className="w-4 h-4 mr-2" /> Reintentar
-        </Button>
-      </div>
-    </div>
-  );
-
-  if (!stats) return null;
-
-  // Fallback si las estadísticas avanzadas no están disponibles aún
-  const adv = advanced || {
-    trips_today: 0, completed_today: 0, cancel_rate: 0, cancelled_trips: 0,
-    total_km: 0, daily_trends: [], status_distribution: [], type_distribution: [],
-    priority_distribution: [], top_destinations: [], top_drivers: [], users_by_role: []
-  };
-
-  const completionRate = stats.total_trips > 0 ? Math.round(stats.completed_trips / stats.total_trips * 100) : 0;
+  const completionRate = stats?.total_trips > 0 ? Math.round(stats.completed_trips / stats.total_trips * 100) : 0;
 
   return (
     <div className="animate-slide-up max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Panel Analítico</h1>
-          <p className="text-slate-500 mt-1">Resumen operativo del sistema de movilización</p>
-        </div>
-        <Badge className="bg-teal-50 text-teal-700 border-teal-200 text-xs font-bold px-3 py-1.5">
-          <Activity className="w-3 h-3 mr-1" /> EN VIVO
-        </Badge>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Panel Analítico</h1>
+        <Badge className="bg-teal-50 text-teal-700">EN VIVO (SUPABASE)</Badge>
       </div>
 
-      {/* KPI Cards Row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard 
-          label="Traslados Hoy" value={adv.trips_today} 
-          sub={`${adv.completed_today} completados`}
-          icon={<CalendarDays className="w-5 h-5" />} color="teal" onClick={() => onNavigate("trips")} />
-        <KPICard 
-          label="En Curso" value={stats.active_trips} 
-          sub="Viajes activos ahora"
-          icon={<Navigation className="w-5 h-5" />} color="blue" />
-        <KPICard 
-          label="Tasa de Éxito" value={`${completionRate}%`} 
-          sub={`${stats.completed_trips} completados`}
-          icon={<TrendingUp className="w-5 h-5" />} color="emerald" />
-        <KPICard 
-          label="Tasa Cancelación" value={`${adv.cancel_rate}%`} 
-          sub={`${adv.cancelled_trips} cancelados`}
-          icon={<Ban className="w-5 h-5" />} color="red" />
+        <KPICard label="Total Traslados" value={stats?.total_trips} sub="Histórico" icon={<ClipboardList />} color="indigo" />
+        <KPICard label="En Curso" value={stats?.active_trips} sub="Activos ahora" icon={<Navigation />} color="blue" />
+        <KPICard label="Tasa de Éxito" value={`${completionRate}%`} sub="Completados" icon={<TrendingUp />} color="emerald" />
+        <KPICard label="Usuarios Pend." value={stats?.pending_users} sub="Esperando" icon={<Users />} color="amber" onClick={() => onNavigate("users")} />
       </div>
-
-      {/* KPI Cards Row 2 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard 
-          label="Total Traslados" value={stats.total_trips.toLocaleString()} 
-          sub="Histórico completo"
-          icon={<ClipboardList className="w-5 h-5" />} color="indigo" />
-        <KPICard 
-          label="Pendientes" value={stats.pending_trips} 
-          sub="Requieren acción"
-          icon={<Clock className="w-5 h-5" />} color="amber" onClick={() => onNavigate("trips")} />
-        <KPICard 
-          label="Km Recorridos" value={adv.total_km.toLocaleString()} 
-          sub="Kilometraje total"
-          icon={<Gauge className="w-5 h-5" />} color="violet" />
-        <KPICard 
-          label="Usuarios Pend." value={stats.pending_users} 
-          sub="Esperando aprobación"
-          icon={<Users className="w-5 h-5" />} color="amber" onClick={() => onNavigate("users")} />
-      </div>
-
-      {/* Trends Chart */}
-      <Card className="shadow-sm border-0 ring-1 ring-slate-200/60">
-        <CardContent className="p-6">
-          <h2 className="text-lg font-bold text-slate-900 mb-1">Tendencia de Traslados</h2>
-          <p className="text-xs text-slate-400 mb-4">Últimos 30 días</p>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={adv.daily_trends} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-              <defs>
-                <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradCompleted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v) => v.slice(5)} />
-              <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} allowDecimals={false} />
-              <Tooltip 
-                contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 40px rgba(0,0,0,0.1)", fontSize: 12 }} 
-                labelFormatter={(v) => `Fecha: ${v}`}
-              />
-              <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5} fill="url(#gradTotal)" name="Total" />
-              <Area type="monotone" dataKey="completados" stroke="#0d9488" strokeWidth={2.5} fill="url(#gradCompleted)" name="Completados" />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Charts Row: Status + Type Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Status Distribution */}
-        <Card className="shadow-sm border-0 ring-1 ring-slate-200/60">
-          <CardContent className="p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Estado de Traslados</h2>
-            <p className="text-xs text-slate-400 mb-4">Distribución actual</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={adv.status_distribution} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} style={{ fontSize: 10, fontWeight: 700 }}>
-                  {adv.status_distribution.map((entry, i) => (
-                    <Cell key={i} fill={COLORS_STATUS[entry.name] || COLORS_PIE[i % COLORS_PIE.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 40px rgba(0,0,0,0.1)", fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Type + Priority */}
-        <Card className="shadow-sm border-0 ring-1 ring-slate-200/60">
-          <CardContent className="p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Tipo y Prioridad</h2>
-            <p className="text-xs text-slate-400 mb-4">Clasificación de traslados</p>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Por Tipo</p>
-                {adv.type_distribution.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ background: COLORS_PIE[i] }} />
-                      <span className="text-sm font-medium text-slate-700">{t.name}</span>
-                    </div>
-                    <span className="text-sm font-black text-slate-900">{t.value}</span>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Por Prioridad</p>
-                {adv.priority_distribution.map((p, i) => {
-                  const priColor = { "Urgente": "#ef4444", "Normal": "#3b82f6", "Programado": "#22c55e" };
-                  return (
-                    <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ background: priColor[p.name] || "#94a3b8" }} />
-                        <span className="text-sm font-medium text-slate-700">{p.name}</span>
-                      </div>
-                      <span className="text-sm font-black text-slate-900">{p.value}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Rankings Row: Top Destinations + Top Drivers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Destinations */}
-        <Card className="shadow-sm border-0 ring-1 ring-slate-200/60">
-          <CardContent className="p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Top 5 Destinos</h2>
-            <p className="text-xs text-slate-400 mb-4">Destinos más frecuentes</p>
-            {adv.top_destinations.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={adv.top_destinations} layout="vertical" margin={{ left: 10, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10, fill: "#475569", fontWeight: 600 }} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 40px rgba(0,0,0,0.1)", fontSize: 12 }} />
-                  <Bar dataKey="viajes" fill="#6366f1" radius={[0, 6, 6, 0]} barSize={18} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-center text-slate-400 py-10">Sin datos de destinos aún.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top Drivers */}
-        <Card className="shadow-sm border-0 ring-1 ring-slate-200/60">
-          <CardContent className="p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Top 5 Conductores</h2>
-            <p className="text-xs text-slate-400 mb-4">Más viajes completados</p>
-            {adv.top_drivers.length > 0 ? (
-              <div className="space-y-3">
-                {adv.top_drivers.map((d, i) => {
-                  const maxViajes = adv.top_drivers[0]?.viajes || 1;
-                  const pct = Math.round(d.viajes / maxViajes * 100);
-                  const medals = ["🥇", "🥈", "🥉"];
-                  return (
-                    <div key={i} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-800">
-                          {i < 3 ? medals[i] : `#${i+1}`} {d.name}
-                        </span>
-                        <span className="text-sm font-black text-teal-700">{d.viajes}</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2">
-                        <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: i === 0 ? "#0d9488" : i === 1 ? "#14b8a6" : "#5eead4" }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-center text-slate-400 py-10">Sin datos de conductores aún.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Fleet + Users Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Fleet Summary */}
-        <Card className="shadow-sm border-0 ring-1 ring-slate-200/60 cursor-pointer hover:ring-teal-300 transition-all" onClick={() => onNavigate("vehicles")}>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Estado de Flota</h2>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="space-y-1">
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-6 h-6 text-emerald-500" />
-                </div>
-                <p className="text-2xl font-black text-slate-900">{stats.vehicles_available}</p>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Disponibles</p>
-              </div>
-              <div className="space-y-1">
-                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto">
-                  <Truck className="w-6 h-6 text-blue-500" />
-                </div>
-                <p className="text-2xl font-black text-slate-900">{stats.vehicles_en_uso}</p>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">En Uso</p>
-              </div>
-              <div className="space-y-1">
-                <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto">
-                  <AlertTriangle className="w-6 h-6 text-red-500" />
-                </div>
-                <p className="text-2xl font-black text-slate-900">{stats.vehicles_fuera_de_servicio}</p>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">F. Servicio</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Users by Role */}
-        <Card className="shadow-sm border-0 ring-1 ring-slate-200/60 cursor-pointer hover:ring-teal-300 transition-all" onClick={() => onNavigate("users")}>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Usuarios por Rol</h2>
-            {adv.users_by_role.length > 0 ? (
-              <div className="space-y-3">
-                {adv.users_by_role.map((u, i) => {
-                  const total = adv.users_by_role.reduce((a, b) => a + b.value, 0);
-                  const pct = Math.round(u.value / total * 100);
-                  return (
-                    <div key={i} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{u.name}</span>
-                        <span className="text-sm font-black text-slate-900">{u.value} <span className="text-slate-400 font-normal text-xs">({pct}%)</span></span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5">
-                        <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: COLORS_PIE[i % COLORS_PIE.length] }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-center text-slate-400 py-10">Sin datos de usuarios.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      
+      <p className="text-slate-400 text-sm">Estadísticas simplificadas para la migración inicial.</p>
     </div>
   );
 }
 
 function KPICard({ label, value, sub, icon, color, onClick }) {
   const colorMap = {
-    teal: "from-teal-500 to-teal-600 shadow-teal-200/50",
-    blue: "from-blue-500 to-blue-600 shadow-blue-200/50",
-    emerald: "from-emerald-500 to-emerald-600 shadow-emerald-200/50",
-    red: "from-red-500 to-red-600 shadow-red-200/50",
-    indigo: "from-indigo-500 to-indigo-600 shadow-indigo-200/50",
-    amber: "from-amber-500 to-amber-600 shadow-amber-200/50",
-    violet: "from-violet-500 to-violet-600 shadow-violet-200/50",
+    teal: "from-teal-500 to-teal-600",
+    blue: "from-blue-500 to-blue-600",
+    emerald: "from-emerald-500 to-emerald-600",
+    red: "from-red-500 to-red-600",
+    indigo: "from-indigo-500 to-indigo-600",
+    amber: "from-amber-500 to-amber-600",
   };
 
   return (
-    <div 
-      onClick={onClick}
-      className={`bg-gradient-to-br ${colorMap[color]} rounded-2xl p-4 text-white shadow-lg ${onClick ? "cursor-pointer hover:scale-[1.02] active:scale-[0.98]" : ""} transition-all duration-200`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">{icon}</div>
-      </div>
-      <p className="text-2xl lg:text-3xl font-black tracking-tight">{value}</p>
-      <p className="text-[10px] uppercase font-bold tracking-wider opacity-80 mt-0.5">{label}</p>
-      <p className="text-[10px] opacity-60 mt-0.5">{sub}</p>
+    <div onClick={onClick} className={`bg-gradient-to-br ${colorMap[color]} rounded-2xl p-4 text-white shadow-lg cursor-pointer transition-transform hover:scale-[1.02]`}>
+      <div className="bg-white/20 p-2 rounded-lg w-fit mb-2">{icon}</div>
+      <p className="text-2xl font-black">{value}</p>
+      <p className="text-[10px] uppercase font-bold opacity-80">{label}</p>
+      <p className="text-[10px] opacity-60">{sub}</p>
     </div>
   );
 }
-
 
 function UsersManager() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = useCallback(async () => {
-    try { const res = await api.get("/users"); setUsers(res.data); } 
-    catch (error) {} finally { setLoading(false); }
+    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (!error) setUsers(data);
+    setLoading(false);
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -401,18 +129,28 @@ function UsersManager() {
   const handleAction = async (id, action) => {
     try {
       if (action === "delete") {
-        if (window.confirm("¿Eliminar usuario definitivamente?")) {
-          await api.delete(`/users/${id}`); toast.success("Eliminado"); fetchUsers();
+        if (window.confirm("¿Eliminar perfil de usuario?")) {
+          await supabase.from('profiles').delete().eq('id', id);
+          toast.success("Eliminado");
+          fetchUsers();
         }
       } else {
-        await api.put(`/users/${id}/${action}`); toast.success("Estado actualizado"); fetchUsers();
+        const status = action === "approve" ? "aprobado" : "rechazado";
+        await supabase.from('profiles').update({ status }).eq('id', id);
+        toast.success("Estado actualizado");
+        fetchUsers();
       }
     } catch (e) { toast.error("Error en la operación"); }
   };
 
   const handleRoleChange = async (id, role) => {
-    try { await api.put(`/users/${id}/role`, { role }); toast.success("Rol actualizado"); fetchUsers(); } 
-    catch (e) { toast.error("Error al cambiar rol"); }
+    const { error } = await supabase.from('profiles').update({ role }).eq('id', id);
+    if (!error) {
+      toast.success("Rol actualizado");
+      fetchUsers();
+    } else {
+      toast.error("Error al cambiar rol");
+    }
   };
 
   return (
@@ -465,17 +203,22 @@ function UsersManager() {
 function DestinationsManager() {
   const [dests, setDests] = useState([]);
   const [name, setName] = useState("");
-  const fetchDests = useCallback(async () => { try { const res = await api.get("/destinations"); setDests(res.data); } catch (e) {} }, []);
+  const fetchDests = useCallback(async () => {
+    const { data } = await supabase.from('origin_services').select('*').order('name');
+    if (data) setDests(data);
+  }, []);
   useEffect(() => { fetchDests(); }, [fetchDests]);
 
   const handleAdd = async (e) => {
     e.preventDefault(); if(!name.trim()) return;
-    try { await api.post("/destinations", { name }); setName(""); fetchDests(); toast.success("Destino agregado"); } 
-    catch (e) { toast.error("Error al agregar"); }
+    try { 
+      await supabase.from('origin_services').insert([{ name }]);
+      setName(""); fetchDests(); toast.success("Destino agregado"); 
+    } catch (e) { toast.error("Error al agregar"); }
   };
   
   const handleDelete = async (id) => {
-    try { await api.delete(`/destinations/${id}`); fetchDests(); toast.success("Eliminado"); } 
+    try { await supabase.from('origin_services').delete().eq('id', id); fetchDests(); toast.success("Eliminado"); } 
     catch (e) { toast.error("Error al eliminar"); }
   };
 
@@ -503,7 +246,11 @@ function DestinationsManager() {
 function AuditLogs() {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState("");
-  useEffect(() => { api.get("/audit-logs").then(r => setLogs(r.data)).catch(()=>{}); }, []);
+  useEffect(() => { 
+    supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).then(({ data }) => {
+      if (data) setLogs(data);
+    });
+  }, []);
 
   const filtered = logs.filter(l => 
     (l.user_name || "").toLowerCase().includes(search.toLowerCase()) || 
@@ -550,8 +297,10 @@ function VehiclesManager() {
   const [formData, setFormData] = useState({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
 
   const fetchVehicles = useCallback(async () => {
-    try { const r = await api.get("/vehicles"); setVehicles(r.data); }
-    catch (e) {} finally { setLoading(false); }
+    try { 
+      const { data } = await supabase.from('vehicles').select('*').order('plate');
+      if (data) setVehicles(data);
+    } catch (e) {} finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
@@ -560,10 +309,10 @@ function VehiclesManager() {
     e.preventDefault();
     try {
       if (editingId) {
-        await api.put(`/vehicles/${editingId}`, formData);
+        await supabase.from('vehicles').update(formData).eq('id', editingId);
         toast.success("Vehículo actualizado exitosamente");
       } else {
-        await api.post("/vehicles", formData);
+        await supabase.from('vehicles').insert([formData]);
         toast.success("Vehículo creado exitosamente");
       }
       closeDialog();
@@ -593,7 +342,7 @@ function VehiclesManager() {
 
   const handleDelete = async (id) => {
     if (window.confirm("¿Eliminar vehículo definitivamente?")) {
-      try { await api.delete(`/vehicles/${id}`); toast.success("Eliminado"); fetchVehicles(); }
+      try { await supabase.from('vehicles').delete().eq('id', id); toast.success("Eliminado"); fetchVehicles(); }
       catch (e) { toast.error("Error al eliminar"); }
     }
   };
@@ -697,8 +446,10 @@ function DriversManager() {
   const [licenseDate, setLicenseDate] = useState("");
 
   const fetchDrivers = useCallback(async () => {
-    try { const r = await api.get("/drivers"); setDrivers(r.data); }
-    catch (e) {} finally { setLoading(false); }
+    try { 
+      const { data } = await supabase.from('profiles').select('*').eq('role', 'conductor').order('name');
+      if (data) setDrivers(data);
+    } catch (e) {} finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
@@ -711,7 +462,7 @@ function DriversManager() {
 
   const saveLicense = async () => {
     try {
-      await api.put(`/drivers/${selectedDriver.id}/license`, { license_expiry: licenseDate });
+      await supabase.from('profiles').update({ license_expiry: licenseDate }).eq('id', selectedDriver.id);
       toast.success("Fecha de licencia actualizada");
       setIsDialogOpen(false);
       fetchDrivers();
@@ -774,8 +525,12 @@ function TripsManager() {
   const fetchTrips = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/trips/history", { params: { folio: search } });
-      setTrips(res.data);
+      let query = supabase.from('trips').select('*').order('created_at', { ascending: false });
+      if (search) {
+        query = query.ilike('tracking_number', `%${search}%`);
+      }
+      const { data } = await query;
+      if (data) setTrips(data);
     } catch (e) {
       toast.error("Error al cargar viajes");
     } finally {
@@ -790,7 +545,7 @@ function TripsManager() {
   const handleDeleteIndividual = async (id, tracking) => {
     if (window.confirm(`¿Seguro que desea eliminar el viaje ${tracking}? Esta acción es irreversible.`)) {
       try {
-        await api.delete(`/trips/${id}`);
+        await supabase.from('trips').delete().eq('id', id);
         toast.success("Viaje eliminado");
         fetchTrips();
       } catch (e) {
@@ -804,7 +559,7 @@ function TripsManager() {
     if (val === "ELIMINAR TODO") {
       setIsDeletingAll(true);
       try {
-        await api.delete("/trips/clear-all");
+        await supabase.from('trips').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         toast.success("Base de datos de viajes limpiada");
         fetchTrips();
       } catch (e) {

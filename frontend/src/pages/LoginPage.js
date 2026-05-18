@@ -4,13 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { UserPlus, LogIn, KeyRound, Fingerprint } from "lucide-react";
-import { startAuthentication } from '@simplewebauthn/browser';
-import api from "@/lib/api";
+import { UserPlus, LogIn, KeyRound } from "lucide-react";
 
 export default function LoginPage() {
   const [tab, setTab] = useState("login");
@@ -58,46 +56,21 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, setAuthData } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-
-  const handleBiometricLogin = async () => {
-    if (!email) {
-      toast.error("Ingrese su correo institucional primero");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await api.post('/auth/webauthn/login-options', { email });
-      const asseResp = await startAuthentication(res.data);
-      const verifyRes = await api.post('/auth/webauthn/login-verify', { email, response: asseResp });
-      
-      const { token, user } = verifyRes.data;
-      setAuthData(token, user);
-      
-      toast.success(`Bienvenido, ${user.name}`);
-      const routes = { admin: "/admin", coordinador: "/manager", solicitante: "/requester", conductor: "/driver", gestion_camas: "/gestion-camas" };
-      navigate(routes[user.role] || "/");
-    } catch (err) {
-      console.error(err);
-      if (err.name === 'NotAllowedError') {
-         toast.error("Autenticación cancelada");
-      } else {
-         toast.error(err.response?.data?.detail || "Error en autenticación biométrica");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const user = await login(email, password);
-      toast.success(`Bienvenido, ${user.name}`);
       
-      // AQUÍ ESTABA EL ERROR: Agregamos la ruta para gestion_camas
+      if (user.status !== "aprobado") {
+        toast.error("Tu cuenta está pendiente de aprobación por el administrador.");
+        return;
+      }
+
+      toast.success(`Bienvenido, ${user.name}`);
       const routes = { 
         admin: "/admin", 
         coordinador: "/manager", 
@@ -108,7 +81,7 @@ function LoginForm() {
       
       navigate(routes[user.role] || "/");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al iniciar sesion");
+      toast.error(err.message || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
@@ -121,26 +94,11 @@ function LoginForm() {
         <Input id="login-email" data-testid="login-email-input" type="email" placeholder="usuario@hospital.cl" value={email} onChange={(e) => setEmail(e.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="login-password">Contrasena</Label>
+        <Label htmlFor="login-password">Contraseña</Label>
         <Input id="login-password" data-testid="login-password-input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
       </div>
       <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white h-11" disabled={loading} data-testid="login-submit-btn">
         {loading ? "Ingresando..." : "Ingresar"}
-      </Button>
-
-      <div className="relative py-2">
-        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
-        <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">O BIEN</span></div>
-      </div>
-
-      <Button 
-        type="button" 
-        variant="outline" 
-        onClick={handleBiometricLogin} 
-        className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 h-11 font-bold"
-        disabled={loading}
-      >
-        <Fingerprint className="w-4 h-4 mr-2 text-teal-600" /> Ingresar con Huella / FaceID
       </Button>
     </form>
   );
@@ -156,10 +114,10 @@ function RegisterForm({ onSuccess }) {
     setLoading(true);
     try {
       await register(form);
-      toast.success("Registro exitoso. Espere aprobacion del administrador.");
+      toast.success("Registro exitoso. Espere aprobación del administrador.");
       onSuccess();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error en el registro");
+      toast.error(err.message || "Error en el registro");
     } finally {
       setLoading(false);
     }
@@ -189,7 +147,7 @@ function RegisterForm({ onSuccess }) {
             <SelectItem value="solicitante">Solicitante</SelectItem>
             <SelectItem value="conductor">Conductor</SelectItem>
             <SelectItem value="coordinador">Coordinador</SelectItem>
-            <SelectItem value="gestion_camas">Gestión de Camas</SelectItem> {/* AQUÍ AGREGAMOS EL NUEVO ROL */}
+            <SelectItem value="gestion_camas">Gestión de Camas</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -201,101 +159,11 @@ function RegisterForm({ onSuccess }) {
 }
 
 function ForgotForm({ onSuccess }) {
-  const [email, setEmail] = useState("");
-  const [token, setToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-
-  const handleSendEmail = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/forgot-password", { email });
-      if (res.data.reset_token) {
-        setToken(res.data.reset_token);
-        toast.success("Código generado automáticamente para pruebas.");
-      } else {
-        toast.success("Si el correo existe, recibirá instrucciones.");
-      }
-      setStep(2);
-    } catch (err) {
-      toast.error("Error al procesar la solicitud");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReset = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await api.post("/auth/reset-password", { token, new_password: newPassword });
-      toast.success("Contraseña actualizada con éxito. Ya puede iniciar sesión.");
-      setStep(1);
-      setEmail("");
-      setToken("");
-      setNewPassword("");
-      if (onSuccess) onSuccess(); 
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Código incorrecto o expirado");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (step === 1) {
-    return (
-      <form onSubmit={handleSendEmail} className="space-y-4 animate-slide-up" data-testid="forgot-form">
-        <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-sm text-amber-800 mb-2 leading-relaxed">
-          <p className="font-bold mb-1">ℹ️ Modo de Pruebas Activo</p>
-          <p>Al no tener un servidor de correos oficial, el sistema generará y autocompletará el código de seguridad por ti en el siguiente paso.</p>
-        </div>
-        <div className="space-y-2">
-          <Label>Correo Institucional</Label>
-          <Input data-testid="forgot-email-input" type="email" placeholder="usuario@hospital.cl" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white h-11" disabled={loading} data-testid="forgot-submit-btn">
-          {loading ? "Procesando..." : "Solicitar Recuperación"}
-        </Button>
-      </form>
-    );
-  }
-
   return (
-    <form onSubmit={handleReset} className="space-y-4 animate-slide-up" data-testid="reset-form">
-      {token ? (
-         <div className="bg-teal-50 border border-teal-200 p-3 rounded-md text-sm text-teal-800 mb-2">
-           <p className="font-bold mb-1">¡Código Rellenado!</p>
-           <p>Hemos completado el PIN de 6 dígitos por ti. Solo define tu nueva contraseña y guárdala.</p>
-         </div>
-      ) : (
-         <CardDescription>Ingrese el PIN de 6 dígitos recibido y su nueva contraseña.</CardDescription>
-      )}
-      
-      <div className="space-y-2">
-        <Label>PIN de Recuperación</Label>
-        <Input 
-          data-testid="reset-token-input" 
-          placeholder="Ej: 482910" 
-          value={token} 
-          onChange={(e) => setToken(e.target.value)} 
-          required 
-          readOnly={!!token} 
-          maxLength={6}
-          className={token ? "bg-slate-100 text-slate-500 font-bold tracking-[0.5em] text-center text-lg" : "text-center tracking-widest font-bold text-lg"} 
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Nueva Contraseña</Label>
-        <Input data-testid="reset-password-input" type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-      </div>
-      <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white h-11" disabled={loading} data-testid="reset-submit-btn">
-        {loading ? "Guardando..." : "Guardar Nueva Contraseña"}
-      </Button>
-      <Button type="button" variant="ghost" className="w-full h-11" onClick={() => setStep(1)} disabled={loading}>
-        Volver
-      </Button>
-    </form>
+    <div className="text-center py-8 space-y-4">
+      <KeyRound className="w-12 h-12 text-slate-300 mx-auto" />
+      <p className="text-slate-500 text-sm">La recuperación de contraseña ha sido movida a la gestión de Supabase. Contacte al administrador para restablecer su clave.</p>
+      <Button variant="ghost" onClick={onSuccess}>Volver al inicio</Button>
+    </div>
   );
 }

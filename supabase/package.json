@@ -1,0 +1,15 @@
+{
+  "name": "movilizacion-hcu-supabase",
+  "version": "1.0.0",
+  "description": "Supabase migration for Movilización HCU",
+  "scripts": {
+    "migrate": "node migrate.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

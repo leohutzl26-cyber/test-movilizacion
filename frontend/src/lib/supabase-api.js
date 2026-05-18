@@ -1,0 +1,442 @@
+import { supabase } from './supabase';
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('supabase.auth.token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// Helper function to handle Supabase Function calls
+const callSupabaseFunction = async (functionName, body = {}) => {
+  try {
+    const baseUrl = process.env.REACT_APP_API_URL || '';
+    const response = await fetch(`${baseUrl}/api/${functionName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Request failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`Supabase Function ${functionName} error:`, error);
+    throw error;
+  }
+};
+
+// Authentication functions
+export const authApi = {
+  register: async (userData) => {
+    return await callSupabaseFunction('auth-register', userData);
+  },
+
+  login: async (credentials) => {
+    return await callSupabaseFunction('auth-login', credentials);
+  },
+
+  logout: async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('supabase.auth.token');
+  },
+
+  getCurrentUser: async () => {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return session?.user;
+  }
+};
+
+// Trips functions
+export const tripsApi = {
+  // Get trips based on user role
+  getTrips: async (filters = {}) => {
+    let query = supabase.from('trips').select('*').order('created_at', { ascending: false });
+    
+    if (filters.status) {
+      query = query.in('status', filters.status);
+    }
+    
+    if (filters.requester_id) {
+      query = query.eq('requester_id', filters.requester_id);
+    }
+    
+    if (filters.driver_id) {
+      query = query.eq('driver_id', filters.driver_id);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Create new trip
+  createTrip: async (tripData) => {
+    return await callSupabaseFunction('trips-create', tripData);
+  },
+
+  // Get trip by ID
+  getTripById: async (tripId) => {
+    const { data, error } = await supabase
+      .from('trips')
+      .select('*')
+      .eq('id', tripId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Update trip
+  updateTrip: async (tripId, updateData) => {
+    const { data, error } = await supabase
+      .from('trips')
+      .update(updateData)
+      .eq('id', tripId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Assign driver to trip
+  assignDriver: async (tripId, driverId, vehicleId = null) => {
+    return await callSupabaseFunction('trips-assign', {
+      trip_id: tripId,
+      driver_id: driverId,
+      vehicle_id: vehicleId
+    });
+  },
+
+  // Update trip status
+  updateStatus: async (tripId, status, options = {}) => {
+    return await callSupabaseFunction('trips-update-status', {
+      trip_id: tripId,
+      status,
+      ...options
+    });
+  },
+
+  // Get trip pool (available trips)
+  getTripPool: async () => {
+    return await tripsApi.getTrips({ status: ['pendiente', 'asignado'] });
+  },
+
+  // Get active trips
+  getActiveTrips: async () => {
+    return await tripsApi.getTrips({ status: ['pendiente', 'asignado', 'en_curso'] });
+  },
+
+  // Get trip history
+  getTripHistory: async (filters = {}) => {
+    let query = supabase.from('trips').select('*').order('created_at', { ascending: false });
+    
+    if (filters.folio) {
+      query = query.ilike('tracking_number', `%${filters.folio}%`);
+    }
+    
+    if (filters.startDate) {
+      query = query.gte('scheduled_date', filters.startDate);
+    }
+    
+    if (filters.endDate) {
+      query = query.lte('scheduled_date', filters.endDate);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Delete trip
+  deleteTrip: async (tripId) => {
+    const { error } = await supabase
+      .from('trips')
+      .delete()
+      .eq('id', tripId);
+    
+    if (error) throw error;
+  }
+};
+
+// Users functions
+export const usersApi = {
+  // Get all users
+  getUsers: async () => {
+    const { data, error } = await supabase.from('profiles').select('*');
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get user by ID
+  getUserById: async (userId) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Update user status (approve/reject)
+  updateUserStatus: async (userId, action) => {
+    return await callSupabaseFunction('users-approve', {
+      user_id: userId,
+      action
+    });
+  },
+
+  // Update user role
+  updateUserRole: async (userId, role) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete user
+  deleteUser: async (userId) => {
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (error) throw error;
+  }
+};
+
+// Vehicles functions
+export const vehiclesApi = {
+  // Get all vehicles
+  getVehicles: async () => {
+    const { data, error } = await supabase.from('vehicles').select('*').order('plate');
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Create vehicle
+  createVehicle: async (vehicleData) => {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .insert([vehicleData])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Update vehicle
+  updateVehicle: async (vehicleId, updateData) => {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .update(updateData)
+      .eq('id', vehicleId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Update vehicle mileage
+  updateMileage: async (vehicleId, mileage) => {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .update({ mileage })
+      .eq('id', vehicleId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Update vehicle status
+  updateStatus: async (vehicleId, status) => {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .update({ status })
+      .eq('id', vehicleId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete vehicle
+  deleteVehicle: async (vehicleId) => {
+    const { error } = await supabase
+      .from('vehicles')
+      .delete()
+      .eq('id', vehicleId);
+    
+    if (error) throw error;
+  }
+};
+
+// Stats functions
+export const statsApi = {
+  // Get dashboard stats
+  getDashboardStats: async () => {
+    return await callSupabaseFunction('stats-dashboard');
+  },
+
+  // Get simple stats for components
+  getSimpleStats: async () => {
+    try {
+      const { data: trips } = await supabase.from('trips').select('status');
+      const { data: vehicles } = await supabase.from('vehicles').select('status');
+      
+      return {
+        by_status: {
+          pendiente: trips?.filter(t => t.status === 'pendiente').length || 0,
+          asignado: trips?.filter(t => t.status === 'asignado').length || 0,
+          en_curso: trips?.filter(t => t.status === 'en_curso').length || 0,
+          completado: trips?.filter(t => t.status === 'completado').length || 0,
+        },
+        total_vehicles: vehicles?.length || 0,
+        vehicles_available: vehicles?.filter(v => v.status === 'disponible').length || 0
+      };
+    } catch (error) {
+      console.error('Error getting simple stats:', error);
+      return {
+        by_status: { pendiente: 0, asignado: 0, en_curso: 0, completado: 0 },
+        total_vehicles: 0,
+        vehicles_available: 0
+      };
+    }
+  }
+};
+
+// Destinations/Origin Services functions
+export const destinationsApi = {
+  // Get all destinations
+  getDestinations: async () => {
+    const { data, error } = await supabase.from('origin_services').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Create destination
+  createDestination: async (destinationData) => {
+    const { data, error } = await supabase
+      .from('origin_services')
+      .insert([destinationData])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Update destination
+  updateDestination: async (destinationId, updateData) => {
+    const { data, error } = await supabase
+      .from('origin_services')
+      .update(updateData)
+      .eq('id', destinationId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete destination
+  deleteDestination: async (destinationId) => {
+    const { error } = await supabase
+      .from('origin_services')
+      .delete()
+      .eq('id', destinationId);
+    
+    if (error) throw error;
+  }
+};
+
+// Clinical Staff functions
+export const clinicalStaffApi = {
+  // Get all clinical staff
+  getClinicalStaff: async () => {
+    const { data, error } = await supabase.from('clinical_staff').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Create clinical staff
+  createClinicalStaff: async (staffData) => {
+    const { data, error } = await supabase
+      .from('clinical_staff')
+      .insert([staffData])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Update clinical staff
+  updateClinicalStaff: async (staffId, updateData) => {
+    const { data, error } = await supabase
+      .from('clinical_staff')
+      .update(updateData)
+      .eq('id', staffId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete clinical staff
+  deleteClinicalStaff: async (staffId) => {
+    const { error } = await supabase
+      .from('clinical_staff')
+      .delete()
+      .eq('id', staffId);
+    
+    if (error) throw error;
+  }
+};
+
+// Audit Logs functions
+export const auditLogsApi = {
+  // Get audit logs (admin only)
+  getAuditLogs: async (limit = 50) => {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(limit);
+    
+    if (error) throw error;
+    return data || [];
+  }
+};
+
+// Export all APIs
+export default {
+  auth: authApi,
+  trips: tripsApi,
+  users: usersApi,
+  vehicles: vehiclesApi,
+  stats: statsApi,
+  destinations: destinationsApi,
+  clinicalStaff: clinicalStaffApi,
+  auditLogs: auditLogsApi
+};

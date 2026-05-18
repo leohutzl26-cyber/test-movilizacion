@@ -1,0 +1,19 @@
+{
+  "name": "movilizacion-backend",
+  "version": "1.0.0",
+  "description": "Express server acting as a proxy for Supabase edge functions and serving React frontend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "cd frontend && npm install && npm run build"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
