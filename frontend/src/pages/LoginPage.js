@@ -65,7 +65,7 @@ function LoginForm() {
     try {
       const user = await login(email, password);
       
-      if (user.status !== "aprobado") {
+      if (user.status !== "aprobado" && user.status !== "approved") {
         toast.error("Tu cuenta está pendiente de aprobación por el administrador.");
         return;
       }
