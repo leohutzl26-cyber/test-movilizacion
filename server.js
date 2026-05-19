@@ -7,8 +7,24 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Environment variables for Supabase
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('Missing Supabase environment variables. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+}
+
 // Enable CORS for frontend development
 app.use(cors());
+
+// Parse JSON bodies
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
 
 // Parse JSON bodies (but we'll pass them as strings to the handlers to match their expectations)
 app.use(express.json({

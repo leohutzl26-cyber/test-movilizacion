@@ -9,6 +9,8 @@ node_modules/
 /node_modules
 /.pnp
 .pnp.js
+node_modules_backup/
+frontend/node_modules_backup/
 .yarn/install-state.gz
 .yarn/*
 !.yarn/patches
@@ -31,7 +33,9 @@ dist/
 dist
 
 # Environment files (comprehensive coverage)
-
+*.env
+*.env.*
+!.env.example
 *token.json*
 *credentials.json*
 
@@ -48,7 +52,7 @@ dump.rdb
 
 # Python
 __pycache__/
-*pyc*
+*.pyc
 venv/
 .venv/
 
@@ -75,28 +79,3 @@ agenthub/agents/youtube/db
 
 # Build caches
 .cache/
-
-# Mobile development
-android-sdk/ -e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/4.pack
-frontend/node_modules/.cache/default-development/0.pack
-frontend/node_modules/.cache/default-development/1.pack
-frontend/node_modules/.cache/default-development/2.pack
-frontend/node_modules/.cache/default-development/3.pack
-frontend/node_modules/.cache/default-development/6.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/7.pack
--e 
-# Environment files
-*.env
-*.env.*
