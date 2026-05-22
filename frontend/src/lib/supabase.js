@@ -20,12 +20,7 @@ export const customFetch = (url, options) => {
       });
     }
     
-    // Evitar que el navegador cachee las peticiones GET de XMLHttpRequest
-    if (!options.method || options.method.toUpperCase() === 'GET') {
-      xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      xhr.setRequestHeader('Pragma', 'no-cache');
-      xhr.setRequestHeader('Expires', '0');
-    }
+    // Removed Cache-Control headers because they cause CORS preflight failures on Supabase
 
     xhr.onload = () => {
       let bodyText = xhr.responseText;
