@@ -179,15 +179,33 @@ CREATE POLICY "Admins can delete vehicles" ON vehicles FOR DELETE USING (auth.ro
 
 -- RLS Policies for origin_services
 CREATE POLICY "Origin services are viewable by everyone" ON origin_services FOR SELECT USING (true);
-CREATE POLICY "Admins can insert origin services" ON origin_services FOR INSERT WITH CHECK (auth.role() = 'admin');
-CREATE POLICY "Admins can update origin services" ON origin_services FOR UPDATE USING (auth.role() = 'admin');
-CREATE POLICY "Admins can delete origin services" ON origin_services FOR DELETE USING (auth.role() = 'admin');
+
+CREATE POLICY "Gestores and Admins can insert origin services" ON origin_services FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can update origin services" ON origin_services FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can delete origin services" ON origin_services FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
 
 -- RLS Policies for clinical_staff
 CREATE POLICY "Clinical staff are viewable by everyone" ON clinical_staff FOR SELECT USING (true);
-CREATE POLICY "Admins can insert clinical staff" ON clinical_staff FOR INSERT WITH CHECK (auth.role() = 'admin');
-CREATE POLICY "Admins can update clinical staff" ON clinical_staff FOR UPDATE USING (auth.role() = 'admin');
-CREATE POLICY "Admins can delete clinical staff" ON clinical_staff FOR DELETE USING (auth.role() = 'admin');
+
+CREATE POLICY "Gestores and Admins can insert clinical staff" ON clinical_staff FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can update clinical staff" ON clinical_staff FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can delete clinical staff" ON clinical_staff FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
 
 -- RLS Policies for trips
 CREATE POLICY "Trips are viewable by everyone" ON trips FOR SELECT USING (true);
