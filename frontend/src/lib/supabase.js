@@ -19,6 +19,13 @@ export const customFetch = (url, options) => {
         xhr.setRequestHeader(key, value);
       });
     }
+    
+    // Evitar que el navegador cachee las peticiones GET de XMLHttpRequest
+    if (!options.method || options.method.toUpperCase() === 'GET') {
+      xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      xhr.setRequestHeader('Pragma', 'no-cache');
+      xhr.setRequestHeader('Expires', '0');
+    }
 
     xhr.onload = () => {
       let bodyText = xhr.responseText;
