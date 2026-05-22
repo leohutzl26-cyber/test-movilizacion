@@ -35,32 +35,46 @@ function validateRut(rut) {
   return { valid, formatted: `${formatted}-${expected}` };
 }
 
+const defaultForm = {
+  origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
+  scheduled_date: new Date().toISOString().split("T")[0],
+  rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
+  attending_physician: "", appointment_time: "", departure_time: "",
+  patient_requirements: [], accompaniment: "", task_details: "", staff_count: ""
+};
+
 export default function RequesterDashboard() {
   const [section, setSection] = useState("new");
+  const [editingTrip, setEditingTrip] = useState(null);
+
+  const handleEdit = (trip) => {
+    setEditingTrip(trip);
+    setSection("new");
+  };
+
+  const handleSectionChange = (sec) => {
+    if (sec !== "new") setEditingTrip(null);
+    setSection(sec);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar activeSection={section} onSectionChange={setSection} />
+      <Sidebar activeSection={section} onSectionChange={handleSectionChange} />
       <main className="flex-1 lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8 min-h-screen">
-        {section === "new" && <NewTripSection />}
-        {section === "list" && <MyRequestsSection />}
+        {section === "new" && <NewTripSection editingTrip={editingTrip} setEditingTrip={setEditingTrip} onSaved={() => setSection("list")} />}
+        {section === "list" && <MyRequestsSection onEdit={handleEdit} />}
       </main>
     </div>
   );
 }
 
-function NewTripSection() {
+function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   const [destinations, setDestinations] = useState([]);
   const [originServices, setOriginServices] = useState([]);
   const [clinicalStaffOptions, setClinicalStaffOptions] = useState([]);
   const [tripType, setTripType] = useState("clinico");
 
-  const [form, setForm] = useState({
-    origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
-    scheduled_date: new Date().toISOString().split("T")[0],
-    rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
-    attending_physician: "", appointment_time: "", departure_time: "",
-    patient_requirements: [], accompaniment: "", task_details: "", staff_count: ""
-  });
+  const [form, setForm] = useState(defaultForm);
 
   // Dynamic clinical staff table rows: [{type, staff_id, staff_name}]
   const [staffRows, setStaffRows] = useState([]);
@@ -70,6 +84,21 @@ function NewTripSection() {
   const [useCustomDest, setUseCustomDest] = useState(false);
   const [useCustomService, setUseCustomService] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (editingTrip) {
+      setTripType(editingTrip.trip_type || "clinico");
+      setForm({ ...defaultForm, ...editingTrip, patient_requirements: editingTrip.patient_requirements || [] });
+      setStaffRows(editingTrip.assigned_clinical_staff || []);
+      if (editingTrip.rut) {
+        setRutStatus(validateRut(editingTrip.rut));
+      }
+    } else {
+      setForm(defaultForm);
+      setStaffRows([]);
+      setRutStatus(null);
+    }
+  }, [editingTrip]);
 
   useEffect(() => {
     api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
@@ -167,23 +196,30 @@ function NewTripSection() {
         assigned_clinical_staff: staffRows,
       };
 
-      await api.post("/trips", submitData);
-      toast.success("Solicitud creada exitosamente");
-      setForm({
-        origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
-        scheduled_date: new Date().toISOString().split("T")[0], rut: "", age: "", diagnosis: "", weight: "", bed: "",
-        transfer_reason: "", attending_physician: "", appointment_time: "", departure_time: "",
-        patient_requirements: [], accompaniment: "", task_details: "", staff_count: ""
-      });
-      setStaffRows([]);
-      setRutStatus(null);
-    } catch (e) { toast.error("Error al crear solicitud"); }
+      if (editingTrip) {
+        await api.put(`/trips/${editingTrip.id}`, submitData);
+        toast.success("Solicitud actualizada exitosamente");
+        setEditingTrip(null);
+        if (onSaved) onSaved();
+      } else {
+        await api.post("/trips", submitData);
+        toast.success("Solicitud creada exitosamente");
+        setForm(defaultForm);
+        setStaffRows([]);
+        setRutStatus(null);
+      }
+    } catch (e) { toast.error(editingTrip ? "Error al actualizar solicitud" : "Error al crear solicitud"); }
     finally { setLoading(false); }
   };
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6">Nueva Solicitud de Traslado</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{editingTrip ? "Editar Solicitud" : "Nueva Solicitud de Traslado"}</h1>
+        {editingTrip && (
+          <Button variant="outline" onClick={() => { setEditingTrip(null); if (onSaved) onSaved(); }}>Cancelar Edición</Button>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <button onClick={() => setTripType("clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${tripType === "clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500 hover:border-teal-200"}`}>
@@ -387,7 +423,7 @@ function NewTripSection() {
             </div>
 
             <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white h-14 text-lg font-bold shadow-md" disabled={loading}>
-              {loading ? "Creando..." : "Enviar Solicitud de Traslado"}
+              {loading ? (editingTrip ? "Actualizando..." : "Creando...") : (editingTrip ? "Guardar Cambios" : "Enviar Solicitud de Traslado")}
             </Button>
           </form>
         </CardContent>
@@ -396,7 +432,7 @@ function NewTripSection() {
   );
 }
 
-function MyRequestsSection() {
+function MyRequestsSection({ onEdit }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReq, setSelectedReq] = useState(null);
@@ -409,6 +445,18 @@ function MyRequestsSection() {
   useEffect(() => { fetchReqs(); }, [fetchReqs]);
 
   const statusColors = { pendiente: "bg-amber-100 text-amber-800 border-amber-200", asignado: "bg-teal-100 text-teal-800 border-teal-200", en_curso: "bg-blue-100 text-blue-800 border-blue-200", completado: "bg-emerald-100 text-emerald-800 border-emerald-200", cancelado: "bg-red-100 text-red-800 border-red-200", revision_gestor: "bg-purple-100 text-purple-800 border-purple-200" };
+
+  const handleCancel = async (reqId) => {
+    if (!confirm("¿Está seguro de que desea cancelar esta solicitud?")) return;
+    try {
+      await api.put(`/trips/${reqId}/status`, { status: "cancelado", cancel_reason: "Cancelada por el solicitante" });
+      toast.success("Solicitud cancelada exitosamente");
+      setSelectedReq(null);
+      fetchReqs();
+    } catch (e) {
+      toast.error("Error al cancelar la solicitud");
+    }
+  };
 
   const filteredRequests = requests.filter(req => {
     let statusMatch = statusFilter === "all" ? true : req.status === statusFilter;
@@ -656,6 +704,13 @@ function MyRequestsSection() {
 
               {selectedReq.notes && (
                 <div className="border-t border-slate-200 pt-4"><p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas Adicionales</p><p className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-slate-800">{selectedReq.notes}</p></div>
+              )}
+
+              {(selectedReq.status === "revision_gestor" || selectedReq.status === "pendiente") && (
+                <div className="border-t border-slate-200 pt-4 flex gap-3 mt-4">
+                   <Button variant="outline" className="flex-1 border-teal-200 text-teal-700 hover:bg-teal-50" onClick={() => { onEdit(selectedReq); setSelectedReq(null); }}>Editar Solicitud</Button>
+                   <Button variant="destructive" className="flex-1" onClick={() => handleCancel(selectedReq.id)}>Cancelar Solicitud</Button>
+                </div>
               )}
             </div>
           )}
