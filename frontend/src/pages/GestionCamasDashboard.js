@@ -262,14 +262,104 @@ function AssignPersonnelSection() {
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {displayedTrips.map(t => <TripCard key={t.id} t={t} isPending={t.status === "revision_gestor"} />)}
-        {displayedTrips.length === 0 && (
-          <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">
-            <p className="text-xl font-bold">Sin traslados en este estado.</p>
-          </div>
-        )}
+      {/* Desktop View: Table */}
+      <div className="hidden lg:block bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Folio / Prioridad</th>
+                <th className="px-6 py-4">Paciente y Motivo</th>
+                <th className="px-6 py-4 min-w-[200px]">Ruta / Servicio</th>
+                <th className="px-6 py-4">Programación</th>
+                <th className="px-6 py-4">Equipo / Detalles</th>
+                <th className="px-6 py-4 text-center">Estado</th>
+                <th className="px-6 py-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {displayedTrips.map(t => {
+                const statusMap = {
+                  revision_gestor: { label: "Por Visar", color: "bg-red-100 text-red-700", border: "border-l-red-500" },
+                  pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-700", border: "border-l-amber-500" },
+                  asignado: { label: "Asignado", color: "bg-blue-100 text-blue-700", border: "border-l-blue-500" },
+                  en_curso: { label: "En Curso", color: "bg-emerald-100 text-emerald-700", border: "border-l-emerald-500" }
+                };
+                const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
+
+                return (
+                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-2">
+                        <span className="bg-slate-800 text-white font-mono px-2 py-1 rounded text-[10px] font-bold shadow-sm w-fit">
+                          {t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}
+                        </span>
+                        <Badge className={t.priority === "urgente" ? "bg-red-500 text-white w-fit" : t.priority === "alta" ? "bg-orange-500 text-white w-fit" : "bg-slate-100 text-slate-700 w-fit"}>
+                          {t.priority.toUpperCase()}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-900 text-sm mb-1">{t.patient_name || "Paciente no especificado"}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason || "Sin especificar"}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1 text-xs text-slate-600 font-medium">
+                        <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3 text-teal-600 shrink-0" /> <span className="truncate max-w-[180px]" title={t.origin}>{t.origin}</span> <span className="text-slate-400">({t.patient_unit || "-"})</span></div>
+                        <div className="flex items-center gap-1.5"><ArrowRight className="w-3 h-3 text-blue-600 shrink-0" /> <span className="truncate max-w-[180px]" title={t.destination}>{t.destination}</span></div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs"><CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {t.scheduled_date || "Hoy"}</div>
+                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs"><Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {t.appointment_time || "--:--"}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {t.clinical_team ? (
+                        <div className="bg-teal-50 px-2.5 py-1.5 rounded text-xs font-medium text-teal-900 border border-teal-100">
+                           <span className="font-bold uppercase text-[9px] text-teal-700 block mb-0.5">Equipo:</span>
+                           {t.clinical_team}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic font-medium">Sin personal extra</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <Badge className={`font-bold uppercase text-[10px] tracking-wider ${config.color}`}>{config.label}</Badge>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {(t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") && (
+                         <Button onClick={() => {
+                           setAssignDialog(t);
+                           setStaffRows(t.assigned_clinical_staff || []);
+                           setPriority(t.priority || "normal");
+                           setEditData({ ...t });
+                         }}
+                           className={`${t.status === "revision_gestor" ? "bg-teal-600 hover:bg-teal-700" : "bg-blue-600 hover:bg-blue-700"} text-white font-bold h-8 px-4 text-[11px] shadow-sm rounded-lg whitespace-nowrap`}>
+                           {t.status === "revision_gestor" ? "Visar Traslado" : "Editar / Ver"}
+                         </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Mobile/Tablet View: Cards */}
+      <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+        {displayedTrips.map(t => <TripCard key={t.id} t={t} isPending={t.status === "revision_gestor"} />)}
+      </div>
+
+      {/* Empty State */}
+      {displayedTrips.length === 0 && (
+        <div className="py-16 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+          <p className="text-xl font-bold">Sin traslados en este estado.</p>
+        </div>
+      )}
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

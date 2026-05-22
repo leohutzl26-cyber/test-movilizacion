@@ -1,6 +1,8 @@
 // Application Status Checker
 // Run this to check the current status of your application
 
+const fs = require('fs');
+
 console.log('🔍 Application Status Checker...');
 
 // Check environment
@@ -26,7 +28,7 @@ if (envChecks['.env.local']) {
     const envContent = fs.readFileSync('frontend/.env.local', 'utf8');
     const hasUrl = envContent.includes('REACT_APP_SUPABASE_URL=');
     const hasKey = envContent.includes('REACT_APP_SUPABASE_ANON_KEY=');
-    
+
     console.log('\n🔑 Environment Status:');
     console.log(`   Supabase URL: ${hasUrl ? '✅' : '❌'}`);
     console.log(`   Supabase Key: ${hasKey ? '✅' : '❌'}`);
