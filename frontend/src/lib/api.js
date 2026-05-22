@@ -95,8 +95,23 @@ const api = {
         }
 
         case "/trips": {
-          const { data: { session: tripsSession } } = await supabase.auth.getSession();
-          const userTrips = await supabaseApi.trips.getTrips({ requester_id: tripsSession?.user?.id });
+          let currentUserId = null;
+          try {
+            const token = localStorage.getItem('supabase.auth.token');
+            if (token) {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              currentUserId = payload.userId;
+            }
+          } catch (e) {
+            console.error("Error decoding token in api.js", e);
+          }
+          
+          if (!currentUserId) {
+            const { data: { session: tripsSession } } = await supabase.auth.getSession();
+            currentUserId = tripsSession?.user?.id;
+          }
+          
+          const userTrips = await supabaseApi.trips.getTrips(currentUserId ? { requester_id: currentUserId } : {});
           return { data: userTrips || [] };
         }
 
@@ -119,8 +134,23 @@ const api = {
     try {
       switch (url) {
         case "/trips": {
+          let currentUserId = null;
+          try {
+            const token = localStorage.getItem('supabase.auth.token');
+            if (token) {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              currentUserId = payload.userId;
+            }
+          } catch (e) {}
+
+          if (!currentUserId) {
+             const { data: { session } } = await supabase.auth.getSession();
+             currentUserId = session?.user?.id;
+          }
+
           const tripData = {
             ...data,
+            requester_id: currentUserId,
             tracking_number: generateFolio(),
             scheduled_date: data.scheduled_date || new Date().toISOString().split('T')[0]
           };
