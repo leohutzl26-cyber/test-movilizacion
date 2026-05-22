@@ -141,7 +141,9 @@ const api = {
               const payload = JSON.parse(atob(token.split('.')[1]));
               currentUserId = payload.userId;
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error("Error decoding token in api.js POST", e);
+          }
 
           if (!currentUserId) {
              const { data: { session } } = await supabase.auth.getSession();
