@@ -15,9 +15,15 @@ export const customFetch = (url, options) => {
     xhr.open(options.method || 'GET', url);
 
     if (options.headers) {
-      Object.entries(options.headers).forEach(([key, value]) => {
-        xhr.setRequestHeader(key, value);
-      });
+      if (options.headers instanceof Headers || (typeof options.headers.forEach === 'function' && typeof options.headers.entries === 'function')) {
+        options.headers.forEach((value, key) => {
+          xhr.setRequestHeader(key, value);
+        });
+      } else {
+        Object.entries(options.headers).forEach(([key, value]) => {
+          xhr.setRequestHeader(key, value);
+        });
+      }
     }
     
     // Removed Cache-Control headers because they cause CORS preflight failures on Supabase
