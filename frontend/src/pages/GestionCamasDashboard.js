@@ -68,13 +68,13 @@ function AssignPersonnelSection() {
         api.get("/origin-services")
       ]);
       
-      setTrips(revTrips.data);
-      setClinicalStaffOptions(staffInfo.data.filter(s => s.is_active));
-      setDestinations(dests.data);
-      setOriginServices(services.data.filter(s => s.is_active !== false));
+      setTrips(revTrips.data || []);
+      setClinicalStaffOptions((staffInfo.data || []).filter(s => s.is_active));
+      setDestinations(dests.data || []);
+      setOriginServices((services.data || []).filter(s => s.is_active !== false));
       
       // Filtrar solo clínicos para las estadísticas y el listado extendido
-      const clinicos = allActive.data.filter(t => t.trip_type === "clinico");
+      const clinicos = (allActive.data || []).filter(t => t.trip_type === "clinico");
       setAllActiveTrips(clinicos);
 
       setStats({
@@ -539,7 +539,7 @@ function ClinicalStaffMantenedor() {
     setLoading(true);
     try {
       const res = await api.get("/clinical-staff");
-      setStaff(res.data);
+      setStaff(res.data || []);
     } catch { } finally { setLoading(false); }
   }, []);
 
@@ -1050,7 +1050,7 @@ function OriginServicesMantenedor() {
   const [loading, setLoading] = useState(true);
 
   const fetchServices = useCallback(async () => {
-    try { const r = await api.get("/origin-services"); setServices(r.data); } catch { } finally { setLoading(false); }
+    try { const r = await api.get("/origin-services"); setServices(r.data || []); } catch { } finally { setLoading(false); }
   }, []);
   useEffect(() => { fetchServices(); }, [fetchServices]);
 
@@ -1161,9 +1161,9 @@ function GestorNewTripSection() {
   };
 
   useEffect(() => {
-    api.get("/destinations").then(r => setDestinations(r.data)).catch(() => { });
-    api.get("/clinical-staff").then(r => setClinicalStaffOptions(r.data.filter(s => s.is_active))).catch(() => { });
-    api.get("/origin-services").then(r => setOriginServices(r.data.filter(s => s.is_active !== false))).catch(() => { });
+    api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
+    api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
+    api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
   }, []);
 
   const reasonOptions = ["Examen", "Hospitalización", "Dialisis", "Rescate", "Alta", "Procedimiento"];

@@ -19,7 +19,7 @@ export default function LogbookReport() {
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
-    api.get("/vehicles").then(r => setVehicles(r.data)).catch(() => {});
+    api.get("/vehicles").then(r => setVehicles(r.data || [])).catch(() => {});
     // Set default dates: first and last of current month
     const now = new Date();
     const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);

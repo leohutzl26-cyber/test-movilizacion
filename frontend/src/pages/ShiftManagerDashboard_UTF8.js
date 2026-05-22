@@ -1226,9 +1226,9 @@ function NewTripSection({ onNavigate }) {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        api.get("/destinations").then(r => setDestinations(r.data)).catch(() => { });
-        api.get("/clinical-staff").then(r => setClinicalStaffOptions(r.data.filter(s => s.is_active))).catch(() => { });
-        api.get("/origin-services").then(r => setOriginServices(r.data.filter(s => s.is_active !== false))).catch(() => { });
+        api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
+        api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
+        api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
     }, []);
 
     const personnelTypes = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];

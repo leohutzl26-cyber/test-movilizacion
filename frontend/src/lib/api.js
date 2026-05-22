@@ -1,16 +1,23 @@
 import supabaseApi from './supabase-api';
+import { supabase } from './supabase';
 
 const generateFolio = () => `TR-${Math.floor(Math.random() * 1000000)}`;
 
 const api = {
   get: async (url, config = {}) => {
     try {
-      switch (url) {
-        case "/auth/me":
+      // Manejar rutas con parámetros de query (ej. /trips/calendar?start_date=...)
+      const baseUrl = url.split('?')[0];
+      const queryString = url.includes('?') ? url.split('?')[1] : '';
+      const queryParams = Object.fromEntries(new URLSearchParams(queryString));
+
+      switch (baseUrl) {
+        case "/auth/me": {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) throw new Error("No session");
           const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           return { data: profile };
+        }
 
         case "/stats/dashboard":
           return await supabaseApi.stats.getDashboardStats();
@@ -18,23 +25,42 @@ const api = {
         case "/trips/active":
           return { data: await supabaseApi.trips.getActiveTrips() };
 
-        case "/trips/user":
+        case "/trips/gestion_revision": {
+          // Traslados clínicos en estado revision_gestor
+          const revTrips = await supabaseApi.trips.getTrips({ status: ['revision_gestor'] });
+          return { data: revTrips.filter(t => t.trip_type === 'clinico') };
+        }
+
+        case "/trips/calendar": {
+          // Traslados en rango de fechas para el calendario
+          const calTrips = await supabaseApi.trips.getTripHistory({
+            startDate: queryParams.start_date,
+            endDate: queryParams.end_date
+          });
+          return { data: calTrips };
+        }
+
+        case "/trips/user": {
           const { data: { session: userSession } } = await supabase.auth.getSession();
           const userTrips = await supabaseApi.trips.getTrips({ requester_id: userSession?.user?.id });
           return { data: userTrips };
+        }
 
-        case "/trips/driver":
+        case "/trips/driver": {
           const { data: { session: driverSession } } = await supabase.auth.getSession();
           const driverTrips = await supabaseApi.trips.getTrips({ driver_id: driverSession?.user?.id });
           return { data: driverTrips };
+        }
 
-        case "/trips/pool":
+        case "/trips/pool": {
           const poolTrips = await supabaseApi.trips.getTripPool();
           return { data: poolTrips };
+        }
 
-        case "/drivers":
+        case "/drivers": {
           const drivers = await supabaseApi.users.getUsers();
           return { data: drivers?.filter(u => u.role === 'conductor') || [] };
+        }
 
         case "/destinations":
         case "/origin-services":
@@ -46,11 +72,12 @@ const api = {
         case "/vehicles":
           return { data: await supabaseApi.vehicles.getVehicles() };
 
-        case "/trips/history":
+        case "/trips/history": {
           const historyTrips = await supabaseApi.trips.getTripHistory(config.params || {});
           return { data: historyTrips };
+        }
 
-        case "/reports/logbook":
+        case "/reports/logbook": {
           const { vehicle_id, start_date, end_date } = config.params || {};
           const logbookData = await supabaseApi.trips.getTripHistory({
             vehicle_id,
@@ -65,31 +92,49 @@ const api = {
               incident_logs: []
             }
           };
+        }
 
-        default:
+        case "/trips": {
+          const { data: { session: tripsSession } } = await supabase.auth.getSession();
+          const userTrips = await supabaseApi.trips.getTrips({ requester_id: tripsSession?.user?.id });
+          return { data: userTrips || [] };
+        }
+
+        default: {
+          // Handle /logbook-list/* routes
+          if (baseUrl.startsWith("/logbook-list")) {
+            // Return empty array - logbook entries would need a dedicated table
+            return { data: [] };
+          }
           return { data: [] };
+        }
       }
     } catch (e) {
       console.error("API GET Error:", url, e);
-      return { data: null };
+      return { data: [] };
     }
   },
 
   post: async (url, data) => {
     try {
       switch (url) {
-        case "/trips":
+        case "/trips": {
           const tripData = {
             ...data,
             tracking_number: generateFolio(),
             scheduled_date: data.scheduled_date || new Date().toISOString().split('T')[0]
           };
           return { data: await supabaseApi.trips.createTrip(tripData) };
+        }
 
         case "/destinations":
-        case "/origin-services":
-          const destData = { name: data.name };
+        case "/origin-services": {
+          const destData = { name: data.name, is_active: data.is_active !== false };
           return { data: await supabaseApi.destinations.createDestination(destData) };
+        }
+
+        case "/clinical-staff":
+          return { data: await supabaseApi.clinicalStaff.createClinicalStaff(data) };
 
         case "/vehicles":
           return { data: await supabaseApi.vehicles.createVehicle(data) };
@@ -132,6 +177,14 @@ const api = {
             data: await supabaseApi.trips.updateStatus(tripId, data.status, {
               mileage: data.mileage,
               cancel_reason: data.cancel_reason || null
+            })
+          };
+        } else if (parts[3] === "approve-gestor") {
+          // Visar traslado: pasa de revision_gestor a pendiente
+          return {
+            data: await supabaseApi.trips.updateTrip(tripId, {
+              ...data,
+              status: 'pendiente'
             })
           };
         } else {

@@ -120,7 +120,7 @@ function UsersManager() {
 
   const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    if (!error) setUsers(data);
+    if (!error) setUsers(data || []);
     setLoading(false);
   }, []);
 
@@ -205,7 +205,7 @@ function DestinationsManager() {
   const [name, setName] = useState("");
   const fetchDests = useCallback(async () => {
     const { data } = await supabase.from('origin_services').select('*').order('name');
-    if (data) setDests(data);
+    if (data) setDests(data || []);
   }, []);
   useEffect(() => { fetchDests(); }, [fetchDests]);
 
@@ -248,7 +248,7 @@ function AuditLogs() {
   const [search, setSearch] = useState("");
   useEffect(() => { 
     supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).then(({ data }) => {
-      if (data) setLogs(data);
+      if (data) setLogs(data || []);
     });
   }, []);
 
@@ -299,7 +299,7 @@ function VehiclesManager() {
   const fetchVehicles = useCallback(async () => {
     try { 
       const { data } = await supabase.from('vehicles').select('*').order('plate');
-      if (data) setVehicles(data);
+      if (data) setVehicles(data || []);
     } catch (e) {} finally { setLoading(false); }
   }, []);
 
@@ -448,7 +448,7 @@ function DriversManager() {
   const fetchDrivers = useCallback(async () => {
     try { 
       const { data } = await supabase.from('profiles').select('*').eq('role', 'conductor').order('name');
-      if (data) setDrivers(data);
+      if (data) setDrivers(data || []);
     } catch (e) {} finally { setLoading(false); }
   }, []);
 
@@ -530,7 +530,7 @@ function TripsManager() {
         query = query.ilike('tracking_number', `%${search}%`);
       }
       const { data } = await query;
-      if (data) setTrips(data);
+      if (data) setTrips(data || []);
     } catch (e) {
       toast.error("Error al cargar viajes");
     } finally {
