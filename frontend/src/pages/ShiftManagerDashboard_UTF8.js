@@ -46,18 +46,18 @@ const pColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-wh
 const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
 
 const VEHICLE_ICONS = {
-    Ambulancia: <Siren className="w-5 h-5 text-red-600" />,
-    camion: <Truck className="w-5 h-5 text-blue-600" />,
-    "Auto/SUV": <Car className="w-5 h-5 text-slate-600" />,
+    Ambulancia: <Siren className="w-6 h-6 text-red-600 drop-shadow-sm" />,
+    camion: <Truck className="w-6 h-6 text-blue-600 drop-shadow-sm" />,
+    "Auto/SUV": <Car className="w-6 h-6 text-purple-600 drop-shadow-sm" />,
     Camioneta: (
-      <svg className="w-5 h-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-6 h-6 text-emerald-600 drop-shadow-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M2 13h4l1-3h4l1 3h10v4H2z" />
         <path d="M12 13v4" />
         <circle cx="7" cy="17" r="2" />
         <circle cx="17" cy="17" r="2" />
       </svg>
     ),
-    Van: <Bus className="w-5 h-5 text-indigo-600" />
+    Van: <Bus className="w-6 h-6 text-indigo-600 drop-shadow-sm" />
 };
 
 function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {

@@ -177,9 +177,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
           <button onClick={() => setPasswordDialog(true)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2">
             <Key className="w-4 h-4" /> Cambiar Contraseña
           </button>
-          <button onClick={handleRegisterBiometrics} disabled={loading} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors mb-2 disabled:opacity-50">
-            <Fingerprint className="w-4 h-4 text-teal-600" /> Activar Huella / FaceID
-          </button>
+
           <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
             <LogOut className="w-4 h-4" /> Cerrar Sesión
           </button>
