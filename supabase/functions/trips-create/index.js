@@ -41,7 +41,7 @@ exports.handler = async (event, context) => {
     // Create trip
     const trip = {
       tracking_number: generateTrackingNumber(),
-      status: 'pending',
+      status: 'pendiente',
       scheduled_date: tripData.scheduled_date || new Date().toISOString().split('T')[0],
       ...tripData,
       ...requesterInfo
