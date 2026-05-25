@@ -821,7 +821,10 @@ function ClinicalCalendarSection() {
     return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
   };
 
-  const tripsByDate = (dateStr) => trips.filter(t => t.scheduled_date && t.scheduled_date.split("T")[0] === dateStr);
+  const tripsByDate = (dateStr) => trips.filter(t => {
+    const d = t.scheduled_date || t.created_at;
+    return d && d.split("T")[0] === dateStr;
+  });
 
   // Weekly helper: get array of 7 date strings
   const getWeekDates = () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/Sidebar";
@@ -887,7 +887,7 @@ function CalendarSection() {
         return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
     };
 
-    const tripsByDate = (dateStr) => trips.filter(t => t.scheduled_date === dateStr);
+    const tripsByDate = (dateStr) => trips.filter(t => { const d = t.scheduled_date || t.created_at; return d && d.split("T")[0] === dateStr; });
 
     const getWeekDates = () => {
         const { start } = getDateRange();
@@ -2021,4 +2021,5 @@ function LogbookMonitorSection() {
     </div>
   );
 }
+
 
