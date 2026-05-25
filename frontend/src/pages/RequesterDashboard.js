@@ -333,7 +333,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                     <div className="space-y-1"><Label>Servicio de Origen *</Label>
                       {!useCustomService ? (
                         <Select value={form.patient_unit || undefined} onValueChange={v => {
-                          if (v === "otro") { setUseCustomService(true); }
+                          if (v === "otro") { setUseCustomService(true); if (!form.patient_unit) setForm({ ...form, patient_unit: "" }); }
                           else { setForm({ ...form, patient_unit: v }); }
                         }}>
                           <SelectTrigger><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
@@ -344,7 +344,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <Input placeholder="Escriba servicio" value={form.patient_unit} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />
+                        <Input placeholder="Escriba servicio" value={form.patient_unit || ""} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />
                       )}
                     </div>
                     <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
