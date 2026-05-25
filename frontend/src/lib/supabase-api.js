@@ -39,6 +39,36 @@ const callSupabaseFunction = async (functionName, body = {}) => {
   }
 };
 
+const parseTrip = (trip) => {
+  if (!trip) return trip;
+  const parsed = { ...trip };
+  ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
+    if (Array.isArray(parsed[field])) {
+      parsed[field] = parsed[field].map(item => {
+        if (typeof item === 'string') {
+          try { return JSON.parse(item); } catch(e) { return item; }
+        }
+        return item;
+      });
+    }
+  });
+  return parsed;
+};
+
+const serializeTrip = (tripData) => {
+  if (!tripData) return tripData;
+  const serialized = { ...tripData };
+  ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
+    if (Array.isArray(serialized[field])) {
+      serialized[field] = serialized[field].map(item => {
+        if (typeof item === 'object') return JSON.stringify(item);
+        return item;
+      });
+    }
+  });
+  return serialized;
+};
+
 // Authentication functions
 export const authApi = {
   register: async (userData) => {
@@ -81,12 +111,12 @@ export const tripsApi = {
     
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    return (data || []).map(parseTrip);
   },
 
   // Create new trip
   createTrip: async (tripData) => {
-    return await callSupabaseFunction('trips-create', tripData);
+    return parseTrip(await callSupabaseFunction('trips-create', serializeTrip(tripData)));
   },
 
   // Get trip by ID
@@ -98,20 +128,20 @@ export const tripsApi = {
       .single();
     
     if (error) throw error;
-    return data;
+    return parseTrip(data);
   },
 
   // Update trip
   updateTrip: async (tripId, updateData) => {
     const { data, error } = await supabase
       .from('trips')
-      .update(updateData)
+      .update(serializeTrip(updateData))
       .eq('id', tripId)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return parseTrip(data);
   },
 
   // Assign driver to trip
@@ -160,7 +190,7 @@ export const tripsApi = {
     
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    return (data || []).map(parseTrip);
   },
 
   // Delete trip
