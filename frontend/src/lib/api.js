@@ -32,11 +32,9 @@ const api = {
         }
 
         case "/trips/calendar": {
-          // Traslados en rango de fechas para el calendario
-          const calTrips = await supabaseApi.trips.getTripHistory({
-            startDate: queryParams.start_date,
-            endDate: queryParams.end_date
-          });
+          // Temporarily removing the date filter to ensure all trips are fetched
+          // so we can see if the .gte / .lte was causing them to disappear
+          const calTrips = await supabaseApi.trips.getTripHistory();
           return { data: calTrips };
         }
 

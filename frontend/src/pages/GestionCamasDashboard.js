@@ -767,22 +767,29 @@ function ClinicalCalendarSection() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const formatLocalDate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const getDateRange = useCallback(() => {
     const d = new Date(currentDate);
     if (viewMode === "daily") {
-      const ds = d.toISOString().split("T")[0];
+      const ds = formatLocalDate(d);
       return { start: ds, end: ds };
     }
     if (viewMode === "weekly") {
       const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1);
       const mon = new Date(d); mon.setDate(diff);
       const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-      return { start: mon.toISOString().split("T")[0], end: sun.toISOString().split("T")[0] };
+      return { start: formatLocalDate(mon), end: formatLocalDate(sun) };
     }
     // monthly
     const first = new Date(d.getFullYear(), d.getMonth(), 1);
     const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    return { start: first.toISOString().split("T")[0], end: last.toISOString().split("T")[0] };
+    return { start: formatLocalDate(first), end: formatLocalDate(last) };
   }, [currentDate, viewMode]);
 
   const fetchCalendar = useCallback(async () => {
@@ -814,13 +821,18 @@ function ClinicalCalendarSection() {
     return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
   };
 
-  const tripsByDate = (dateStr) => trips.filter(t => t.scheduled_date === dateStr);
+  const tripsByDate = (dateStr) => trips.filter(t => t.scheduled_date && t.scheduled_date.split("T")[0] === dateStr);
 
   // Weekly helper: get array of 7 date strings
   const getWeekDates = () => {
     const { start } = getDateRange();
-    const d = new Date(start + "T12:00:00");
-    return Array.from({ length: 7 }, (_, i) => { const nd = new Date(d); nd.setDate(d.getDate() + i); return nd.toISOString().split("T")[0]; });
+    const [y, m, d] = start.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    return Array.from({ length: 7 }, (_, i) => { 
+      const nd = new Date(dateObj); 
+      nd.setDate(dateObj.getDate() + i); 
+      return formatLocalDate(nd); 
+    });
   };
 
   // Monthly helper: get grid of dates
@@ -831,7 +843,7 @@ function ClinicalCalendarSection() {
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const grid = [];
     for (let i = 0; i < startDay; i++) grid.push(null);
-    for (let d = 1; d <= daysInMonth; d++) grid.push(new Date(y, m, d).toISOString().split("T")[0]);
+    for (let d = 1; d <= daysInMonth; d++) grid.push(formatLocalDate(new Date(y, m, d)));
     return grid;
   };
 
@@ -901,7 +913,7 @@ function ClinicalCalendarSection() {
             <div className="grid grid-cols-7 gap-2">
               {getWeekDates().map((dateStr, i) => {
                 const dayTrips = tripsByDate(dateStr);
-                const isToday = dateStr === new Date().toISOString().split("T")[0];
+                const isToday = dateStr === formatLocalDate(new Date());
                 return (
                   <div key={dateStr} className={`bg-white rounded-xl border p-2 min-h-[200px] ${isToday ? "border-teal-400 ring-2 ring-teal-100" : "border-slate-200"}`}>
                     <div className={`text-center mb-2 pb-1 border-b ${isToday ? "border-teal-200" : "border-slate-100"}`}>
@@ -928,7 +940,7 @@ function ClinicalCalendarSection() {
                 {getMonthGrid().map((dateStr, i) => {
                   if (!dateStr) return <div key={`empty-${i}`} className="min-h-[80px]" />;
                   const dayTrips = tripsByDate(dateStr);
-                  const isToday = dateStr === new Date().toISOString().split("T")[0];
+                  const isToday = dateStr === formatLocalDate(new Date());
                   const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["asignado", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
                   return (
                     <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("daily"); }} className={`min-h-[80px] bg-white rounded-lg border p-1.5 cursor-pointer hover:shadow-md transition-all ${isToday ? "border-teal-400 ring-1 ring-teal-100" : "border-slate-100"}`}>
