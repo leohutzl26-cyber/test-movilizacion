@@ -320,12 +320,12 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1"><Label>Origen *</Label>
                   {!useCustomOrigin ? (
-                    <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
+                    <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}{form.origin && !destinations.find(d => d.name === form.origin) && <SelectItem value={form.origin}>{form.origin} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
                   ) : <Input placeholder="Escriba origen" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}
                 </div>
                 <div className="space-y-1"><Label>Destino *</Label>
                   {!useCustomDest ? (
-                    <Select value={form.destination || undefined} onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
+                    <Select value={form.destination || undefined} onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}{form.destination && !destinations.find(d => d.name === form.destination) && <SelectItem value={form.destination}>{form.destination} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
                   ) : <Input placeholder="Escriba destino" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}
                 </div>
                 {tripType === "clinico" && (
@@ -339,6 +339,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                           <SelectTrigger><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
                           <SelectContent>
                             {originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                            {form.patient_unit && !originServices.find(s => s.name === form.patient_unit) && <SelectItem value={form.patient_unit}>{form.patient_unit} (Personalizado)</SelectItem>}
                             <SelectItem value="otro">Otro (escribir)</SelectItem>
                           </SelectContent>
                         </Select>
