@@ -499,13 +499,9 @@ function MyRequestsSection({ onEdit }) {
 
   const formatDate = (isoString) => {
     if (!isoString) return "-";
-    // Si viene como YYYY-MM-DD sin tiempo, asume UTC para no cambiar de dia
-    if (isoString.length === 10) {
-      const [y, m, d] = isoString.split('-');
-      return `${d}-${m}-${y}`;
-    }
-    const d = new Date(isoString);
-    return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const datePart = isoString.split('T')[0];
+    const [y, m, d] = datePart.split('-');
+    return `${d}-${m}-${y}`;
   };
 
   const formatDateTime = (isoString) => {
@@ -691,7 +687,8 @@ function MyRequestsSection({ onEdit }) {
                   <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200">
                     <p className="text-xs"><span className="font-bold text-slate-500">RUT:</span> {selectedReq.rut || "-"}</p>
                     <p className="text-xs"><span className="font-bold text-slate-500">Servicio/Unidad:</span> {selectedReq.patient_unit}</p>
-                    <p className="text-xs"><span className="font-bold text-slate-500">Hora Citación:</span> <span className="text-red-600 font-bold">{selectedReq.appointment_time || "-"}</span></p>
+                    <p className="text-xs"><span className="font-bold text-slate-500">Fecha Traslado:</span> <span className="text-teal-700 font-bold">{formatDate(selectedReq.scheduled_date)}</span></p>
+                    <p className="text-xs"><span className="font-bold text-slate-500">Horarios:</span> <span className="text-red-600 font-bold">{selectedReq.appointment_time || "-"}</span> (Cit) | <span className="text-amber-600 font-bold">{selectedReq.departure_time || "-"}</span> (Sal)</p>
                   </div>
                 )}
               </div>
