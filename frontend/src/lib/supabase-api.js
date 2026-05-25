@@ -364,29 +364,21 @@ export const statsApi = {
 
 // Destinations/Origin Services functions
 export const destinationsApi = {
-  // Get all destinations
   getDestinations: async () => {
-    const { data, error } = await supabase.from('origin_services').select('*').order('name');
+    const { data, error } = await supabase.from('destinations').select('*').order('name');
     if (error) throw error;
     return data || [];
   },
 
-  // Create destination
   createDestination: async (destinationData) => {
-    const { data, error } = await supabase
-      .from('origin_services')
-      .insert([destinationData])
-      .select()
-      .single();
-    
+    const { data, error } = await supabase.from('destinations').insert([destinationData]).select().single();
     if (error) throw error;
     return data;
   },
 
-  // Update destination
   updateDestination: async (destinationId, updateData) => {
     const { data, error } = await supabase
-      .from('origin_services')
+      .from('destinations')
       .update(updateData)
       .eq('id', destinationId)
       .select()
@@ -396,12 +388,46 @@ export const destinationsApi = {
     return data;
   },
 
-  // Delete destination
   deleteDestination: async (destinationId) => {
+    const { error } = await supabase
+      .from('destinations')
+      .delete()
+      .eq('id', destinationId);
+    
+    if (error) throw error;
+  }
+};
+
+export const originServicesApi = {
+  getOriginServices: async () => {
+    const { data, error } = await supabase.from('origin_services').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+  },
+
+  createOriginService: async (serviceData) => {
+    const { data, error } = await supabase.from('origin_services').insert([serviceData]).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateOriginService: async (serviceId, updateData) => {
+    const { data, error } = await supabase
+      .from('origin_services')
+      .update(updateData)
+      .eq('id', serviceId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  deleteOriginService: async (serviceId) => {
     const { error } = await supabase
       .from('origin_services')
       .delete()
-      .eq('id', destinationId);
+      .eq('id', serviceId);
     
     if (error) throw error;
   }
@@ -475,6 +501,7 @@ export default {
   vehicles: vehiclesApi,
   stats: statsApi,
   destinations: destinationsApi,
+  originServicesApi: originServicesApi,
   clinicalStaff: clinicalStaffApi,
   auditLogs: auditLogsApi
 };

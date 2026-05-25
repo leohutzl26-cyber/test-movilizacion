@@ -61,8 +61,10 @@ const api = {
         }
 
         case "/destinations":
-        case "/origin-services":
           return { data: await supabaseApi.destinations.getDestinations() };
+
+        case "/origin-services":
+          return { data: await supabaseApi.originServicesApi.getOriginServices() };
 
         case "/clinical-staff":
           return { data: await supabaseApi.clinicalStaff.getClinicalStaff() };

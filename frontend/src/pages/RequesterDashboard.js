@@ -109,15 +109,15 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   }, [editingTrip]);
 
   useEffect(() => {
-    if (editingTrip && destinations.length > 0) {
-      if (editingTrip.origin && !destinations.find(d => d.name === editingTrip.origin)) setUseCustomOrigin(true);
-      if (editingTrip.destination && !destinations.find(d => d.name === editingTrip.destination)) setUseCustomDest(true);
+    if (editingTrip) {
+      if (editingTrip.origin && (!destinations.length || !destinations.find(d => d.name.toLowerCase() === editingTrip.origin.toLowerCase()))) setUseCustomOrigin(true);
+      if (editingTrip.destination && (!destinations.length || !destinations.find(d => d.name.toLowerCase() === editingTrip.destination.toLowerCase()))) setUseCustomDest(true);
     }
   }, [editingTrip, destinations]);
 
   useEffect(() => {
-    if (editingTrip && originServices.length > 0) {
-      if (editingTrip.patient_unit && !originServices.find(s => s.name === editingTrip.patient_unit)) setUseCustomService(true);
+    if (editingTrip) {
+      if (editingTrip.patient_unit && (!originServices.length || !originServices.find(s => s.name.toLowerCase() === editingTrip.patient_unit.toLowerCase()))) setUseCustomService(true);
     }
   }, [editingTrip, originServices]);
 
