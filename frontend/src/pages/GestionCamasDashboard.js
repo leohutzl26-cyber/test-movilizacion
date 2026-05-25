@@ -446,6 +446,7 @@ function AssignPersonnelSection() {
                         {destinations.map(d => (
                           <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
                         ))}
+                        {editData.origin && editData.origin !== "none" && !destinations.find(d => d.name === editData.origin) && <SelectItem value={editData.origin}>{editData.origin} (Personalizado)</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
@@ -459,6 +460,7 @@ function AssignPersonnelSection() {
                         {destinations.map(d => (
                           <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
                         ))}
+                        {editData.destination && editData.destination !== "none" && !destinations.find(d => d.name === editData.destination) && <SelectItem value={editData.destination}>{editData.destination} (Personalizado)</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
@@ -472,6 +474,7 @@ function AssignPersonnelSection() {
                         {originServices.map(s => (
                           <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                         ))}
+                        {editData.patient_unit && editData.patient_unit !== "none" && !originServices.find(s => s.name === editData.patient_unit) && <SelectItem value={editData.patient_unit}>{editData.patient_unit} (Personalizado)</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
@@ -481,7 +484,7 @@ function AssignPersonnelSection() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Fecha Programada</Label>
-                    <Input type="date" className="h-9 text-sm font-bold bg-white" value={editData.scheduled_date || ""} onChange={e => setEditData({ ...editData, scheduled_date: e.target.value })} />
+                    <Input type="date" className="h-9 text-sm font-bold bg-white" value={editData.scheduled_date ? editData.scheduled_date.split('T')[0] : ""} onChange={e => setEditData({ ...editData, scheduled_date: e.target.value })} />
                   </div>
                   <div className="md:col-span-2 space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Notas / Observaciones</Label>
@@ -1346,10 +1349,10 @@ function GestorNewTripSection() {
           </div>)}
           {/* Ubicación */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1"><Label>Origen *</Label>{!useCustomOrigin ? <Select onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}</div>
-            <div className="space-y-1"><Label>Destino *</Label>{!useCustomDest ? <Select onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}</div>
+            <div className="space-y-1"><Label>Origen *</Label>{!useCustomOrigin ? <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}</div>
+            <div className="space-y-1"><Label>Destino *</Label>{!useCustomDest ? <Select value={form.destination || undefined} onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}</div>
             {tripType === "clinico" && <>
-              <div className="space-y-1"><Label>Servicio de Origen</Label>{!useCustomService ? <Select onValueChange={v => v === "otro" ? setUseCustomService(true) : setForm({ ...form, patient_unit: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.patient_unit} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />}</div>
+              <div className="space-y-1"><Label>Servicio de Origen</Label>{!useCustomService ? <Select value={form.patient_unit || undefined} onValueChange={v => v === "otro" ? setUseCustomService(true) : setForm({ ...form, patient_unit: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.patient_unit} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />}</div>
               <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
               <div className="space-y-1"><Label>Hora Citación</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
               <div className="space-y-1"><Label>Hora Salida</Label><Input type="time" value={form.departure_time} onChange={e => setForm({ ...form, departure_time: e.target.value })} /></div>

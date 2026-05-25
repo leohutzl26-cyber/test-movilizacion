@@ -88,7 +88,12 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   useEffect(() => {
     if (editingTrip) {
       setTripType(editingTrip.trip_type || "clinico");
-      setForm({ ...defaultForm, ...editingTrip, patient_requirements: editingTrip.patient_requirements || [] });
+      setForm({ 
+        ...defaultForm, 
+        ...editingTrip, 
+        patient_requirements: editingTrip.patient_requirements || [],
+        scheduled_date: editingTrip.scheduled_date ? editingTrip.scheduled_date.split('T')[0] : defaultForm.scheduled_date
+      });
       setStaffRows(editingTrip.assigned_clinical_staff || []);
       if (editingTrip.rut) {
         setRutStatus(validateRut(editingTrip.rut));
@@ -97,8 +102,24 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
       setForm(defaultForm);
       setStaffRows([]);
       setRutStatus(null);
+      setUseCustomOrigin(false);
+      setUseCustomDest(false);
+      setUseCustomService(false);
     }
   }, [editingTrip]);
+
+  useEffect(() => {
+    if (editingTrip && destinations.length > 0) {
+      if (editingTrip.origin && !destinations.find(d => d.name === editingTrip.origin)) setUseCustomOrigin(true);
+      if (editingTrip.destination && !destinations.find(d => d.name === editingTrip.destination)) setUseCustomDest(true);
+    }
+  }, [editingTrip, destinations]);
+
+  useEffect(() => {
+    if (editingTrip && originServices.length > 0) {
+      if (editingTrip.patient_unit && !originServices.find(s => s.name === editingTrip.patient_unit)) setUseCustomService(true);
+    }
+  }, [editingTrip, originServices]);
 
   useEffect(() => {
     api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
@@ -299,19 +320,19 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1"><Label>Origen *</Label>
                   {!useCustomOrigin ? (
-                    <Select onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
+                    <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
                   ) : <Input placeholder="Escriba origen" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}
                 </div>
                 <div className="space-y-1"><Label>Destino *</Label>
                   {!useCustomDest ? (
-                    <Select onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
+                    <Select value={form.destination || undefined} onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
                   ) : <Input placeholder="Escriba destino" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}
                 </div>
                 {tripType === "clinico" && (
                   <>
                     <div className="space-y-1"><Label>Servicio de Origen *</Label>
                       {!useCustomService ? (
-                        <Select onValueChange={v => {
+                        <Select value={form.patient_unit || undefined} onValueChange={v => {
                           if (v === "otro") { setUseCustomService(true); }
                           else { setForm({ ...form, patient_unit: v }); }
                         }}>
