@@ -1222,16 +1222,15 @@ function OriginServicesMantenedor() {
       <Card className="shadow-sm">
         <CardContent className="p-0">
           <table className="w-full text-sm">
-            <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Servicio</th><th className="p-4 text-center w-24">Estado</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
+            <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Servicio</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {services.map(s => (
                 <tr key={s.id} className="hover:bg-slate-50">
                   <td className="p-4 font-bold text-slate-900">{s.name}</td>
-                  <td className="p-4 text-center">{s.is_active !== false ? <Badge className="bg-emerald-100 text-emerald-800">Activo</Badge> : <Badge variant="outline" className="text-slate-400">Inactivo</Badge>}</td>
                   <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
                 </tr>
               ))}
-              {services.length === 0 && !loading && <tr><td colSpan={3} className="text-center py-12 text-slate-400">No hay servicios registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+              {services.length === 0 && !loading && <tr><td colSpan={2} className="text-center py-12 text-slate-400">No hay servicios registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
             </tbody>
           </table>
         </CardContent>
@@ -1240,7 +1239,6 @@ function OriginServicesMantenedor() {
         <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingService ? "Editar Servicio" : "Nuevo Servicio"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2"><Label>Nombre del Servicio *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Urgencias, UCI Adulto, Pabellón" /></div>
-            <div className="flex items-center justify-between border p-3 rounded-lg"><Label>Estado Activo</Label><input type="checkbox" className="w-5 h-5 accent-teal-600" checked={formData.is_active} onChange={e => setFormData({ ...formData, is_active: e.target.checked })} /></div>
           </div>
           <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingService ? "Guardar Cambios" : "Crear Servicio"}</Button></DialogFooter>
         </DialogContent>
@@ -1252,7 +1250,7 @@ function OriginServicesMantenedor() {
         columns={[{ key: "nombre", label: "Nombre del Servicio", required: true }]}
         onImport={async (rows) => {
           const promises = rows.map(r => 
-            api.post("/origin-services", { name: r.nombre, is_active: true })
+            api.post("/origin-services", { name: r.nombre })
           );
           await Promise.all(promises);
           fetchServices();

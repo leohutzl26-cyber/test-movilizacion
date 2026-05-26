@@ -166,12 +166,12 @@ const api = {
         }
 
         case "/destinations": {
-          const destData = { name: data.name, is_active: data.is_active !== false };
+          const destData = { name: data.name };
           return { data: await supabaseApi.destinations.createDestination(destData) };
         }
 
         case "/origin-services": {
-          const serviceData = { name: data.name, is_active: data.is_active !== false };
+          const serviceData = { name: data.name };
           return { data: await supabaseApi.originServicesApi.createOriginService(serviceData) };
         }
 
@@ -265,7 +265,8 @@ const api = {
 
       if (url.startsWith("/origin-services/")) {
         const serviceId = parts[2];
-        return { data: await supabaseApi.originServicesApi.updateOriginService(serviceId, data) };
+        const updateData = { name: data.name };
+        return { data: await supabaseApi.originServicesApi.updateOriginService(serviceId, updateData) };
       }
 
       return { data: { success: true } };
