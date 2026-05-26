@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload } from "lucide-react";
 import api from "@/lib/api";
+import BulkUploader from "@/components/BulkUploader";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 
 const PERSONNEL_TYPES = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];
@@ -627,6 +628,7 @@ function ClinicalStaffMantenedor() {
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({ name: "", role: "", is_active: true });
@@ -675,9 +677,12 @@ function ClinicalStaffMantenedor() {
           <h1 className="text-2xl md:text-3xl font-black text-slate-900">Mantenedor de Personal Clínico</h1>
           <p className="text-slate-500 font-medium mt-1">Gestione el personal de apoyo (Tens, Enfermeros, etc) para traslados.</p>
         </div>
-        <Button onClick={openNew} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11 flex gap-2">
-          <Plus className="w-4 h-4" /> Agregar Personal
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-11 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-2" />Carga Masiva</Button>
+          <Button onClick={openNew} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11 flex gap-2">
+            <Plus className="w-4 h-4" /> Agregar Personal
+          </Button>
+        </div>
       </div>
 
       <div className="mb-6 relative">
@@ -760,6 +765,28 @@ function ClinicalStaffMantenedor() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Personal Clínico"
+        columns={[
+          { key: "nombre", label: "Nombre Completo", required: true },
+          { key: "rol", label: "Cargo / Rol", required: true }
+        ]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/clinical-staff", { name: r.nombre, role: r.rol, is_active: true })
+          );
+          await Promise.all(promises);
+          fetchStaff();
+        }}
+        exampleRows={[
+          ["Ana María Rojas", "TENS"],
+          ["Carlos Pérez", "Enfermero/a"],
+          ["Dr. Juan Silva", "Médico"]
+        ]}
+      />
     </div>
   );
 }
@@ -1156,6 +1183,7 @@ function ClinicalHistorySection() {
 function OriginServicesMantenedor() {
   const [services, setServices] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [formData, setFormData] = useState({ name: "", is_active: true });
   const [loading, setLoading] = useState(true);
@@ -1186,7 +1214,10 @@ function OriginServicesMantenedor() {
     <div className="max-w-3xl mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-6">
         <div><h1 className="text-2xl font-black text-slate-900">Mantenedor de Servicios de Origen</h1><p className="text-sm text-slate-500 mt-1">Administre los servicios que aparecen como opciones de origen al crear traslados.</p></div>
-        <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-10 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-1" /> Carga Masiva</Button>
+          <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+        </div>
       </div>
       <Card className="shadow-sm">
         <CardContent className="p-0">
@@ -1214,6 +1245,20 @@ function OriginServicesMantenedor() {
           <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingService ? "Guardar Cambios" : "Crear Servicio"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Servicios de Origen"
+        columns={[{ key: "nombre", label: "Nombre del Servicio", required: true }]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/origin-services", { name: r.nombre, is_active: true })
+          );
+          await Promise.all(promises);
+          fetchServices();
+        }}
+        exampleRows={[["Urgencias"], ["UCI Adulto"], ["Pabellón"], ["Medicina Quirúrgica"]]}
+      />
     </div>
   );
 }

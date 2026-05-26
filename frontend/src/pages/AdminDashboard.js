@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award, Upload } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import { supabase } from "@/lib/supabase";
 import LogbookReport from "@/components/LogbookReport";
+import BulkUploader from "@/components/BulkUploader";
 
 const COLORS_PIE = ["#0d9488", "#f59e0b", "#6366f1", "#ef4444", "#22c55e", "#8b5cf6"];
 const COLORS_STATUS = { "Pendiente": "#f59e0b", "Por Visar": "#a855f7", "Asignado": "#3b82f6", "En Curso": "#0d9488", "Completado": "#22c55e", "Cancelado": "#ef4444" };
@@ -203,6 +204,7 @@ function UsersManager() {
 function DestinationsManager() {
   const [dests, setDests] = useState([]);
   const [name, setName] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
   const fetchDests = useCallback(async () => {
     const { data } = await supabase.from('origin_services').select('*').order('name');
     if (data) setDests(data || []);
@@ -222,6 +224,13 @@ function DestinationsManager() {
     catch (e) { toast.error("Error al eliminar"); }
   };
 
+  const handleBulkImport = async (rows) => {
+    const inserts = rows.map(r => ({ name: r.nombre }));
+    const { error } = await supabase.from('origin_services').insert(inserts);
+    if (error) throw error;
+    fetchDests();
+  };
+
   return (
     <div className="max-w-4xl mx-auto animate-slide-up">
       <h1 className="text-2xl font-bold text-slate-900 mb-6">Puntos Frecuentes (Orígenes/Destinos)</h1>
@@ -229,6 +238,7 @@ function DestinationsManager() {
         <form onSubmit={handleAdd} className="flex gap-3 items-end">
           <div className="flex-1 space-y-2"><Label className="font-bold">Nombre del Destino</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Hospital Base, Cesfam X..." className="h-11" /></div>
           <Button type="submit" className="h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold">Agregar a Lista</Button>
+          <Button type="button" variant="outline" onClick={() => setBulkOpen(true)} className="h-11 font-bold border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-2" />Carga Masiva</Button>
         </form>
       </CardContent></Card>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -239,6 +249,14 @@ function DestinationsManager() {
           </div>
         ))}
       </div>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Destinos"
+        columns={[{ key: "nombre", label: "Nombre del Destino", required: true }]}
+        onImport={handleBulkImport}
+        exampleRows={[["Hospital Base"], ["Cesfam Norte"], ["Clínica Privada"]]}
+      />
     </div>
   );
 }
@@ -293,6 +311,7 @@ function VehiclesManager() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
 
@@ -366,9 +385,12 @@ function VehiclesManager() {
     <div className="max-w-6xl mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Gestión de Flota</h1>
-        <Button onClick={() => { setEditingId(null); setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
-          <Plus className="w-4 h-4 mr-2" /> Agregar Vehículo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-11 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-2" />Carga Masiva</Button>
+          <Button onClick={() => { setEditingId(null); setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
+            <Plus className="w-4 h-4 mr-2" /> Agregar Vehículo
+          </Button>
+        </div>
       </div>
 
       {loading ? <p className="text-slate-500">Cargando...</p> : (
@@ -434,6 +456,37 @@ function VehiclesManager() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Vehículos"
+        columns={[
+          { key: "patente", label: "Patente", required: true },
+          { key: "marca", label: "Marca", required: false },
+          { key: "modelo", label: "Modelo", required: false },
+          { key: "tipo", label: "Tipo (Ambulancia/Auto/SUV/Camioneta/Van/camion)", required: false },
+          { key: "ano", label: "Año", required: false, validate: v => !v || !isNaN(parseInt(v)) },
+          { key: "km", label: "Kilometraje", required: false, validate: v => !v || !isNaN(parseFloat(v)) }
+        ]}
+        onImport={async (rows) => {
+          const inserts = rows.map(r => ({
+            plate: r.patente.toUpperCase(),
+            brand: r.marca || "",
+            model: r.modelo || "",
+            type: r.tipo || "Auto/SUV",
+            year: parseInt(r.ano) || 2024,
+            mileage: parseFloat(r.km) || 0
+          }));
+          const { error } = await supabase.from('vehicles').insert(inserts);
+          if (error) throw error;
+          fetchVehicles();
+        }}
+        exampleRows={[
+          ["ABCD-12", "Toyota", "Hilux", "Camioneta", "2022", "45000"],
+          ["WXYZ-34", "Fiat", "Ducato", "Ambulancia", "2021", "82000"]
+        ]}
+      />
     </div>
   );
 }
