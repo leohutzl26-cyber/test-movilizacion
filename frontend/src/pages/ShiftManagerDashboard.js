@@ -579,6 +579,8 @@ function HistorySection() {
               )}
 
               {selectedTrip.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 border border-amber-100">{selectedTrip.notes}</p></div>)}
+
+              <TripEvolutionLog tripId={selectedTrip.id} />
             </div>
           )}
         </DialogContent>

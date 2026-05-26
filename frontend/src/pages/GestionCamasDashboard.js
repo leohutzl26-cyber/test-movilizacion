@@ -582,6 +582,8 @@ function AssignPersonnelSection() {
                   </Button>
                 </DialogFooter>
               </div>
+
+              <TripEvolutionLog tripId={assignDialog.id} />
             </div>
           )}
         </DialogContent>

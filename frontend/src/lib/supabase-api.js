@@ -490,6 +490,19 @@ export const auditLogsApi = {
     
     if (error) throw error;
     return data || [];
+  },
+
+  // Get specific trip audit logs
+  getTripAuditLogs: async (tripId) => {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('entity_type', 'trips')
+      .eq('entity_id', tripId)
+      .order('timestamp', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
   }
 };
 

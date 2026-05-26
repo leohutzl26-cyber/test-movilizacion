@@ -116,6 +116,12 @@ const api = {
         }
 
         default: {
+          // Rutas dinámicas como /trips/:id/logs
+          if (baseUrl.startsWith("/trips/") && baseUrl.endsWith("/logs")) {
+            const tripId = baseUrl.split("/")[2];
+            return { data: await supabaseApi.auditLogs.getTripAuditLogs(tripId) };
+          }
+          
           // Handle /logbook-list/* routes
           if (baseUrl.startsWith("/logbook-list")) {
             // Return empty array - logbook entries would need a dedicated table

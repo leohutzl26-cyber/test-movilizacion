@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw, Siren } from "lucide-react";
 import api from "@/lib/api";
+import TripEvolutionLog from "@/components/TripEvolutionLog";
 
 export default function DriverDashboard() {
   const [section, setSection] = useState("pool");
@@ -197,6 +198,7 @@ function TripPoolSection({ onNavigate }) {
               <Button onClick={() => { handleTakeTrip(selectedTrip.id); setSelectedTrip(null); }} className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold h-14 text-lg rounded-xl shadow-md">
                 <Truck className="w-6 h-6 mr-2" /> Tomar este Viaje
               </Button>
+              <TripEvolutionLog tripId={selectedTrip.id} />
             </div>
           )}
         </DialogContent>
@@ -503,6 +505,7 @@ function MyTripsSection() {
               </div>
 
               {detailsDialog.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 font-medium border border-amber-200">{detailsDialog.notes}</p></div>)}
+              <TripEvolutionLog tripId={detailsDialog.id} />
             </div>
           )}
         </DialogContent>
@@ -610,6 +613,7 @@ function DriverHistorySection() {
               </div>
               {selectedTrip.start_mileage && <div className="bg-teal-50 p-3 rounded-xl border border-teal-200 flex justify-between"><div><p className="text-[10px] font-bold text-teal-600 uppercase">Km Inicio</p><p className="font-black text-teal-900">{selectedTrip.start_mileage}</p></div><div className="text-right"><p className="text-[10px] font-bold text-teal-600 uppercase">Km Final</p><p className="font-black text-teal-900">{selectedTrip.end_mileage || "-"}</p></div></div>}
               {selectedTrip.notes && <div className="bg-amber-50 p-3 rounded-xl border border-amber-200"><p className="text-[10px] font-bold text-amber-700 uppercase mb-1">Notas</p><p className="text-slate-800">{selectedTrip.notes}</p></div>}
+              <TripEvolutionLog tripId={selectedTrip.id} />
             </div>
           )}
         </DialogContent>

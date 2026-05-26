@@ -731,6 +731,8 @@ function MyRequestsSection({ onEdit }) {
                    <Button variant="destructive" className="flex-1" onClick={() => handleCancel(selectedReq.id)}>Cancelar Solicitud</Button>
                 </div>
               )}
+
+              <TripEvolutionLog tripId={selectedReq.id} />
             </div>
           )}
         </DialogContent>
