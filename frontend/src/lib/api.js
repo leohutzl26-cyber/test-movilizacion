@@ -223,12 +223,41 @@ const api = {
           };
         } else if (parts[3] === "approve-gestor") {
           // Visar traslado: pasa de revision_gestor a pendiente
-          return {
-            data: await supabaseApi.trips.updateTrip(tripId, {
-              ...data,
-              status: 'pendiente'
-            })
-          };
+          const updatedTrip = await supabaseApi.trips.updateTrip(tripId, {
+            ...data,
+            status: 'pendiente'
+          });
+
+          let userId = null;
+          let userName = "Gestor de Camas";
+          let userRole = "gestion_camas";
+          try {
+            const token = localStorage.getItem('supabase.auth.token');
+            if (token) {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              userId = payload.userId || null;
+              userName = payload.name || "Gestor de Camas";
+              userRole = payload.role || "gestion_camas";
+            }
+          } catch (e) {
+            console.error("Error decoding token for audit log", e);
+          }
+
+          try {
+            await supabase.from('audit_logs').insert([{
+              user_id: userId,
+              user_name: userName,
+              user_role: userRole,
+              action: 'cambiar_estado_pendiente',
+              entity_type: 'trips',
+              entity_id: tripId,
+              new_values: updatedTrip
+            }]);
+          } catch (e) {
+            console.error("Error inserting audit log for approve-gestor", e);
+          }
+
+          return { data: updatedTrip };
         } else {
           return { data: await supabaseApi.trips.updateTrip(tripId, data) };
         }

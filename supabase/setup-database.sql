@@ -214,7 +214,7 @@ CREATE POLICY "Users can update trips they own" ON trips FOR UPDATE USING (auth.
 CREATE POLICY "Admins can delete trips" ON trips FOR DELETE USING (auth.role() = 'admin');
 
 -- RLS Policies for audit_logs
-CREATE POLICY "Audit logs are viewable by admins only" ON audit_logs FOR SELECT USING (auth.role() = 'admin');
+CREATE POLICY "Audit logs are viewable by everyone" ON audit_logs FOR SELECT USING (true);
 CREATE POLICY "System can insert audit logs" ON audit_logs FOR INSERT WITH CHECK (true);
 
 -- Create triggers for audit logging
