@@ -363,7 +363,7 @@ function AssignPersonnelSection() {
       )}
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-2xl font-black">{assignDialog?.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}</DialogTitle></DialogHeader>
           {assignDialog && (
             <div className="space-y-5 pt-3">
@@ -374,33 +374,33 @@ function AssignPersonnelSection() {
               </div>
 
               {/* DATOS PACIENTE EDITABLES */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <p className="text-xs text-slate-500 uppercase tracking-widest font-black mb-3 flex items-center gap-2"><User className="w-3 h-3" /> Datos del Paciente</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <p className="text-xs text-slate-500 uppercase tracking-widest font-black mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Datos del Paciente</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Nombre Paciente</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.patient_name || ""} onChange={e => setEditData({ ...editData, patient_name: e.target.value })} />
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nombre Paciente</Label>
+                    <Input className="h-10 text-base font-bold bg-white" value={editData.patient_name || ""} onChange={e => setEditData({ ...editData, patient_name: e.target.value })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">RUT</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.rut || ""} onChange={e => setEditData({ ...editData, rut: e.target.value })} />
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">RUT</Label>
+                    <Input className="h-10 text-base font-bold bg-white" value={editData.rut || ""} onChange={e => setEditData({ ...editData, rut: e.target.value })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Edad</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.age || ""} onChange={e => setEditData({ ...editData, age: e.target.value })} />
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Edad</Label>
+                    <Input className="h-10 text-base font-bold bg-white" value={editData.age || ""} onChange={e => setEditData({ ...editData, age: e.target.value })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Cama</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.bed || ""} onChange={e => setEditData({ ...editData, bed: e.target.value })} />
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Cama</Label>
+                    <Input className="h-10 text-base font-bold bg-white" value={editData.bed || ""} onChange={e => setEditData({ ...editData, bed: e.target.value })} />
                   </div>
                   <div className="md:col-span-2 space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Diagnóstico</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.diagnosis || ""} onChange={e => setEditData({ ...editData, diagnosis: e.target.value })} />
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Diagnóstico</Label>
+                    <Input className="h-10 text-base font-bold bg-white" value={editData.diagnosis || ""} onChange={e => setEditData({ ...editData, diagnosis: e.target.value })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Motivo Traslado</Label>
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Motivo Traslado</Label>
                     <Select value={editData.transfer_reason || "none"} onValueChange={v => setEditData({...editData, transfer_reason: v})}>
-                      <SelectTrigger className="h-9 text-sm font-bold bg-white">
+                      <SelectTrigger className="h-10 text-base font-bold bg-white">
                         <SelectValue placeholder="Seleccione motivo" />
                       </SelectTrigger>
                       <SelectContent>
@@ -411,21 +411,21 @@ function AssignPersonnelSection() {
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Médico Tratante</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" value={editData.attending_physician || ""} onChange={e => setEditData({ ...editData, attending_physician: e.target.value })} />
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Médico Tratante</Label>
+                    <Input className="h-10 text-base font-bold bg-white" value={editData.attending_physician || ""} onChange={e => setEditData({ ...editData, attending_physician: e.target.value })} />
                   </div>
-                  <div className="md:col-span-2 space-y-2 mt-2">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2"><Stethoscope className="w-3 h-3" /> Requerimientos del Paciente</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white p-3 rounded-lg border border-slate-100 shadow-inner">
+                  <div className="md:col-span-2 space-y-3 mt-3">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Stethoscope className="w-4 h-4" /> Requerimientos del Paciente</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                       {REQUIREMENT_OPTIONS.map(opt => (
                         <label key={opt} className="flex items-center gap-2 cursor-pointer group">
                           <input 
                             type="checkbox" 
-                            className="w-4 h-4 accent-teal-600 rounded" 
+                            className="w-5 h-5 accent-teal-600 rounded" 
                             checked={(editData.patient_requirements || []).includes(opt)}
                             onChange={() => handleRequirementChange(opt)}
                           />
-                          <span className="text-[11px] font-bold text-slate-600 group-hover:text-teal-700 transition-colors">{opt}</span>
+                          <span className="text-sm font-bold text-slate-600 group-hover:text-teal-700 transition-colors">{opt}</span>
                         </label>
                       ))}
                     </div>

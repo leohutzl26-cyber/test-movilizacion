@@ -670,7 +670,7 @@ function MyRequestsSection({ onEdit }) {
       )}
 
       <Dialog open={!!selectedReq} onOpenChange={() => setSelectedReq(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-xl border-b pb-3 flex justify-between items-center">Detalle de la Solicitud <Badge className="bg-slate-800 text-white font-mono">{selectedReq?.tracking_number}</Badge></DialogTitle></DialogHeader>
           {selectedReq && (
             <div className="space-y-5 text-sm pt-2">
@@ -680,38 +680,38 @@ function MyRequestsSection({ onEdit }) {
                 <span className="text-xs font-bold text-slate-500 ml-auto">{formatDateTime(selectedReq.created_at)}</span>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{selectedReq.trip_type === "clinico" ? "Paciente" : "Cometido"}</p>
-                <p className="font-black text-xl text-slate-900 leading-tight">{selectedReq.trip_type === "clinico" ? selectedReq.patient_name : selectedReq.task_details}</p>
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{selectedReq.trip_type === "clinico" ? "Paciente" : "Cometido"}</p>
+                <p className="font-black text-3xl text-slate-900 leading-tight">{selectedReq.trip_type === "clinico" ? selectedReq.patient_name : selectedReq.task_details}</p>
 
                 {selectedReq.trip_type === "clinico" && (
-                  <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200">
-                    <p className="text-xs"><span className="font-bold text-slate-500">RUT:</span> {selectedReq.rut || "-"}</p>
-                    <p className="text-xs"><span className="font-bold text-slate-500">Servicio/Unidad:</span> {selectedReq.patient_unit}</p>
-                    <p className="text-xs"><span className="font-bold text-slate-500">Fecha Traslado:</span> <span className="text-teal-700 font-bold">{formatDate(selectedReq.scheduled_date)}</span></p>
-                    <p className="text-xs"><span className="font-bold text-slate-500">Horarios:</span> <span className="text-red-600 font-bold">{selectedReq.appointment_time || "-"}</span> (Cit) | <span className="text-amber-600 font-bold">{selectedReq.departure_time || "-"}</span> (Sal)</p>
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-200">
+                    <p className="text-sm"><span className="font-bold text-slate-500">RUT:</span> {selectedReq.rut || "-"}</p>
+                    <p className="text-sm"><span className="font-bold text-slate-500">Servicio/Unidad:</span> {selectedReq.patient_unit}</p>
+                    <p className="text-sm"><span className="font-bold text-slate-500">Fecha Traslado:</span> <span className="text-teal-700 font-bold">{formatDate(selectedReq.scheduled_date)}</span></p>
+                    <p className="text-sm"><span className="font-bold text-slate-500">Horarios:</span> <span className="text-red-600 font-bold">{selectedReq.appointment_time || "-"}</span> (Cit) | <span className="text-amber-600 font-bold">{selectedReq.departure_time || "-"}</span> (Sal)</p>
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
-                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3"><MapPin className="w-5 h-5 text-teal-500" /><div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p><p className="font-bold text-slate-800 text-base">{selectedReq.origin}</p></div></div>
-                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3"><ArrowRight className="w-5 h-5 text-blue-500" /><div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p><p className="font-bold text-slate-800 text-base">{selectedReq.destination}</p></div></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4"><MapPin className="w-6 h-6 text-teal-500" /><div><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Origen</p><p className="font-black text-slate-800 text-lg">{selectedReq.origin}</p></div></div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4"><ArrowRight className="w-6 h-6 text-blue-500" /><div><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Destino</p><p className="font-black text-slate-800 text-lg">{selectedReq.destination}</p></div></div>
               </div>
 
               {selectedReq.trip_type === "clinico" && (
-                <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                <div className="bg-teal-50 p-5 rounded-2xl border border-teal-100">
                   {selectedReq.assigned_clinical_staff?.length > 0 ? (
-                    <div className="mb-2">
-                      <p className="text-[10px] text-teal-800 font-bold uppercase tracking-widest mb-2">Personal Clínico Asignado</p>
+                    <div className="mb-3">
+                      <p className="text-xs text-teal-800 font-bold uppercase tracking-widest mb-2">Personal Clínico Asignado</p>
                       {selectedReq.assigned_clinical_staff.map((s, i) => (
-                        <p key={i} className="text-sm font-medium text-teal-900">{s.type}: <span className="font-bold">{s.staff_name}</span></p>
+                        <p key={i} className="text-base font-medium text-teal-900">{s.type}: <span className="font-black">{s.staff_name}</span></p>
                       ))}
                     </div>
                   ) : selectedReq.required_personnel?.length > 0 && (
-                    <div className="mb-2"><p className="text-[10px] text-teal-800 font-bold uppercase tracking-widest mb-1">Personal Requerido</p><p className="font-medium text-teal-900">{selectedReq.required_personnel.join(", ")}</p></div>
+                    <div className="mb-3"><p className="text-xs text-teal-800 font-bold uppercase tracking-widest mb-2">Personal Requerido</p><p className="text-base font-black text-teal-900">{selectedReq.required_personnel.join(", ")}</p></div>
                   )}
-                  {selectedReq.patient_requirements?.length > 0 && <div><p className="text-[10px] text-teal-800 font-bold uppercase tracking-widest mb-1 mt-3">Requerimientos</p><p className="font-medium text-teal-900 bg-white inline-block px-2 py-1 rounded shadow-sm border border-teal-100">{selectedReq.patient_requirements.join(", ")}</p></div>}
+                  {selectedReq.patient_requirements?.length > 0 && <div><p className="text-xs text-teal-800 font-bold uppercase tracking-widest mb-2 mt-4">Requerimientos</p><p className="text-sm font-black text-teal-900 bg-white inline-block px-3 py-1.5 rounded-lg shadow-sm border border-teal-100">{selectedReq.patient_requirements.join(", ")}</p></div>}
                 </div>
               )}
 

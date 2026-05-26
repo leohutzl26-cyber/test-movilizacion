@@ -336,40 +336,40 @@ function CalendarSection() {
 
       {/* Modal Detalle */}
       <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center gap-3">Detalle del Traslado <Badge className="bg-slate-800 text-white font-mono text-sm px-2 py-1">{selectedTrip?.tracking_number || selectedTrip?.id.substring(0, 6).toUpperCase()}</Badge></DialogTitle></DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border-none shadow-2xl">
+          <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-3 flex items-center gap-3">Detalle del Traslado <Badge className="bg-slate-800 text-white font-mono text-sm px-3 py-1">{selectedTrip?.tracking_number || selectedTrip?.id.substring(0, 6).toUpperCase()}</Badge></DialogTitle></DialogHeader>
           {selectedTrip && (
-            <div className="space-y-5 text-sm pt-2">
-              <div className="flex gap-2 mb-2"><span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${sColors[selectedTrip.status]}`}>{sLabels[selectedTrip.status]}</span><span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">{selectedTrip.trip_type === "clinico" ? "Traslado Clínico" : "Traslado No Clínico"}</span><span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${selectedTrip.priority === "urgente" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{selectedTrip.priority}</span></div>
+            <div className="space-y-6 pt-3">
+              <div className="flex gap-2 mb-2"><span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase ${sColors[selectedTrip.status]}`}>{sLabels[selectedTrip.status]}</span><span className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold uppercase border border-slate-200">{selectedTrip.trip_type === "clinico" ? "Traslado Clínico" : "Traslado No Clínico"}</span><span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase ${selectedTrip.priority === "urgente" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{selectedTrip.priority}</span></div>
               {selectedTrip.trip_type === "clinico" ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <div className="col-span-2 md:col-span-4 border-b border-slate-200 pb-2 mb-2"><p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Paciente</p><p className="font-black text-lg text-slate-900">{selectedTrip.patient_name}</p></div>
-                    <div><p className="text-xs text-slate-500 font-bold">RUT</p><p className="font-medium text-slate-800">{selectedTrip.rut || "-"}</p></div>
-                    <div><p className="text-xs text-slate-500 font-bold">Edad / Peso</p><p className="font-medium text-slate-800">{selectedTrip.age || "-"} / {selectedTrip.weight || "-"}</p></div>
-                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Diagnóstico</p><p className="font-medium text-slate-800">{selectedTrip.diagnosis || "-"}</p></div>
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-5 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                    <div className="col-span-2 md:col-span-4 border-b border-slate-200 pb-3 mb-2"><p className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-2">Paciente</p><p className="font-black text-2xl text-slate-900">{selectedTrip.patient_name}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">RUT</p><p className="font-bold text-sm text-slate-800">{selectedTrip.rut || "-"}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Edad / Peso</p><p className="font-bold text-sm text-slate-800">{selectedTrip.age || "-"} / {selectedTrip.weight || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Diagnóstico</p><p className="font-bold text-sm text-slate-800">{selectedTrip.diagnosis || "-"}</p></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <div><p className="text-xs text-slate-500 font-bold">Motivo Clínico</p><p className="font-medium text-slate-800">{selectedTrip.transfer_reason}</p></div>
-                    <div><p className="text-xs text-slate-500 font-bold">Médico Tratante</p><p className="font-medium text-slate-800">{selectedTrip.attending_physician || "-"}</p></div>
-                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold">Solicitante</p><p className="font-medium text-slate-800">{selectedTrip.requester_person}</p></div>
+                  <div className="grid grid-cols-2 gap-5 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                    <div><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Motivo Clínico</p><p className="font-bold text-sm text-slate-800">{selectedTrip.transfer_reason}</p></div>
+                    <div><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Médico Tratante</p><p className="font-bold text-sm text-slate-800">{selectedTrip.attending_physician || "-"}</p></div>
+                    <div className="col-span-2"><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Solicitante</p><p className="font-bold text-sm text-slate-800">{selectedTrip.requester_person}</p></div>
                   </div>
-                  <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
-                    {selectedTrip.required_personnel?.length > 0 && <div className="mb-3"><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Personal Requerido</p><p className="text-teal-900 font-medium">{selectedTrip.required_personnel.join(", ")}</p></div>}
-                    {selectedTrip.patient_requirements?.length > 0 && <div><p className="text-xs text-teal-800 uppercase tracking-wider font-bold mb-1">Requerimientos Paciente</p><p className="text-teal-900 font-medium">{selectedTrip.patient_requirements.join(", ")}</p></div>}
-                    {selectedTrip.accompaniment && selectedTrip.accompaniment !== "ninguno" && <div className="mt-3 pt-3 border-t border-teal-200"><p className="text-xs text-teal-800 font-bold">Acompañamiento: <span className="text-teal-900">{selectedTrip.accompaniment}</span></p></div>}
+                  <div className="bg-teal-50 p-5 rounded-2xl border border-teal-100">
+                    {selectedTrip.required_personnel?.length > 0 && <div className="mb-3"><p className="text-xs text-teal-800 uppercase tracking-widest font-bold mb-2">Personal Requerido</p><p className="text-base font-black text-teal-900">{selectedTrip.required_personnel.join(", ")}</p></div>}
+                    {selectedTrip.patient_requirements?.length > 0 && <div><p className="text-xs text-teal-800 uppercase tracking-widest font-bold mb-2">Requerimientos Paciente</p><p className="text-sm font-black text-teal-900">{selectedTrip.patient_requirements.join(", ")}</p></div>}
+                    {selectedTrip.accompaniment && selectedTrip.accompaniment !== "ninguno" && <div className="mt-3 pt-3 border-t border-teal-200"><p className="text-xs text-teal-800 font-bold uppercase tracking-widest">Acompañamiento: <span className="text-base text-teal-900">{selectedTrip.accompaniment}</span></p></div>}
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div className="col-span-1 md:col-span-2"><p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Cometido</p><p className="font-black text-lg text-slate-900">{selectedTrip.task_details}</p></div>
-                  <div><p className="text-xs text-slate-500 font-bold">Cantidad de Funcionarios</p><p className="font-medium text-slate-800">{selectedTrip.staff_count}</p></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                  <div className="col-span-1 md:col-span-2"><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Cometido</p><p className="font-black text-2xl text-slate-900">{selectedTrip.task_details}</p></div>
+                  <div><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Cantidad de Funcionarios</p><p className="font-bold text-sm text-slate-800">{selectedTrip.staff_count}</p></div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5">
-                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Origen</p><p className="font-bold text-slate-900">{selectedTrip.origin}</p><p className="text-xs text-slate-500 mt-1">{selectedTrip.patient_unit || ""} {selectedTrip.bed ? `(Cama ${selectedTrip.bed})` : ""}</p></div>
-                <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1"><ArrowRight className="w-3.5 h-3.5" /> Destino</p><p className="font-bold text-slate-900">{selectedTrip.destination}</p></div>
-                <div className="bg-red-50 p-3 rounded-lg border border-red-100"><p className="text-xs text-red-600 font-bold mb-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Horarios</p><p className="font-bold text-red-900 text-sm">Citación: {selectedTrip.appointment_time || "-"} | Salida: {selectedTrip.departure_time || "-"}</p><p className="text-xs text-red-700 mt-1">Fecha Prog: {selectedTrip.scheduled_date}</p></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-6">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4"><MapPin className="w-6 h-6 text-teal-500" /><div><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Origen</p><p className="font-black text-lg text-slate-900">{selectedTrip.origin}</p><p className="text-xs text-slate-500 mt-1">{selectedTrip.patient_unit || ""} {selectedTrip.bed ? `(Cama ${selectedTrip.bed})` : ""}</p></div></div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4"><ArrowRight className="w-6 h-6 text-blue-500" /><div><p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Destino</p><p className="font-black text-lg text-slate-900">{selectedTrip.destination}</p></div></div>
+                <div className="md:col-span-2 bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-4"><Clock className="w-6 h-6 text-red-500" /><div><p className="text-xs text-red-600 font-bold uppercase tracking-widest mb-1">Horarios</p><p className="font-bold text-red-900 text-base">Citación: {selectedTrip.appointment_time || "-"} | Salida: {selectedTrip.departure_time || "-"}</p><p className="text-sm text-red-700 mt-1 font-bold">Fecha Prog: {selectedTrip.scheduled_date}</p></div></div>
               </div>
             </div>
           )}
@@ -524,7 +524,7 @@ function HistorySection() {
       </Table></CardContent></Card>
 
       <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center gap-3">Detalle del Traslado <Badge className="bg-slate-800 text-white font-mono text-sm px-2 py-1">{selectedTrip?.tracking_number || selectedTrip?.id.substring(0, 6).toUpperCase()}</Badge></DialogTitle></DialogHeader>
           {selectedTrip && (
             <div className="space-y-5 text-sm pt-2">
