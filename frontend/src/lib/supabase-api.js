@@ -365,20 +365,20 @@ export const statsApi = {
 // Destinations/Origin Services functions
 export const destinationsApi = {
   getDestinations: async () => {
-    const { data, error } = await supabase.from('destinations').select('*').order('name');
+    const { data, error } = await supabase.from('origin_services').select('*').order('name');
     if (error) throw error;
     return data || [];
   },
 
   createDestination: async (destinationData) => {
-    const { data, error } = await supabase.from('destinations').insert([destinationData]).select().single();
+    const { data, error } = await supabase.from('origin_services').insert([destinationData]).select().single();
     if (error) throw error;
     return data;
   },
 
   updateDestination: async (destinationId, updateData) => {
     const { data, error } = await supabase
-      .from('destinations')
+      .from('origin_services')
       .update(updateData)
       .eq('id', destinationId)
       .select()
@@ -390,7 +390,7 @@ export const destinationsApi = {
 
   deleteDestination: async (destinationId) => {
     const { error } = await supabase
-      .from('destinations')
+      .from('origin_services')
       .delete()
       .eq('id', destinationId);
     

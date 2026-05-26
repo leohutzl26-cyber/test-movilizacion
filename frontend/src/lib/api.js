@@ -165,10 +165,14 @@ const api = {
           return { data: await supabaseApi.trips.createTrip(tripData) };
         }
 
-        case "/destinations":
-        case "/origin-services": {
+        case "/destinations": {
           const destData = { name: data.name, is_active: data.is_active !== false };
           return { data: await supabaseApi.destinations.createDestination(destData) };
+        }
+
+        case "/origin-services": {
+          const serviceData = { name: data.name, is_active: data.is_active !== false };
+          return { data: await supabaseApi.originServicesApi.createOriginService(serviceData) };
         }
 
         case "/clinical-staff":
@@ -261,7 +265,7 @@ const api = {
 
       if (url.startsWith("/origin-services/")) {
         const serviceId = parts[2];
-        return { data: await supabaseApi.destinations.updateDestination(serviceId, data) };
+        return { data: await supabaseApi.originServicesApi.updateOriginService(serviceId, data) };
       }
 
       return { data: { success: true } };
@@ -306,6 +310,12 @@ const api = {
       if (url.startsWith("/destinations/")) {
         const destId = parts[2];
         await supabaseApi.destinations.deleteDestination(destId);
+        return { data: { success: true } };
+      }
+
+      if (url.startsWith("/origin-services/")) {
+        const serviceId = parts[2];
+        await supabaseApi.originServicesApi.deleteOriginService(serviceId);
         return { data: { success: true } };
       }
 
