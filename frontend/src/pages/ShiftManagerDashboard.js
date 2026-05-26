@@ -13,6 +13,7 @@ import { ClipboardList, Users, Truck, Clock, AlertTriangle, RefreshCw, User, Map
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import * as XLSX from "xlsx";
 import api from "@/lib/api";
+import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function ShiftManagerDashboard() {

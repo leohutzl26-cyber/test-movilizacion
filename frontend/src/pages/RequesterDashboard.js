@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { ClipboardList, Plus, MapPin, ArrowRight, User, Stethoscope, Clock, Truck, Activity, CheckCircle, XCircle, Trash2, Filter } from "lucide-react";
 import api from "@/lib/api";
+import TripEvolutionLog from "@/components/TripEvolutionLog";
 
 // ========== RUT VALIDATION (MÓDULO 11) ==========
 function validateRut(rut) {
