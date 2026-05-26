@@ -32,7 +32,18 @@ export default function TripEvolutionLog({ tripId }) {
   }
 
   if (logs.length === 0) {
-    return null;
+    return (
+      <div className="mt-6 border-t border-slate-200 pt-5">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-4">
+          <Activity className="w-4 h-4 text-slate-400" /> Evolución del Traslado
+        </h3>
+        <div className="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center">
+          <FileText className="w-6 h-6 text-slate-300 mb-2" />
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No hay historial registrado</p>
+          <p className="text-[10px] text-slate-400 mt-1">Los traslados antiguos podrían no tener registro de evolución.</p>
+        </div>
+      </div>
+    );
   }
 
   const formatAction = (action) => {
