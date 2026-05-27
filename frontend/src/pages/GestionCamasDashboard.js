@@ -170,7 +170,17 @@ function AssignPersonnelSection() {
     const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
 
     return (
-      <Card className={`shadow-sm border-l-4 transition-all hover:shadow-md ${config.border}`}>
+      <Card 
+        onClick={() => {
+          if (t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") {
+            setAssignDialog(t);
+            setStaffRows(t.assigned_clinical_staff || []);
+            setPriority(t.priority || "normal");
+            setEditData({ ...t });
+          }
+        }}
+        className={`shadow-sm border-l-4 transition-all hover:shadow-md cursor-pointer hover:border-l-teal-500 hover:ring-1 hover:ring-teal-100 ${config.border}`}
+      >
         <CardContent className="p-5">
           <div className="flex justify-between items-start mb-3">
             <div className="flex flex-col gap-1">
@@ -207,7 +217,8 @@ function AssignPersonnelSection() {
                 )}
              </div>
              {(t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") && (
-                <Button onClick={() => {
+                <Button onClick={(e) => {
+                  e.stopPropagation();
                   setAssignDialog(t);
                   setStaffRows(t.assigned_clinical_staff || []);
                   setPriority(t.priority || "normal");
@@ -290,7 +301,18 @@ function AssignPersonnelSection() {
                 const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
 
                 return (
-                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                  <tr 
+                    key={t.id} 
+                    onClick={() => {
+                      if (t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") {
+                        setAssignDialog(t);
+                        setStaffRows(t.assigned_clinical_staff || []);
+                        setPriority(t.priority || "normal");
+                        setEditData({ ...t });
+                      }
+                    }}
+                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-2">
                         <span className="bg-slate-800 text-white font-mono px-2 py-1 rounded text-[10px] font-bold shadow-sm w-fit">
@@ -332,7 +354,8 @@ function AssignPersonnelSection() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       {(t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") && (
-                         <Button onClick={() => {
+                         <Button onClick={(e) => {
+                           e.stopPropagation();
                            setAssignDialog(t);
                            setStaffRows(t.assigned_clinical_staff || []);
                            setPriority(t.priority || "normal");
@@ -801,6 +824,7 @@ function ClinicalCalendarSection() {
   const [loading, setLoading] = useState(true);
   const [draggedTripId, setDraggedTripId] = useState(null);
   const [dragOverDate, setDragOverDate] = useState(null);
+  const [detailTrip, setDetailTrip] = useState(null);
 
   const handleMoveTrip = async (tripId, targetDate) => {
     try {
@@ -907,7 +931,8 @@ function ClinicalCalendarSection() {
       draggable={true}
       onDragStart={() => setDraggedTripId(t.id)}
       onDragEnd={() => setDraggedTripId(null)}
-      className={`p-2 rounded-lg border-l-2 mb-1 text-xs transition-all duration-200 ${
+      onClick={() => setDetailTrip(t)}
+      className={`p-2 rounded-lg border-l-2 mb-1 text-xs transition-all duration-200 cursor-pointer ${
         t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"
       } ${
         draggedTripId === t.id 
@@ -953,7 +978,7 @@ function ClinicalCalendarSection() {
               {trips.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200"><CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-lg font-bold text-slate-500">Sin traslados para este día</p></div>
               ) : trips.map(t => (
-                <Card key={t.id} className="shadow-sm border-l-4 border-l-teal-500">
+                <Card key={t.id} onClick={() => setDetailTrip(t)} className="shadow-sm border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md transition-shadow bg-white">
                   <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="bg-slate-100 p-2 rounded-xl text-center min-w-[70px]"><p className="text-[9px] font-bold text-slate-500 uppercase">Cita</p><p className="text-base font-black text-slate-900">{t.appointment_time || "--:--"}</p></div>
@@ -1022,7 +1047,7 @@ function ClinicalCalendarSection() {
                   if (!dateStr) return <div key={`empty-${i}`} className="min-h-[80px]" />;
                   const dayTrips = tripsByDate(dateStr);
                   const isToday = dateStr === formatLocalDate(new Date());
-                  const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["asignado", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
+                  const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["assigned", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
                   return (
                     <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("weekly"); }} className={`min-h-[80px] bg-white rounded-lg border p-1.5 cursor-pointer hover:shadow-md transition-all ${isToday ? "border-teal-400 ring-1 ring-teal-100" : "border-slate-100"}`}>
                       <p className={`text-xs font-bold mb-1 ${isToday ? "text-teal-700" : "text-slate-600"}`}>{parseInt(dateStr.split("-")[2])}</p>
@@ -1041,6 +1066,97 @@ function ClinicalCalendarSection() {
           )}
         </>
       )}
+
+      {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
+      <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
+        <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-slate-900 uppercase tracking-tight">Detalle del Traslado</DialogTitle>
+          </DialogHeader>
+          {detailTrip && (
+            <div className="space-y-4 pt-3">
+              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Folio</p>
+                  <p className="font-mono font-black text-slate-800 text-sm">#{detailTrip.tracking_number}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Estado</p>
+                  <Badge className={`font-black uppercase text-[9px] border-none shadow-sm ${statusColors[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
+                    {(detailTrip.status || "").replace(/_/g, " ")}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                  <User className="w-4 h-4 text-teal-600" /> Información General
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Paciente:</span>
+                    <p className="font-black text-slate-900 text-sm">{detailTrip.patient_name || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Motivo:</span>
+                    <p className="font-black text-slate-800">{detailTrip.transfer_reason || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">RUT:</span>
+                    <p className="font-black text-slate-800">{detailTrip.rut || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Cama / Unidad:</span>
+                    <p className="font-black text-slate-800">{detailTrip.bed || "-"} ({detailTrip.patient_unit || "-"})</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Diagnóstico:</span>
+                    <p className="font-black text-slate-800 leading-relaxed">{detailTrip.diagnosis || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                  <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Origen:</span>
+                    <p className="font-black text-slate-800">{detailTrip.origin}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Destino:</span>
+                    <p className="font-black text-slate-800">{detailTrip.destination}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
+                    <p className="font-black text-slate-800">{detailTrip.scheduled_date}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
+                    <p className="font-black text-slate-800">{detailTrip.appointment_time || "--:--"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {detailTrip.clinical_team && (
+                <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
+                  <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
+                  <p className="text-xs font-black text-teal-900">{detailTrip.clinical_team}</p>
+                </div>
+              )}
+
+              {/* EVOLUCIÓN CRONOLÓGICA DEL TRASLADO */}
+              <TripEvolutionLog tripId={detailTrip.id} />
+
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => setDetailTrip(null)} className="bg-slate-900 text-white rounded-xl px-6 h-10 font-bold uppercase tracking-wider text-xs shadow-md">Cerrar Detalle</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
