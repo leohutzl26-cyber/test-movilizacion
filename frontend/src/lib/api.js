@@ -269,15 +269,26 @@ const api = {
             { key: 'patient_unit', label: 'Unidad' },
             { key: 'priority', label: 'Prioridad' },
             { key: 'scheduled_date', label: 'Fecha' },
-            { key: 'notes', label: 'Notas' }
+            { key: 'appointment_time', label: 'Hora Cita' },
+            { key: 'notes', label: 'Notas' },
+            { key: 'staff_count', label: 'Cantidad de Funcionarios' },
+            { key: 'task_details', label: 'Detalle del Cometido' },
+            { key: 'bed', label: 'Cama' },
+            { key: 'rut', label: 'RUT' },
+            { key: 'age', label: 'Edad' },
+            { key: 'diagnosis', label: 'Diagnóstico' },
+            { key: 'attending_physician', label: 'Médico Tratante' }
           ];
 
           const changes = [];
           fieldsToCompare.forEach(f => {
             const oldVal = oldTrip[f.key];
             const newVal = updatedTrip[f.key];
-            if (oldVal !== newVal && (oldVal || newVal)) {
-              changes.push(`${f.label} (${oldVal || 'vacío'} ➔ ${newVal || 'vacío'})`);
+            const strOld = oldVal === null || oldVal === undefined ? '' : String(oldVal).trim();
+            const strNew = newVal === null || newVal === undefined ? '' : String(newVal).trim();
+
+            if (strOld !== strNew) {
+              changes.push(`${f.label} (${strOld || 'vacío'} ➔ ${strNew || 'vacío'})`);
             }
           });
 
