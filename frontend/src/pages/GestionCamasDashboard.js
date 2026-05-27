@@ -799,6 +799,25 @@ function ClinicalCalendarSection() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [draggedTripId, setDraggedTripId] = useState(null);
+  const [dragOverDate, setDragOverDate] = useState(null);
+
+  const handleMoveTrip = async (tripId, targetDate) => {
+    try {
+      const tripToMove = trips.find(t => t.id === tripId);
+      if (!tripToMove) return;
+
+      await api.put(`/trips/${tripId}`, {
+        ...tripToMove,
+        scheduled_date: targetDate
+      });
+
+      toast.success(`Traslado re-programado para el ${targetDate}`);
+      fetchCalendar();
+    } catch (e) {
+      toast.error("Error al re-programar el traslado");
+    }
+  };
 
   const formatLocalDate = (date) => {
     const y = date.getFullYear();
@@ -884,7 +903,18 @@ function ClinicalCalendarSection() {
   };
 
   const TripCard = ({ t }) => (
-    <div className={`p-2 rounded-lg border-l-2 mb-1 text-xs ${t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"}`}>
+    <div 
+      draggable={true}
+      onDragStart={() => setDraggedTripId(t.id)}
+      onDragEnd={() => setDraggedTripId(null)}
+      className={`p-2 rounded-lg border-l-2 mb-1 text-xs transition-all duration-200 ${
+        t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"
+      } ${
+        draggedTripId === t.id 
+          ? "opacity-40 scale-95 cursor-grabbing" 
+          : "cursor-grab active:cursor-grabbing hover:shadow-md hover:bg-slate-100/50"
+      }`}
+    >
       <div className="flex justify-between items-center">
         <span className="font-mono font-bold text-[9px] text-slate-600">{t.tracking_number}</span>
         <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
@@ -950,13 +980,28 @@ function ClinicalCalendarSection() {
               {getWeekDates().map((dateStr, i) => {
                 const dayTrips = tripsByDate(dateStr);
                 const isToday = dateStr === formatLocalDate(new Date());
+                const isOver = dragOverDate === dateStr;
                 return (
-                  <div key={dateStr} className={`bg-white rounded-xl border p-2 min-h-[200px] ${isToday ? "border-teal-400 ring-2 ring-teal-100" : "border-slate-200"}`}>
+                  <div 
+                    key={dateStr} 
+                    onDragOver={(e) => { e.preventDefault(); if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
+                    onDragLeave={() => { if (dragOverDate === dateStr) setDragOverDate(null); }}
+                    onDrop={async (e) => { e.preventDefault(); setDragOverDate(null); if (draggedTripId) { await handleMoveTrip(draggedTripId, dateStr); } }}
+                    className={`bg-white rounded-xl border p-2 min-h-[200px] transition-all duration-200 flex flex-col ${
+                      isToday 
+                        ? "border-teal-400 ring-2 ring-teal-100" 
+                        : "border-slate-200"
+                    } ${
+                      isOver 
+                        ? "bg-teal-50 border-teal-500 shadow-md ring-2 ring-teal-100 scale-[1.02]" 
+                        : "shadow-sm"
+                    }`}
+                  >
                     <div className={`text-center mb-2 pb-1 border-b ${isToday ? "border-teal-200" : "border-slate-100"}`}>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">{dayNames[i]}</p>
                       <p className={`text-sm font-black ${isToday ? "text-teal-700" : "text-slate-700"}`}>{dateStr.split("-")[2]}</p>
                     </div>
-                    <div className="space-y-1 overflow-y-auto max-h-[250px] custom-scrollbar">
+                    <div className="space-y-1 overflow-y-auto max-h-[250px] custom-scrollbar flex-1">
                       {dayTrips.map(t => <TripCard key={t.id} t={t} />)}
                       {dayTrips.length === 0 && <p className="text-[10px] text-slate-300 text-center mt-4">—</p>}
                     </div>
@@ -979,7 +1024,7 @@ function ClinicalCalendarSection() {
                   const isToday = dateStr === formatLocalDate(new Date());
                   const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["asignado", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
                   return (
-                    <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("daily"); }} className={`min-h-[80px] bg-white rounded-lg border p-1.5 cursor-pointer hover:shadow-md transition-all ${isToday ? "border-teal-400 ring-1 ring-teal-100" : "border-slate-100"}`}>
+                    <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("weekly"); }} className={`min-h-[80px] bg-white rounded-lg border p-1.5 cursor-pointer hover:shadow-md transition-all ${isToday ? "border-teal-400 ring-1 ring-teal-100" : "border-slate-100"}`}>
                       <p className={`text-xs font-bold mb-1 ${isToday ? "text-teal-700" : "text-slate-600"}`}>{parseInt(dateStr.split("-")[2])}</p>
                       {dayTrips.length > 0 && (
                         <div className="space-y-0.5">

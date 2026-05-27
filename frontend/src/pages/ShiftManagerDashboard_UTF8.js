@@ -842,6 +842,25 @@ function CalendarSection() {
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
     const [detailTrip, setDetailTrip] = useState(null);
+    const [draggedTripId, setDraggedTripId] = useState(null);
+    const [dragOverDate, setDragOverDate] = useState(null);
+
+    const handleMoveTrip = async (tripId, targetDate) => {
+        try {
+            const tripToMove = trips.find(t => t.id === tripId);
+            if (!tripToMove) return;
+
+            await api.put(`/trips/${tripId}`, {
+                ...tripToMove,
+                scheduled_date: targetDate
+            });
+
+            toast.success(`Traslado re-programado para el ${targetDate}`);
+            fetchCalendar();
+        } catch (e) {
+            toast.error("Error al re-programar el traslado");
+        }
+    };
 
     const getDateRange = useCallback(() => {
         const d = new Date(currentDate);
@@ -977,15 +996,43 @@ function CalendarSection() {
                             {getWeekDates().map((dateStr, i) => {
                                 const dayTrips = tripsByDate(dateStr);
                                 const isToday = dateStr === new Date().toISOString().split("T")[0];
+                                const isOver = dragOverDate === dateStr;
                                 return (
-                                    <div key={dateStr} className={`bg-white rounded-2xl border-2 p-3 min-h-[350px] transition-all flex flex-col ${isToday ? "border-teal-400 shadow-lg shadow-teal-900/5 bg-teal-50/10" : "border-slate-100 shadow-sm"}`}>
+                                    <div 
+                                        key={dateStr} 
+                                        onDragOver={(e) => { e.preventDefault(); if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
+                                        onDragLeave={() => { if (dragOverDate === dateStr) setDragOverDate(null); }}
+                                        onDrop={async (e) => { e.preventDefault(); setDragOverDate(null); if (draggedTripId) { await handleMoveTrip(draggedTripId, dateStr); } }}
+                                        className={`bg-white rounded-2xl border-2 p-3 min-h-[350px] transition-all duration-200 flex flex-col ${
+                                            isToday 
+                                                ? "border-teal-400 shadow-lg shadow-teal-900/5 bg-teal-50/10" 
+                                                : "border-slate-100 shadow-sm"
+                                        } ${
+                                            isOver 
+                                                ? "bg-teal-50/30 border-teal-500 shadow-md ring-2 ring-teal-100 scale-[1.02]" 
+                                                : ""
+                                        }`}
+                                    >
                                         <div className={`text-center mb-4 pb-2 border-b-2 ${isToday ? "border-teal-200" : "border-slate-50"}`}>
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{dayNames[i]}</p>
                                             <p className={`text-xl font-black ${isToday ? "text-teal-700" : "text-slate-800"}`}>{dateStr.split("-")[2]}</p>
                                         </div>
                                         <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
                                             {dayTrips.map(t => (
-                                                <div key={t.id} onClick={() => setDetailTrip(t)} className={`p-2 rounded-lg border-l-2 mb-1 text-[10px] cursor-pointer hover:bg-teal-50 transition-all ${t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"}`}>
+                                                <div 
+                                                    key={t.id} 
+                                                    draggable={true}
+                                                    onDragStart={() => setDraggedTripId(t.id)}
+                                                    onDragEnd={() => setDraggedTripId(null)}
+                                                    onClick={() => setDetailTrip(t)} 
+                                                    className={`p-2 rounded-lg border-l-2 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${
+                                                        t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"
+                                                    } ${
+                                                        draggedTripId === t.id 
+                                                            ? "opacity-40 scale-95 cursor-grabbing" 
+                                                            : "cursor-grab active:cursor-grabbing hover:shadow-md hover:bg-teal-50"
+                                                    }`}
+                                                >
                                                     <p className="font-bold text-slate-800 truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
                                                     <p className="text-[9px] text-slate-500 font-mono">{t.appointment_time || "--:--"}</p>
                                                 </div>
@@ -1010,7 +1057,7 @@ function CalendarSection() {
                                     const dayTrips = tripsByDate(dateStr);
                                     const isToday = dateStr === new Date().toISOString().split("T")[0];
                                     return (
-                                        <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("daily"); }} className={`min-h-[120px] p-3 cursor-pointer hover:bg-teal-50/30 transition-all border-r border-b border-slate-100 relative group ${isToday ? "bg-teal-50/20" : ""}`}>
+                                        <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("weekly"); }} className={`min-h-[120px] p-3 cursor-pointer hover:bg-teal-50/30 transition-all border-r border-b border-slate-100 relative group ${isToday ? "bg-teal-50/20" : ""}`}>
                                             <p className={`text-sm font-black mb-2 ${isToday ? "text-teal-700 bg-teal-100 w-8 h-8 rounded-full flex items-center justify-center -ml-1 -mt-1 shadow-sm" : "text-slate-600 hover:text-teal-600"}`}>{parseInt(dateStr.split("-")[2])}</p>
                                             {dayTrips.length > 0 && (
                                                 <div className="space-y-1">
