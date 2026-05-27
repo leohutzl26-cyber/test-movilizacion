@@ -8,6 +8,7 @@ export default function TripEvolutionLog({ tripId }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!tripId) return;
@@ -17,8 +18,10 @@ export default function TripEvolutionLog({ tripId }) {
       try {
         const response = await api.get(`/trips/${tripId}/logs`);
         setLogs(response.data || []);
+        setError(null);
       } catch (error) {
         console.error("Error fetching trip logs:", error);
+        setError(error.message || "Error de conexión o permisos con Supabase");
       } finally {
         setLoading(false);
       }
@@ -29,6 +32,26 @@ export default function TripEvolutionLog({ tripId }) {
 
   if (loading) {
     return <div className="animate-pulse flex space-x-4 mt-6 bg-slate-50 p-4 rounded-xl border border-slate-100"><div className="h-4 bg-slate-200 rounded w-3/4"></div></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="mt-6 border-t border-slate-200 pt-5">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-4">
+          <Activity className="w-4 h-4 text-red-400" /> Evolución del Traslado
+        </h3>
+        <div className="bg-red-50 border border-red-200 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center">
+          <FileText className="w-6 h-6 text-red-300 mb-2" />
+          <p className="text-xs font-bold text-red-600 uppercase tracking-widest">Error al cargar evolución</p>
+          <p className="text-[10px] text-red-500 mt-1 max-w-sm">
+            No se pudo obtener el historial. Esto ocurre si las políticas RLS en tu consola de Supabase bloquean la lectura (SELECT) de la tabla <strong>audit_logs</strong>.
+          </p>
+          <p className="text-[9px] text-slate-500 mt-2 font-mono bg-white px-2 py-1 rounded border">
+            Detalle: {error}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (logs.length === 0) {

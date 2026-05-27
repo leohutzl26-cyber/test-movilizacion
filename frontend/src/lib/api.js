@@ -132,7 +132,7 @@ const api = {
       }
     } catch (e) {
       console.error("API GET Error:", url, e);
-      return { data: [] };
+      throw e;
     }
   },
 
