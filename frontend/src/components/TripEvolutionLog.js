@@ -17,7 +17,10 @@ export default function TripEvolutionLog({ tripId }) {
       setLoading(true);
       try {
         const response = await api.get(`/trips/${tripId}/logs`);
-        setLogs(response.data || []);
+        const filteredLogs = (response.data || []).filter(log => 
+          log.action !== 'INSERT' && log.action !== 'UPDATE' && log.action !== 'registro' && log.action !== 'aprobar_usuario'
+        );
+        setLogs(filteredLogs);
         setError(null);
       } catch (error) {
         console.error("Error fetching trip logs:", error);
@@ -69,11 +72,13 @@ export default function TripEvolutionLog({ tripId }) {
     );
   }
 
-  const formatAction = (action) => {
-    if (!action) return "Acción desconocida";
+  const formatAction = (log) => {
+    if (!log) return "Acción desconocida";
+    const { action } = log;
     if (action === 'create_trip') return "Traslado creado";
     if (action === 'asignar_conductor') return "Conductor asignado";
     if (action === 'auto_asignar') return "Conductor auto-asignado";
+    if (action === 'editar_traslado') return log.new_values?.detalle || "Traslado modificado";
     if (action.startsWith('cambiar_estado_')) {
       const status = action.replace('cambiar_estado_', '').replace(/_/g, " ");
       return `Estado actualizado a: ${status.toUpperCase()}`;
@@ -132,7 +137,7 @@ export default function TripEvolutionLog({ tripId }) {
             
             <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg ml-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-1">
-                <span className="font-bold text-slate-800 text-sm">{formatAction(log.action)}</span>
+                <span className="font-bold text-slate-800 text-sm">{formatAction(log)}</span>
                 <span className="text-[10px] text-slate-500 flex items-center gap-1 font-medium bg-white px-2 py-0.5 rounded border border-slate-200">
                   <Clock className="w-3 h-3" /> {formatDateTime(log.timestamp)}
                 </span>

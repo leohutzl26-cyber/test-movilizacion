@@ -259,7 +259,58 @@ const api = {
 
           return { data: updatedTrip };
         } else {
-          return { data: await supabaseApi.trips.updateTrip(tripId, data) };
+          const oldTrip = await supabaseApi.trips.getTripById(tripId);
+          const updatedTrip = await supabaseApi.trips.updateTrip(tripId, data);
+
+          const fieldsToCompare = [
+            { key: 'origin', label: 'Origen' },
+            { key: 'destination', label: 'Destino' },
+            { key: 'patient_name', label: 'Paciente' },
+            { key: 'patient_unit', label: 'Unidad' },
+            { key: 'priority', label: 'Prioridad' },
+            { key: 'scheduled_date', label: 'Fecha' },
+            { key: 'notes', label: 'Notas' }
+          ];
+
+          const changes = [];
+          fieldsToCompare.forEach(f => {
+            const oldVal = oldTrip[f.key];
+            const newVal = updatedTrip[f.key];
+            if (oldVal !== newVal && (oldVal || newVal)) {
+              changes.push(`${f.label} (${oldVal || 'vacío'} ➔ ${newVal || 'vacío'})`);
+            }
+          });
+
+          if (changes.length > 0) {
+            let userId = null;
+            let userName = "Usuario / Coordinador";
+            let userRole = "coordinador";
+            try {
+              const token = localStorage.getItem('supabase.auth.token');
+              if (token) {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                userId = payload.userId || null;
+                userName = payload.name || "Usuario / Coordinador";
+                userRole = payload.role || "coordinador";
+              }
+            } catch (e) {}
+
+            try {
+              await supabase.from('audit_logs').insert([{
+                user_id: userId,
+                user_name: userName,
+                user_role: userRole,
+                action: 'editar_traslado',
+                entity_type: 'trips',
+                entity_id: tripId,
+                new_values: { detalle: `Modificó: ${changes.join(', ')}` }
+              }]);
+            } catch (e) {
+              console.error("Error inserting edit audit log", e);
+            }
+          }
+
+          return { data: updatedTrip };
         }
       }
 
