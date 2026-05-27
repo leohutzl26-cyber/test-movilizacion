@@ -3,6 +3,27 @@ import { supabase } from './supabase';
 
 const generateFolio = () => `TR-${Math.floor(Math.random() * 1000000)}`;
 
+const formatValue = (key, val) => {
+  if (key === 'assigned_clinical_staff') {
+    if (!val) return '';
+    let arr = val;
+    if (typeof val === 'string') {
+      try { arr = JSON.parse(val); } catch (e) { return val; }
+    }
+    if (!Array.isArray(arr)) return String(val);
+    return arr.map(s => {
+      let obj = s;
+      if (typeof s === 'string') {
+        try { obj = JSON.parse(s); } catch (e) {}
+      }
+      const type = obj?.type || obj?.cargo || '';
+      const name = obj?.staff_name || obj?.name || obj?.nombre || 'Por identificar';
+      return type ? `${type}: ${name}` : name;
+    }).join(', ');
+  }
+  return val === null || val === undefined ? '' : String(val).trim();
+};
+
 const api = {
   get: async (url, config = {}) => {
     try {
@@ -222,6 +243,7 @@ const api = {
             })
           };
         } else if (parts[3] === "approve-gestor") {
+          const oldTrip = await supabaseApi.trips.getTripById(tripId);
           // Visar traslado: pasa de revision_gestor a pendiente
           const updatedTrip = await supabaseApi.trips.updateTrip(tripId, {
             ...data,
@@ -243,6 +265,7 @@ const api = {
             console.error("Error decoding token for audit log", e);
           }
 
+          // Registrar la visación
           try {
             await supabase.from('audit_logs').insert([{
               user_id: userId,
@@ -255,6 +278,54 @@ const api = {
             }]);
           } catch (e) {
             console.error("Error inserting audit log for approve-gestor", e);
+          }
+
+          // Comparar si el Gestor también realizó cambios en campos operacionales o clínicos al visar
+          const fieldsToCompare = [
+            { key: 'origin', label: 'Origen' },
+            { key: 'destination', label: 'Destino' },
+            { key: 'patient_name', label: 'Paciente' },
+            { key: 'patient_unit', label: 'Unidad' },
+            { key: 'priority', label: 'Prioridad' },
+            { key: 'scheduled_date', label: 'Fecha' },
+            { key: 'appointment_time', label: 'Hora Cita' },
+            { key: 'notes', label: 'Notas' },
+            { key: 'staff_count', label: 'Cantidad de Funcionarios' },
+            { key: 'task_details', label: 'Detalle del Cometido' },
+            { key: 'bed', label: 'Cama' },
+            { key: 'rut', label: 'RUT' },
+            { key: 'age', label: 'Edad' },
+            { key: 'diagnosis', label: 'Diagnóstico' },
+            { key: 'attending_physician', label: 'Médico Tratante' },
+            { key: 'assigned_clinical_staff', label: 'Personal Clínico' }
+          ];
+
+          const changes = [];
+          fieldsToCompare.forEach(f => {
+            const oldVal = oldTrip[f.key];
+            const newVal = updatedTrip[f.key];
+            const strOld = formatValue(f.key, oldVal);
+            const strNew = formatValue(f.key, newVal);
+
+            if (strOld !== strNew) {
+              changes.push(`${f.label} (${strOld || 'vacío'} ➔ ${strNew || 'vacío'})`);
+            }
+          });
+
+          if (changes.length > 0) {
+            try {
+              await supabase.from('audit_logs').insert([{
+                user_id: userId,
+                user_name: userName,
+                user_role: userRole,
+                action: 'editar_traslado',
+                entity_type: 'trips',
+                entity_id: tripId,
+                new_values: { detalle: `Modificó al visar: ${changes.join(', ')}` }
+              }]);
+            } catch (e) {
+              console.error("Error inserting edit audit log during approve-gestor", e);
+            }
           }
 
           return { data: updatedTrip };
@@ -277,15 +348,16 @@ const api = {
             { key: 'rut', label: 'RUT' },
             { key: 'age', label: 'Edad' },
             { key: 'diagnosis', label: 'Diagnóstico' },
-            { key: 'attending_physician', label: 'Médico Tratante' }
+            { key: 'attending_physician', label: 'Médico Tratante' },
+            { key: 'assigned_clinical_staff', label: 'Personal Clínico' }
           ];
 
           const changes = [];
           fieldsToCompare.forEach(f => {
             const oldVal = oldTrip[f.key];
             const newVal = updatedTrip[f.key];
-            const strOld = oldVal === null || oldVal === undefined ? '' : String(oldVal).trim();
-            const strNew = newVal === null || newVal === undefined ? '' : String(newVal).trim();
+            const strOld = formatValue(f.key, oldVal);
+            const strNew = formatValue(f.key, newVal);
 
             if (strOld !== strNew) {
               changes.push(`${f.label} (${strOld || 'vacío'} ➔ ${strNew || 'vacío'})`);
