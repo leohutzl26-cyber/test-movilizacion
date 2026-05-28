@@ -19,7 +19,13 @@ const PERSONNEL_TYPES = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)"
 const REQUIREMENT_OPTIONS = ["Camilla", "Incubadora", "Silla de rueda", "Oxigeno", "Monitor", "Aislamiento Aéreo", "Aislamiento Contacto", "Aislamiento Protector", "Dependiente severo"];
 
 export default function GestionCamasDashboard() {
-  const [section, setSection] = useState("dashboard");
+  const [section, setSection] = useState(() => {
+    return localStorage.getItem("movilizacion.gestor_camas.section") || "dashboard";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("movilizacion.gestor_camas.section", section);
+  }, [section]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

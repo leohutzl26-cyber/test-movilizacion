@@ -212,7 +212,13 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
 }
 
 export default function ShiftManagerDashboard_UTF8() {
-    const [section, setSection] = useState("dispatch");
+    const [section, setSection] = useState(() => {
+        return localStorage.getItem("movilizacion.coordinador.section") || "dispatch";
+    });
+
+    useEffect(() => {
+        localStorage.setItem("movilizacion.coordinador.section", section);
+    }, [section]);
     const [stats, setStats] = useState({ total: 0, active: 0, pending: 0, completed: 0 });
 
     const fetchStats = useCallback(async () => {

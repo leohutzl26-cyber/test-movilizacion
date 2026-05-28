@@ -45,7 +45,13 @@ const defaultForm = {
 };
 
 export default function RequesterDashboard() {
-  const [section, setSection] = useState("new");
+  const [section, setSection] = useState(() => {
+    return localStorage.getItem("movilizacion.solicitante.section") || "new";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("movilizacion.solicitante.section", section);
+  }, [section]);
   const [editingTrip, setEditingTrip] = useState(null);
 
   const handleEdit = (trip) => {

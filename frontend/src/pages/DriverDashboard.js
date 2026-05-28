@@ -13,8 +13,14 @@ import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 
 export default function DriverDashboard() {
-  const [section, setSection] = useState("pool");
+  const [section, setSection] = useState(() => {
+    return localStorage.getItem("movilizacion.conductor.section") || "pool";
+  });
   const [licenseExpired, setLicenseExpired] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("movilizacion.conductor.section", section);
+  }, [section]);
 
   useEffect(() => {
     const checkLicense = async () => {

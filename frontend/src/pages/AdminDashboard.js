@@ -18,7 +18,13 @@ const COLORS_PIE = ["#0d9488", "#f59e0b", "#6366f1", "#ef4444", "#22c55e", "#8b5
 const COLORS_STATUS = { "Pendiente": "#f59e0b", "Por Visar": "#a855f7", "Asignado": "#3b82f6", "En Curso": "#0d9488", "Completado": "#22c55e", "Cancelado": "#ef4444" };
 
 export default function AdminDashboard() {
-  const [section, setSection] = useState("dashboard");
+  const [section, setSection] = useState(() => {
+    return localStorage.getItem("movilizacion.admin.section") || "dashboard";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("movilizacion.admin.section", section);
+  }, [section]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
