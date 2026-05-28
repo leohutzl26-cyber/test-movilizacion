@@ -30,7 +30,7 @@ exports.handler = async (event, context) => {
     // Get driver info
     const { data: driver, error: driverError } = await supabase
       .from('profiles')
-      .select('name, vehicle_plate')
+      .select('name')
       .eq('id', driver_id)
       .single();
 
@@ -67,7 +67,7 @@ exports.handler = async (event, context) => {
       driver_id,
       driver_name: driver.name,
       vehicle_id: vehicle_id || null,
-      vehicle_plate: vehicleInfo.vehicle_plate || driver.vehicle_plate,
+      vehicle_plate: vehicleInfo.vehicle_plate || driver.vehicle_plate || null,
       status: 'asignado'
     };
 
