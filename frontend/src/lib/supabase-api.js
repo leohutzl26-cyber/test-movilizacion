@@ -85,9 +85,30 @@ export const authApi = {
   },
 
   getCurrentUser: async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return session?.user;
+    try {
+      const token = localStorage.getItem('supabase.auth.token');
+      if (!token) return null;
+
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const response = await customFetch(`${baseUrl}/api/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        localStorage.removeItem('supabase.auth.token');
+        return null;
+      }
+
+      const responseText = await response.text();
+      return JSON.parse(responseText);
+    } catch (error) {
+      console.error("Error fetching current user from custom backend:", error);
+      return null;
+    }
   }
 };
 

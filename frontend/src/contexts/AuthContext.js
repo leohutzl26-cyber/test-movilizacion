@@ -28,14 +28,38 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const profile = await fetchProfile(session.user.id);
-        setUser(profile ? { ...session.user, ...profile } : session.user);
+    const initializeAuth = async () => {
+      try {
+        const token = localStorage.getItem('supabase.auth.token');
+        if (token) {
+          const currentUser = await authApi.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error restoring session from custom token:", error);
+      }
+
+      // Caída al flujo nativo de Supabase
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const profile = await fetchProfile(session.user.id);
+          setUser(profile ? { ...session.user, ...profile } : session.user);
+        } else {
+          setUser(null);
+        }
+      } catch (e) {
+        console.error("Error getting native Supabase session:", e);
+        setUser(null);
       }
       setLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -43,7 +67,11 @@ export function AuthProvider({ children }) {
         const profile = await fetchProfile(session.user.id);
         setUser(profile ? { session: { ...session }, profile } : session.user);
       } else {
-        setUser(null);
+        // Solo deslogueamos si no hay un token de la API personalizada guardado en localStorage
+        const hasCustomToken = localStorage.getItem('supabase.auth.token');
+        if (!hasCustomToken) {
+          setUser(null);
+        }
       }
       setLoading(false);
     });
