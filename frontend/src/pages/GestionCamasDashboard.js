@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload, Car } from "lucide-react";
 import api from "@/lib/api";
 import BulkUploader from "@/components/BulkUploader";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
@@ -1675,81 +1675,125 @@ function VehiclesSection() {
 
     if (loading && vehicles.length === 0) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
+    const ambulances = vehicles.filter(v => (v.type || "").toLowerCase() === "ambulancia");
+    const supportVehicles = vehicles.filter(v => (v.type || "").toLowerCase() !== "ambulancia");
+
+    const renderVehicleCard = (v) => {
+        const cfg = statusConfig[v.status] || statusConfig.disponible;
+        const isAmbulance = (v.type || "").toLowerCase() === "ambulancia";
+        return (
+            <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
+                <CardContent className="p-0">
+                    <div className="p-2.5 flex items-center justify-between border-b border-inherit">
+                        <div className="flex items-center gap-2">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
+                                {isAmbulance ? (
+                                    <Siren className={`w-3.5 h-3.5 text-red-500 animate-pulse`} />
+                                ) : (
+                                    <Car className={`w-3.5 h-3.5 text-slate-500`} />
+                                )}
+                            </div>
+                            <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {isAmbulance ? (
+                                <Badge className="bg-red-500 hover:bg-red-600 text-white border-none font-black text-[7px] px-1 py-0.5 select-none tracking-tighter uppercase leading-none">Ambulancia</Badge>
+                            ) : (
+                                <Badge className="bg-slate-500 hover:bg-slate-600 text-white border-none font-black text-[7px] px-1 py-0.5 select-none tracking-tighter uppercase leading-none">Apoyo</Badge>
+                            )}
+                            <div className={`w-1.5 h-1.5 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
+                        </div>
+                    </div>
+
+                    <div className="p-2.5 space-y-2 min-h-[110px] flex flex-col justify-between">
+                        <div className="space-y-0.5">
+                            <p className="text-[11px] font-black text-slate-700 uppercase truncate leading-tight">{v.brand} {v.model}</p>
+                            <p className="text-[9px] font-bold text-slate-400 leading-none">{v.type}</p>
+                        </div>
+
+                        {v.status === "en_uso" ? (
+                            <div className="bg-white/60 rounded-lg p-2 border border-blue-100/50">
+                                <div className="flex items-center gap-1.5 mb-1 text-blue-700">
+                                    <User className="w-2.5 h-2.5" />
+                                    <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "Cargando..."}</p>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-blue-600">
+                                    <MapPin className="w-2.5 h-2.5" />
+                                    <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
+                                </div>
+                                {v.current_clinical_team && (
+                                    <div className="flex items-center gap-1.5 text-purple-600 border-t border-blue-100/30 mt-1 pt-1">
+                                        <Users className="w-2.5 h-2.5 shrink-0" />
+                                        <p className="text-[8px] font-bold truncate italic leading-tight">{v.current_clinical_team}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
+                                <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
+                            </div>
+                        )}
+
+                        {user?.role !== "gestion_camas" && (
+                            <div className="pt-1">
+                                <Button 
+                                    onClick={() => handleStatusToggle(v)}
+                                    disabled={v.status === "en_uso"}
+                                    variant="outline" 
+                                    className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
+                                >
+                                    {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
     return (
         <div className="animate-slide-up space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Control de Flota Operativa</h1>
                     <p className="text-slate-500 text-xs font-bold uppercase">Estado actual de todos los móviles del hospital.</p>
                 </div>
-                <Badge variant="outline" className="h-8 px-4 font-black border-slate-200 bg-white">
-                    TOTAL: {vehicles.length} MÓVILES
-                </Badge>
+                <div className="flex gap-2 self-start sm:self-center">
+                    <Badge variant="outline" className="h-8 px-3 font-black border-red-200 bg-red-50 text-red-700 flex items-center gap-1.5 select-none">
+                        <Siren className="w-3.5 h-3.5 text-red-500 animate-pulse" /> {ambulances.length} AMBULANCIAS
+                    </Badge>
+                    <Badge variant="outline" className="h-8 px-3 font-black border-slate-200 bg-white text-slate-700 flex items-center gap-1.5 select-none">
+                        <Car className="w-3.5 h-3.5 text-slate-500" /> {supportVehicles.length} DE APOYO
+                    </Badge>
+                </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                {vehicles.sort((a,b) => a.plate.localeCompare(b.plate)).map(v => {
-                    const cfg = statusConfig[v.status] || statusConfig.disponible;
-                    return (
-                        <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
-                            <CardContent className="p-0">
-                                <div className="p-2.5 flex items-center justify-between border-b border-inherit">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
-                                            {v.type === "Ambulancia" ? <Siren className={`w-3.5 h-3.5 ${cfg.text}`} /> : <Truck className={`w-3.5 h-3.5 ${cfg.text}`} />}
-                                        </div>
-                                        <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
-                                    </div>
-                                    <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
-                                </div>
+            {/* SECCIÓN 1: AMBULANCIAS CLÍNICAS */}
+            {ambulances.length > 0 && (
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2 border-b border-red-100 pb-2">
+                        <Siren className="w-4 h-4 text-red-500 animate-pulse" />
+                        <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest">Ambulancias Clínicas ({ambulances.length})</h2>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                        {ambulances.sort((a,b) => a.plate.localeCompare(b.plate)).map(renderVehicleCard)}
+                    </div>
+                </div>
+            )}
 
-                                <div className="p-2.5 space-y-2 min-h-[110px] flex flex-col justify-between">
-                                    <div className="space-y-0.5">
-                                        <p className="text-[11px] font-black text-slate-700 uppercase truncate leading-tight">{v.brand} {v.model}</p>
-                                        <p className="text-[9px] font-bold text-slate-400 leading-none">{v.type}</p>
-                                    </div>
-
-                                    {v.status === "en_uso" ? (
-                                        <div className="bg-white/60 rounded-lg p-2 border border-blue-100/50">
-                                            <div className="flex items-center gap-1.5 mb-1 text-blue-700">
-                                                <User className="w-2.5 h-2.5" />
-                                                <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "Cargando..."}</p>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-blue-600">
-                                                <MapPin className="w-2.5 h-2.5" />
-                                                <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
-                                            </div>
-                                            {v.current_clinical_team && (
-                                                <div className="flex items-center gap-1.5 text-purple-600 border-t border-blue-100/30 mt-1 pt-1">
-                                                    <Users className="w-2.5 h-2.5 shrink-0" />
-                                                    <p className="text-[8px] font-bold truncate italic leading-tight">{v.current_clinical_team}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
-                                            <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
-                                        </div>
-                                    )}
-
-                                    {user?.role !== "gestion_camas" && (
-                                        <div className="pt-1">
-                                            <Button 
-                                                onClick={() => handleStatusToggle(v)}
-                                                disabled={v.status === "en_uso"}
-                                                variant="outline" 
-                                                className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
-                                            >
-                                                {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
+            {/* SECCIÓN 2: VEHÍCULOS DE APOYO */}
+            {supportVehicles.length > 0 && (
+                <div className="space-y-3 pt-3">
+                    <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                        <Car className="w-4 h-4 text-slate-500" />
+                        <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest">Vehículos de Apoyo y Administrativos ({supportVehicles.length})</h2>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                        {supportVehicles.sort((a,b) => a.plate.localeCompare(b.plate)).map(renderVehicleCard)}
+                    </div>
+                </div>
+            )}
             
             {vehicles.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
