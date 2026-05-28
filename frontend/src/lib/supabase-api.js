@@ -89,24 +89,29 @@ export const authApi = {
       const token = localStorage.getItem('supabase.auth.token');
       if (!token) return null;
 
-      const baseUrl = process.env.REACT_APP_API_URL || '';
-      const response = await customFetch(`${baseUrl}/api/auth/me`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
 
-      if (!response.ok) {
+      // Decodificar el payload en base64 de forma local en el navegador
+      const payloadText = atob(parts[1]);
+      const payload = JSON.parse(payloadText);
+
+      // Comprobar si el token ya expiró
+      if (payload.exp && Date.now() >= payload.exp * 1000) {
         localStorage.removeItem('supabase.auth.token');
         return null;
       }
 
-      const responseText = await response.text();
-      return JSON.parse(responseText);
+      // Reconstruir el objeto de usuario esperado por la aplicación
+      return {
+        id: payload.userId,
+        email: payload.email,
+        name: payload.name,
+        role: payload.role,
+        status: 'approved'
+      };
     } catch (error) {
-      console.error("Error fetching current user from custom backend:", error);
+      console.error("Error decodificando el token JWT local:", error);
       return null;
     }
   }
