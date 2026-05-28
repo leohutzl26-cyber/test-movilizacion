@@ -35,9 +35,13 @@ exports.handler = async (event, context) => {
       .single();
 
     if (driverError || !driver) {
+      console.error('Driver query failed:', driverError);
       return {
         statusCode: 404,
-        body: JSON.stringify({ error: 'Driver not found' })
+        body: JSON.stringify({ 
+          error: 'Driver not found', 
+          database_error: driverError ? { message: driverError.message, details: driverError.details, code: driverError.code } : 'No record returned'
+        })
       };
     }
 
