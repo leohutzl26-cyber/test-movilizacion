@@ -76,8 +76,8 @@ const formatScheduledDate = (dateStr) => {
 };
 
 const COLORS = { pendiente: '#f59e0b', asignado: '#0d9488', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#ef4444', revision_gestor: '#8b5cf6' };
-const pColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
-const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
+const pColors = { urgente: "bg-red-500 text-white font-bold", alta: "bg-orange-500 text-white font-bold", normal: "bg-slate-100 text-slate-700 font-bold border border-slate-200" };
+const sColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", asignado: "bg-teal-100 text-teal-800 border border-teal-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-red-100 text-red-800 border border-red-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200" };
 
 const VEHICLE_ICONS = {
     Ambulancia: <Siren className="w-6 h-6 text-red-600 drop-shadow-sm" />,
@@ -110,18 +110,24 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-white rounded-3xl overflow-hidden border-none shadow-2xl">
-                <DialogHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                        <Badge className={`${sColors[trip.status] || "bg-slate-100"} border-none text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full`}>{(trip.status || "").replace(/_/g, " ")}</Badge>
-                        <Badge className={`${pColors[trip.priority] || pColors.normal} border-none text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full`}>{trip.priority}</Badge>
+            <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+                <DialogHeader className="p-8 pb-0">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
+                            <Activity className="w-6 h-6 text-teal-400 animate-pulse" />
+                        </div>
+                        <div>
+                            <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">
+                                {trip.trip_type === "clinico" ? "Detalle Traslado Clínico" : "Detalle de Cometido"}
+                            </DialogTitle>
+                            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                Folio: <span className="text-teal-600 font-mono font-black">#{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}</span> — Consulta Informativa
+                            </DialogDescription>
+                        </div>
                     </div>
-                    <DialogTitle className="text-3xl font-black text-slate-900 leading-tight">
-                        {trip.trip_type === "clinico" ? "Detalle Traslado Clínico" : "Detalle de Cometido"}
-                    </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-8 pt-4">
+                <div className="p-8 pt-4 space-y-8">
                     <div className="flex items-center justify-between bg-slate-900 text-white p-6 rounded-[2rem] shadow-xl">
                         <div>
                             <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Folio de Seguimiento</p>

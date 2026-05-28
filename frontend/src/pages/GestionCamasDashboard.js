@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload, Car, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -210,10 +210,10 @@ function AssignPersonnelSection() {
 
   const TripCard = ({ t, isPending }) => {
     const statusMap = {
-      revision_gestor: { label: "Por Visar", color: "bg-red-100 text-red-700", border: "border-l-red-500" },
-      pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-700", border: "border-l-amber-500" },
-      asignado: { label: "Asignado", color: "bg-blue-100 text-blue-700", border: "border-l-blue-500" },
-      en_curso: { label: "En Curso", color: "bg-emerald-100 text-emerald-700", border: "border-l-emerald-500" }
+      revision_gestor: { label: "Por Visar", color: "bg-purple-100 text-purple-800 border border-purple-200", border: "border-l-purple-500" },
+      pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-800 border border-amber-200", border: "border-l-amber-500" },
+      asignado: { label: "Asignado", color: "bg-teal-100 text-teal-800 border border-teal-200", border: "border-l-teal-500" },
+      en_curso: { label: "En Curso", color: "bg-blue-100 text-blue-800 border border-blue-200", border: "border-l-blue-500" }
     };
     const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
 
@@ -241,8 +241,8 @@ function AssignPersonnelSection() {
               </div>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <Badge className={`font-bold uppercase text-[9px] ${config.color}`}>{config.label}</Badge>
-              <Badge className={t.priority === "urgente" ? "bg-red-500 text-white" : t.priority === "alta" ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-700"}>
+              <Badge className={`font-bold uppercase text-[9px] px-3 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
+              <Badge className={`font-bold border-none text-[9px] uppercase px-3 py-1 rounded-full ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
                 {t.priority.toUpperCase()}
               </Badge>
             </div>
@@ -283,6 +283,18 @@ function AssignPersonnelSection() {
     );
   };
 
+  const StatusCard = ({ id, label, count, color, activeColor }) => (
+    <button 
+      onClick={() => setFilterStatus(id)}
+      className={`text-left p-4 rounded-2xl border-l-4 transition-all hover:scale-[1.01] shadow-sm flex-1
+        ${filterStatus === id ? `${activeColor} ring-1 ring-slate-900/5` : "bg-white border-l-slate-200"}`}
+      style={{ borderLeftColor: filterStatus === id ? color : undefined }}
+    >
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{label}</p>
+      <p className={`text-2xl font-black ${filterStatus === id ? "text-slate-900" : "text-slate-500"}`}>{count}</p>
+    </button>
+  );
+
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
       <div className="mb-8">
@@ -290,27 +302,11 @@ function AssignPersonnelSection() {
         <p className="text-slate-500 font-medium mt-1">Gestión centralizada de traslados clínicos.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <button onClick={() => setFilterStatus("revision_gestor")} 
-          className={`text-left p-4 rounded-2xl border-l-4 border-l-red-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "revision_gestor" ? "bg-red-50 ring-2 ring-red-200" : "bg-white"}`}>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">En Revisión</p>
-          <p className="text-3xl font-black text-red-600">{stats.revision}</p>
-        </button>
-        <button onClick={() => setFilterStatus("pendiente")}
-          className={`text-left p-4 rounded-2xl border-l-4 border-l-amber-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "pendiente" ? "bg-amber-50 ring-2 ring-amber-200" : "bg-white"}`}>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pendientes</p>
-          <p className="text-3xl font-black text-amber-600">{stats.pendiente}</p>
-        </button>
-        <button onClick={() => setFilterStatus("asignado")}
-          className={`text-left p-4 rounded-2xl border-l-4 border-l-blue-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "asignado" ? "bg-blue-50 ring-2 ring-blue-200" : "bg-white"}`}>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Asignados</p>
-          <p className="text-3xl font-black text-blue-600">{stats.asignado}</p>
-        </button>
-        <button onClick={() => setFilterStatus("en_curso")}
-          className={`text-left p-4 rounded-2xl border-l-4 border-l-emerald-500 shadow-sm transition-all hover:scale-[1.02] ${filterStatus === "en_curso" ? "bg-emerald-50 ring-2 ring-emerald-200" : "bg-white"}`}>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">En Curso</p>
-          <p className="text-3xl font-black text-emerald-600">{stats.en_curso}</p>
-        </button>
+      <div className="flex flex-col sm:flex-row gap-4 mb-10">
+        <StatusCard id="revision_gestor" label="En Revisión" count={stats.revision} color="#ef4444" activeColor="bg-red-50" />
+        <StatusCard id="pendiente" label="Pendientes" count={stats.pendiente} color="#f59e0b" activeColor="bg-amber-50" />
+        <StatusCard id="asignado" label="Asignados" count={stats.asignado} color="#0d9488" activeColor="bg-teal-50" />
+        <StatusCard id="en_curso" label="En Curso" count={stats.en_curso} color="#3b82f6" activeColor="bg-blue-50" />
       </div>
 
       <div className="mb-6 flex items-center justify-between border-b pb-4">
@@ -327,24 +323,24 @@ function AssignPersonnelSection() {
       <div className="hidden lg:block bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
+            <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">
               <tr>
-                <th className="px-6 py-4">Folio / Prioridad</th>
-                <th className="px-6 py-4">Paciente y Motivo</th>
-                <th className="px-6 py-4 min-w-[200px]">Ruta / Servicio</th>
-                <th className="px-6 py-4">Programación</th>
-                <th className="px-6 py-4">Equipo / Detalles</th>
-                <th className="px-6 py-4 text-center">Estado</th>
-                <th className="px-6 py-4 text-center">Acciones</th>
+                <th className="px-6 py-5">Folio / Prioridad</th>
+                <th className="px-6 py-5">Paciente y Motivo</th>
+                <th className="px-6 py-5 min-w-[200px]">Ruta / Servicio</th>
+                <th className="px-6 py-5">Programación</th>
+                <th className="px-6 py-5">Equipo / Detalles</th>
+                <th className="px-6 py-5 text-center">Estado</th>
+                <th className="px-6 py-5 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {displayedTrips.map(t => {
                 const statusMap = {
-                  revision_gestor: { label: "Por Visar", color: "bg-red-100 text-red-700", border: "border-l-red-500" },
-                  pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-700", border: "border-l-amber-500" },
-                  asignado: { label: "Asignado", color: "bg-blue-100 text-blue-700", border: "border-l-blue-500" },
-                  en_curso: { label: "En Curso", color: "bg-emerald-100 text-emerald-700", border: "border-l-emerald-500" }
+                  revision_gestor: { label: "Por Visar", color: "bg-purple-100 text-purple-800 border border-purple-200", border: "border-l-purple-500" },
+                  pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-700 border border-amber-200", border: "border-l-amber-500" },
+                  asignado: { label: "Asignado", color: "bg-teal-100 text-teal-700 border border-teal-200", border: "border-l-teal-500" },
+                  en_curso: { label: "En Curso", color: "bg-blue-100 text-blue-700 border border-blue-200", border: "border-l-blue-500" }
                 };
                 const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
 
@@ -366,7 +362,7 @@ function AssignPersonnelSection() {
                         <span className="bg-slate-800 text-white font-mono px-2 py-1 rounded text-[10px] font-bold shadow-sm w-fit">
                           {t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}
                         </span>
-                        <Badge className={t.priority === "urgente" ? "bg-red-500 text-white w-fit" : t.priority === "alta" ? "bg-orange-500 text-white w-fit" : "bg-slate-100 text-slate-700 w-fit"}>
+                        <Badge className={`font-bold border-none text-[9px] uppercase px-3 py-1 rounded-full w-fit ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
                           {t.priority.toUpperCase()}
                         </Badge>
                       </div>
@@ -435,10 +431,24 @@ function AssignPersonnelSection() {
       )}
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="text-2xl font-black">{assignDialog?.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
+          <DialogHeader className="p-8 pb-0">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
+                <Pencil className="w-6 h-6 text-teal-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">
+                  {assignDialog?.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}
+                </DialogTitle>
+                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  Folio: <span className="text-teal-600 font-mono font-black">#{assignDialog?.tracking_number || assignDialog?.id?.substring(0, 6)?.toUpperCase()}</span> — Panel de Gestión
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
           {assignDialog && (
-            <div className="space-y-5 pt-3">
+            <div className="p-8 pt-4 space-y-5">
               {/* SOLICITANTE E INGRESO */}
               <div className="bg-purple-50 p-3 rounded-xl border border-purple-200 flex justify-between items-center">
                 <div><p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Solicitado por</p><p className="font-bold text-purple-900">{assignDialog.requester_name || assignDialog.requester_person || "-"}</p></div>
@@ -954,7 +964,7 @@ function ClinicalCalendarSection() {
     setCurrentDate(d);
   };
 
-  const statusColors = { pendiente: "bg-amber-100 text-amber-800", revision_gestor: "bg-purple-100 text-purple-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200", asignado: "bg-teal-100 text-teal-800 border border-teal-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-red-100 text-red-800 border border-red-200" };
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -1139,20 +1149,30 @@ function ClinicalCalendarSection() {
 
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
-        <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-slate-900 uppercase tracking-tight">Detalle del Traslado</DialogTitle>
+        <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="p-8 pb-0">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
+                <Activity className="w-6 h-6 text-teal-400 animate-pulse" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Detalle del Traslado</DialogTitle>
+                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  Folio: <span className="text-teal-600 font-mono font-black">#{detailTrip?.tracking_number}</span> — Consulta Informativa
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           {detailTrip && (
-            <div className="space-y-4 pt-3">
-              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <div className="p-8 pt-4 space-y-5">
+              <div className="flex items-center justify-between bg-slate-900 text-white p-6 rounded-[2rem] shadow-xl">
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Folio</p>
-                  <p className="font-mono font-black text-slate-800 text-sm">#{detailTrip.tracking_number}</p>
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Folio de Seguimiento</p>
+                  <p className="text-2xl font-mono font-black text-teal-400">#{detailTrip.tracking_number}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Estado</p>
-                  <Badge className={`font-black uppercase text-[9px] border-none shadow-sm ${statusColors[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Estado</p>
+                  <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColors[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
                     {(detailTrip.status || "").replace(/_/g, " ")}
                   </Badge>
                 </div>
@@ -1221,7 +1241,7 @@ function ClinicalCalendarSection() {
               <TripEvolutionLog tripId={detailTrip.id} />
 
               <div className="flex justify-end pt-2">
-                <Button onClick={() => setDetailTrip(null)} className="bg-slate-900 text-white rounded-xl px-6 h-10 font-bold uppercase tracking-wider text-xs shadow-md">Cerrar Detalle</Button>
+                <Button onClick={() => setDetailTrip(null)} className="bg-slate-900 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-lg hover:bg-slate-800">Volver</Button>
               </div>
             </div>
           )}
@@ -1347,25 +1367,25 @@ function ClinicalHistorySection() {
     document.body.removeChild(link);
   };
 
-  const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200", asignado: "bg-teal-100 text-teal-800 border border-teal-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-red-100 text-red-800 border border-red-200" };
 
-  const renderSortHeader = (field, label, centered = false) => {
+  const renderSortHeader = (field, label, className = "", centered = false) => {
     const isActive = sortField === field;
     return (
       <th 
         onClick={() => handleSort(field)} 
-        className={`p-4 cursor-pointer select-none hover:bg-slate-200 transition-colors duration-200 group ${centered ? "text-center" : ""}`}
+        className={`px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer select-none hover:bg-slate-800 hover:text-white transition-all duration-200 group ${className} ${centered ? "text-center" : ""}`}
       >
         <div className={`flex items-center gap-1.5 ${centered ? "justify-center" : ""}`}>
-          <span className="font-bold text-[10px] tracking-wider uppercase">{label}</span>
+          <span className="text-slate-400 group-hover:text-white transition-colors">{label}</span>
           {isActive ? (
             sortDirection === "asc" ? (
-              <ArrowUp className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200" />
+              <ArrowUp className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
             ) : (
-              <ArrowDown className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200" />
+              <ArrowDown className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
             )
           ) : (
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+            <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 opacity-40 group-hover:opacity-100 group-hover:text-slate-400 transition-all shrink-0" />
           )}
         </div>
       </th>
@@ -1421,13 +1441,13 @@ function ClinicalHistorySection() {
             <div className="flex flex-col items-center justify-center py-20 text-slate-400"><RefreshCw className="w-8 h-8 animate-spin mb-4 text-teal-600" />Cargando registros...</div>
           ) : (
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider sticky top-0 shadow-sm z-10">
+              <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] sticky top-0 shadow-sm z-10">
                 <tr>
                   {renderSortHeader("scheduled_date", "Folio / Fecha")}
                   {renderSortHeader("patient_name", "Paciente")}
                   {renderSortHeader("origin", "Ruta")}
                   {renderSortHeader("clinical_team", "Equipo Acompañante")}
-                  {renderSortHeader("status", "Estado", true)}
+                  {renderSortHeader("status", "Estado", "", true)}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
