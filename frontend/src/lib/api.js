@@ -93,6 +93,97 @@ const api = {
         case "/vehicles":
           return { data: await supabaseApi.vehicles.getVehicles() };
 
+        case "/trips/by-driver": {
+          const targetDate = queryParams.date || new Date().toISOString().split('T')[0];
+          
+          // 1. Obtener todos los conductores aprobados
+          const { data: drivers, error: driversError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('role', 'conductor')
+            .eq('status', 'approved');
+          
+          if (driversError) throw driversError;
+          
+          // 2. Obtener todos los vehículos para saber el tipo (vehicle_type) usando la patente
+          const { data: vehicles, error: vehiclesError } = await supabase
+            .from('vehicles')
+            .select('*');
+            
+          if (vehiclesError) throw vehiclesError;
+          const vMap = {};
+          (vehicles || []).forEach(v => {
+            if (v.plate) vMap[v.plate.toLowerCase()] = v;
+          });
+          
+          // 3. Obtener todos los viajes para esa fecha (no cancelados)
+          const { data: rawTrips, error: tripsError } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('scheduled_date', targetDate)
+            .neq('status', 'cancelado')
+            .order('order_in_group', { ascending: true });
+            
+          if (tripsError) throw tripsError;
+          
+          // Parsear campos JSON en los traslados
+          const trips = (rawTrips || []).map(t => {
+            const parsed = { ...t };
+            ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
+              if (Array.isArray(parsed[field])) {
+                parsed[field] = parsed[field].map(item => {
+                  if (typeof item === 'string') {
+                    try { return JSON.parse(item); } catch(e) { return item; }
+                  }
+                  return item;
+                });
+              }
+            });
+            return parsed;
+          });
+          
+          // 4. Agrupar viajes por conductor
+          const res = [];
+          
+          // Mapear cada conductor
+          (drivers || []).forEach(d => {
+            const dVeh = d.vehicle_plate ? vMap[d.vehicle_plate.toLowerCase()] : null;
+            const driverInfo = {
+              id: d.id,
+              name: d.name,
+              vehicle_plate: d.vehicle_plate || null,
+              vehicle_type: dVeh ? dVeh.type : 'Auto/SUV'
+            };
+            
+            const driverTrips = trips.filter(t => t.driver_id === d.id);
+            driverTrips.forEach(t => {
+              const tVeh = t.vehicle_plate ? vMap[t.vehicle_plate.toLowerCase()] : null;
+              t.vehicle_type = tVeh ? tVeh.type : 'Auto/SUV';
+            });
+            
+            res.push({
+              driver: driverInfo,
+              trips: driverTrips
+            });
+          });
+          
+          // Mapear los no asignados
+          const unassignedTrips = trips.filter(t => !t.driver_id);
+          unassignedTrips.forEach(t => {
+            const tVeh = t.vehicle_plate ? vMap[t.vehicle_plate.toLowerCase()] : null;
+            t.vehicle_type = tVeh ? tVeh.type : 'Auto/SUV';
+          });
+          
+          if (unassignedTrips.length > 0 || res.length === 0) {
+            res.push({
+              driver: { id: "unassigned", name: "Sin Conductor" },
+              trips: unassignedTrips
+            });
+          }
+          
+          return { data: res };
+        }
+
         case "/trips/history": {
           const historyTrips = await supabaseApi.trips.getTripHistory(config.params || {});
           return { data: historyTrips };
@@ -223,6 +314,17 @@ const api = {
 
       if (url.startsWith("/trips/")) {
         const tripId = parts[2];
+
+        if (tripId === "reorder") {
+          const promises = (data.trip_ids || []).map((id, index) => 
+            supabase
+              .from('trips')
+              .update({ order_in_group: index })
+              .eq('id', id)
+          );
+          await Promise.all(promises);
+          return { data: { success: true } };
+        }
 
         if (parts[3] === "manager-assign") {
           return { data: await supabaseApi.trips.assignDriver(tripId, data.driver_id, data.vehicle_id) };
