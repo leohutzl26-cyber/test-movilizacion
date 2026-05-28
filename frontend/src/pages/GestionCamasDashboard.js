@@ -232,17 +232,17 @@ function AssignPersonnelSection() {
         <CardContent className="p-5">
           <div className="flex justify-between items-start mb-3">
             <div className="flex flex-col gap-1">
-              <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm w-fit">{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
-              <div className="flex items-center gap-1.5 text-slate-500">
-                <CalendarDays className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-black uppercase tracking-tight">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
-                <Clock className="w-3.5 h-3.5 ml-1" />
-                <span className="text-[11px] font-black">{t.appointment_time || "--:--"}</span>
+              <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm w-fit">#{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
+              <div className="flex items-center gap-1.5 text-slate-600 mt-1">
+                <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
+                <span className="text-xs font-semibold">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+                <Clock className="w-3.5 h-3.5 ml-2 text-teal-600" />
+                <span className="text-xs font-bold text-slate-800">{t.appointment_time || "--:--"}</span>
               </div>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <Badge className={`font-bold uppercase text-[9px] px-3 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
-              <Badge className={`font-bold border-none text-[9px] uppercase px-3 py-1 rounded-full ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
+              <Badge className={`font-bold uppercase text-xs px-2.5 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
+              <Badge className={`font-bold border-none text-xs uppercase px-2.5 py-1 rounded-full ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
                 {t.priority.toUpperCase()}
               </Badge>
             </div>
@@ -359,17 +359,17 @@ function AssignPersonnelSection() {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-2">
-                        <span className="bg-slate-800 text-white font-mono px-2 py-1 rounded text-[10px] font-bold shadow-sm w-fit">
-                          {t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}
+                        <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm w-fit">
+                          #{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}
                         </span>
-                        <Badge className={`font-bold border-none text-[9px] uppercase px-3 py-1 rounded-full w-fit ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
+                        <Badge className={`font-bold border-none text-xs uppercase px-2.5 py-1 rounded-full w-fit ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
                           {t.priority.toUpperCase()}
                         </Badge>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-900 text-sm mb-1">{t.patient_name || "Paciente no especificado"}</p>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Motivo: {t.transfer_reason || "Sin especificar"}</p>
+                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Motivo: {t.transfer_reason || "Sin especificar"}</p>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1 text-xs text-slate-600 font-medium">
@@ -385,8 +385,8 @@ function AssignPersonnelSection() {
                     </td>
                     <td className="px-6 py-4">
                       {t.clinical_team ? (
-                        <div className="bg-teal-50 px-2.5 py-1.5 rounded text-xs font-medium text-teal-900 border border-teal-100">
-                           <span className="font-bold uppercase text-[9px] text-teal-700 block mb-0.5">Equipo:</span>
+                        <div className="bg-teal-50 px-2.5 py-1.5 rounded text-xs font-semibold text-teal-900 border border-teal-100">
+                           <span className="font-bold uppercase text-[10px] text-teal-700 block mb-0.5">Equipo:</span>
                            {t.clinical_team}
                         </div>
                       ) : (
@@ -394,7 +394,7 @@ function AssignPersonnelSection() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <Badge className={`font-bold uppercase text-[10px] tracking-wider ${config.color}`}>{config.label}</Badge>
+                      <Badge className={`font-bold uppercase text-xs px-2.5 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
                     </td>
                     <td className="px-6 py-4 text-center">
                       {(t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") && (
@@ -1454,24 +1454,24 @@ function ClinicalHistorySection() {
                 {sortedHistory.map(t => (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 whitespace-nowrap">
-                      <span className="font-mono text-slate-700 font-bold text-xs bg-slate-200 px-1.5 py-0.5 rounded">#{t.tracking_number}</span>
-                      <p className="text-xs text-slate-500 mt-1">{formatScheduledDate(t.scheduled_date)}</p>
+                      <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">#{t.tracking_number}</span>
+                      <p className="text-xs text-slate-500 mt-1.5">{formatScheduledDate(t.scheduled_date)}</p>
                     </td>
                     <td className="p-4">
-                      <p className="font-bold text-slate-900">{t.patient_name || "Sin nombre"}</p>
+                      <p className="font-bold text-slate-900 text-sm">{t.patient_name || "Sin nombre"}</p>
                       <p className="text-xs text-slate-500 mt-0.5">RUT: {t.rut || "-"}</p>
                     </td>
                     <td className="p-4 text-xs font-medium text-slate-600">
-                      <div className="flex items-center gap-1 mb-1"><MapPin className="w-3 h-3 text-teal-500" /> {t.origin}</div>
+                      <div className="flex items-center gap-1 mb-1.5"><MapPin className="w-3 h-3 text-teal-500" /> {t.origin}</div>
                       <div className="flex items-center gap-1"><ArrowRight className="w-3 h-3 text-slate-400" /> {t.destination}</div>
                     </td>
                     <td className="p-4">
-                      <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2 py-1 rounded-md border border-teal-100">
+                      <span className="text-xs font-semibold text-teal-800 bg-teal-50 px-2.5 py-1.5 rounded-lg border border-teal-100">
                         {t.clinical_team || "No asignado"}
                       </span>
                     </td>
                     <td className="p-4 text-center">
-                      <Badge className={`${statusColors[t.status]} text-[10px] uppercase font-bold tracking-wider`}>{(t.status || "").replace(/_/g, " ")}</Badge>
+                      <Badge className={`font-bold uppercase text-xs px-2.5 py-1 rounded-full border-none shadow-sm ${statusColors[t.status] || "bg-slate-100 text-slate-600"}`}>{(t.status || "").replace(/_/g, " ")}</Badge>
                     </td>
                   </tr>
                 ))}
