@@ -110,18 +110,27 @@ function AssignPersonnelSection() {
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) { toast.error("Debe ingresar una justificación"); return; }
+    if (!rejectReason.trim()) { 
+      toast.error(`Debe ingresar una justificación para la ${rejectDialog?.status === "revision_gestor" ? "solicitud rechazada" : "cancelación"}`); 
+      return; 
+    }
+
+    const isRevision = rejectDialog?.status === "revision_gestor";
+    const targetStatus = isRevision ? "rechazado" : "cancelado";
+
     try {
       await api.put(`/trips/${rejectDialog.id}/status`, {
-        status: "cancelado",
+        status: targetStatus,
         cancel_reason: rejectReason
       });
-      toast.success("Traslado rechazado y cancelado");
+      toast.success(isRevision ? "Solicitud rechazada correctamente" : "Traslado cancelado correctamente");
       setRejectDialog(null);
       setAssignDialog(null);
       setRejectReason("");
       fetchTripsAndStaff();
-    } catch (e) { toast.error("Error al rechazar traslado"); }
+    } catch (e) { 
+      toast.error(`Error al ${isRevision ? "rechazar" : "cancelar"} el traslado`); 
+    }
   };
 
   const updateStaffRow = (index, field, value) => {
@@ -598,9 +607,10 @@ function AssignPersonnelSection() {
                 </div>
                 
                 <DialogFooter className="mt-4 gap-2 flex-col sm:flex-row">
-                  <Button variant="outline" className="h-12 font-bold min-w-[120px]" onClick={() => setAssignDialog(null)}>Cancelar</Button>
-                  <Button variant="destructive" className="h-12 font-bold flex-1 gap-2" onClick={() => setRejectDialog(assignDialog)}>
-                    <XCircle className="w-5 h-5" /> Rechazar Traslado
+                  <Button variant="outline" className="h-12 font-bold min-w-[120px]" onClick={() => setAssignDialog(null)}>Cerrar</Button>
+                  <Button variant="destructive" className="h-12 font-bold flex-1 gap-2 animate-pulse-once" onClick={() => setRejectDialog(assignDialog)}>
+                    <XCircle className="w-5 h-5" /> 
+                    {assignDialog.status === "revision_gestor" ? "Rechazar Solicitud" : "Cancelar Traslado"}
                   </Button>
                   <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-lg flex-[2]" onClick={handleApprove}>
                     {assignDialog.status === "revision_gestor" ? "Aprobar y Enviar a Coordinación" : "Guardar Cambios Actualizados"}
@@ -614,29 +624,47 @@ function AssignPersonnelSection() {
         </DialogContent>
       </Dialog>
 
-      {/* DIÁLOGO DE JUSTIFICACIÓN DE RECHAZO */}
+      {/* DIÁLOGO DE JUSTIFICACIÓN DE RECHAZO O CANCELACIÓN */}
       <Dialog open={!!rejectDialog} onOpenChange={() => setRejectDialog(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-md bg-white rounded-3xl border-none shadow-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6" /> Confirmar Rechazo
+            <DialogTitle className={`text-xl font-black flex items-center gap-2 uppercase tracking-tight ${
+              rejectDialog?.status === "revision_gestor" ? "text-red-600" : "text-orange-600"
+            }`}>
+              <AlertTriangle className="w-6 h-6 shrink-0 animate-bounce" /> 
+              {rejectDialog?.status === "revision_gestor" ? "Confirmar Rechazo" : "Confirmar Cancelación"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            <p className="text-sm text-slate-600 font-medium">¿Está seguro que desea rechazar la solicitud de traslado de <strong>{rejectDialog?.patient_name}</strong>? Esta acción cancelará el folio permanentemente.</p>
+            <p className="text-sm text-slate-600 font-bold leading-relaxed">
+              {rejectDialog?.status === "revision_gestor" ? (
+                <>¿Está seguro que desea rechazar la solicitud de traslado de <strong>{rejectDialog?.patient_name}</strong>? Esta acción anulará el folio permanentemente antes de ser visado.</>
+              ) : (
+                <>¿Está seguro que desea cancelar el traslado aprobado de <strong>{rejectDialog?.patient_name}</strong>? Se liberarán el conductor y vehículo si ya estaban asignados.</>
+              )}
+            </p>
             <div className="space-y-2">
-              <Label className="font-bold text-slate-700">Justificación del Rechazo *</Label>
+              <Label className="font-bold text-slate-700 text-xs uppercase tracking-wider">
+                {rejectDialog?.status === "revision_gestor" ? "Justificación del Rechazo *" : "Justificación de la Cancelación *"}
+              </Label>
               <textarea 
-                className="w-full min-h-[100px] p-3 text-sm border rounded-xl focus:ring-red-500 outline-none" 
-                placeholder="Escriba el motivo del rechazo aquí..." 
+                className="w-full min-h-[100px] p-3 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-inner bg-slate-50/50" 
+                placeholder={rejectDialog?.status === "revision_gestor" ? "Escriba el motivo del rechazo aquí..." : "Escriba el motivo de la cancelación aquí..."}
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
               />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setRejectDialog(null)}>Cancelar</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold" onClick={handleReject}>Confirmar Rechazo Definitivo</Button>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" className="rounded-xl h-11" onClick={() => setRejectDialog(null)}>Volver</Button>
+            <Button 
+              className={`text-white font-bold rounded-xl h-11 px-5 ${
+                rejectDialog?.status === "revision_gestor" ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"
+              }`} 
+              onClick={handleReject}
+            >
+              {rejectDialog?.status === "revision_gestor" ? "Confirmar Rechazo Definitivo" : "Confirmar Cancelación de Traslado"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -581,7 +581,7 @@ function DispatchSection() {
                             </div>
                             
                             <div className="p-4 border-t border-slate-100 bg-white flex justify-end">
-                                <Button variant="ghost" onClick={() => setAssignDialog(null)} className="text-xs font-black uppercase text-slate-500">Cancelar</Button>
+                                <Button variant="ghost" onClick={() => setAssignDialog(null)} className="text-xs font-black uppercase text-slate-500">Cerrar</Button>
                             </div>
                         </div>
                     </div>
@@ -597,7 +597,7 @@ function DispatchSection() {
                             Esta acción cancelará definitivamente el traslado #{cancelDialog?.tracking_number}.
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-black uppercase text-slate-500">Justificación del rechazo *</Label>
+                            <Label className="text-xs font-black uppercase text-slate-500">Justificación de la cancelación *</Label>
                             <textarea name="reason" className="w-full h-24 p-2 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none" placeholder="Indique el motivo de la cancelación..." required />
                         </div>
                         <div className="flex justify-end gap-2">
@@ -615,7 +615,7 @@ function DispatchSection() {
                     <div className="space-y-4 pt-4">
                         <p className="text-sm text-slate-500 font-medium">¿Está seguro de devolver este traslado al Gestor de Camas para su revisión? El traslado saldrá de su bandeja activa hasta que sea aprobado nuevamente.</p>
                         <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setReturnDialog(null)} className="text-xs font-black uppercase">Cancelar</Button>
+                            <Button variant="outline" onClick={() => setReturnDialog(null)} className="text-xs font-black uppercase">Volver</Button>
                             <Button onClick={handleReturnToManager} className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase">Sí, Devolver</Button>
                         </div>
                     </div>
@@ -646,7 +646,7 @@ function DispatchSection() {
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                                <Button type="button" variant="outline" onClick={() => setEditDialog(null)} className="text-xs font-black uppercase h-9">Cancelar</Button>
+                                <Button type="button" variant="outline" onClick={() => setEditDialog(null)} className="text-xs font-black uppercase h-9">Cerrar</Button>
                                 <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase h-9 px-8 shadow-md transition-all active:scale-95">Guardar Cambios</Button>
                             </div>
                         </form>
@@ -826,7 +826,7 @@ function AssignSection() {
                             </div>
                             
                             <div className="p-4 border-t border-slate-100 bg-white flex justify-end">
-                                <Button variant="ghost" onClick={() => setAssignDialog(null)} className="text-xs font-black uppercase text-slate-500">Cancelar</Button>
+                                <Button variant="ghost" onClick={() => setAssignDialog(null)} className="text-xs font-black uppercase text-slate-500">Cerrar</Button>
                             </div>
                         </div>
                     </div>
