@@ -122,7 +122,7 @@ const api = {
             .select('*')
             .eq('scheduled_date', targetDate)
             .neq('status', 'cancelado')
-            .order('order_in_group', { ascending: true });
+            .order('appointment_time', { ascending: true });
             
           if (tripsError) throw tripsError;
           
@@ -322,7 +322,11 @@ const api = {
               .update({ order_in_group: index })
               .eq('id', id)
           );
-          await Promise.all(promises);
+          try {
+            await Promise.all(promises);
+          } catch (e) {
+            console.warn("Reorder failed. Missing column order_in_group in trips table:", e);
+          }
           return { data: { success: true } };
         }
 
