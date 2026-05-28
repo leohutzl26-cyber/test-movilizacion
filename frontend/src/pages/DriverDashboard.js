@@ -12,6 +12,39 @@ import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileTe
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 
+const formatScheduledDate = (dateStr) => {
+  if (!dateStr) return "";
+  try {
+    const cleanDateStr = dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+    const parts = cleanDateStr.split("-");
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const months = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ];
+      
+      if (monthIndex >= 0 && monthIndex < 12 && !isNaN(day) && !isNaN(year)) {
+        return `${day} ${months[monthIndex]} ${year}`;
+      }
+    }
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const day = date.getDate();
+      const year = date.getFullYear();
+      const months = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ];
+      return `${day} ${months[date.getMonth()]} ${year}`;
+    }
+  } catch (e) {}
+  return dateStr;
+};
+
 export default function DriverDashboard() {
   const [section, setSection] = useState(() => {
     return localStorage.getItem("movilizacion.conductor.section") || "pool";
@@ -107,7 +140,7 @@ function TripPoolSection({ onNavigate }) {
                   <span className="bg-slate-800 text-white font-mono px-3 py-1 rounded-md text-sm font-black self-start shadow-sm tracking-widest">{t.tracking_number || t.id.substring(0, 6).toUpperCase()}</span>
                   <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider self-start shadow-sm ${priorityColors[t.priority] || priorityColors.normal}`}>{t.priority}</span>
                 </div>
-                <span className="text-sm font-bold text-slate-700 bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300 shadow-sm">{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
+                <span className="text-sm font-bold text-slate-700 bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300 shadow-sm">{t.scheduled_date ? formatScheduledDate(t.scheduled_date) : new Date(t.created_at).toLocaleDateString()}</span>
               </div>
 
               <div className="mb-4">
@@ -164,7 +197,7 @@ function TripPoolSection({ onNavigate }) {
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
                 <p className="text-sm text-red-600 font-black mb-1 flex items-center gap-1.5 uppercase tracking-wider"><Clock className="w-5 h-5" /> Horarios de Traslado</p>
                 <p className="font-black text-red-900 text-xl md:text-2xl mt-1">Citación: {selectedTrip.appointment_time || "-"} <span className="text-slate-400 mx-2">|</span> Salida: {selectedTrip.departure_time || "-"}</p>
-                <p className="text-base font-bold text-red-800 mt-2 bg-red-100 inline-block px-3 py-1 rounded-lg">Fecha: {selectedTrip.scheduled_date}</p>
+                <p className="text-base font-bold text-red-800 mt-2 bg-red-100 inline-block px-3 py-1 rounded-lg">Fecha: {formatScheduledDate(selectedTrip.scheduled_date)}</p>
               </div>
               <div className="flex gap-2 mb-2 mt-4">
                 <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${sColors[selectedTrip.status]}`}>{sLabels[selectedTrip.status]}</span>
@@ -356,7 +389,7 @@ function MyTripsSection() {
                     <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider border ${statusColors[t.status]}`}>{sLabels[t.status] || t.status.replace(/_/g, " ")}</span>
                   </div>
                   <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className={`text-sm font-bold px-3 py-1.5 rounded-md border shadow-sm flex-1 text-center md:flex-none ${isToday ? "text-teal-700 bg-teal-100 border-teal-200" : "text-indigo-700 bg-indigo-100 border-indigo-200"}`}>{t.scheduled_date || new Date(t.created_at).toLocaleDateString()}</span>
+                    <span className={`text-sm font-bold px-3 py-1.5 rounded-md border shadow-sm flex-1 text-center md:flex-none ${isToday ? "text-teal-700 bg-teal-100 border-teal-200" : "text-indigo-700 bg-indigo-100 border-indigo-200"}`}>{t.scheduled_date ? formatScheduledDate(t.scheduled_date) : new Date(t.created_at).toLocaleDateString()}</span>
                     <Button variant="ghost" size="sm" onClick={() => setDetailsDialog(t)} className="h-10 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200"><FileText className="w-4 h-4 mr-1.5" />Info Completa</Button>
                   </div>
                 </div>
@@ -383,7 +416,7 @@ function MyTripsSection() {
 
                 {t.status === "asignado" && !isToday && (
                   <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-                    <p className="text-xs text-indigo-600 font-bold flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Programado para {t.scheduled_date}</p>
+                    <p className="text-xs text-indigo-600 font-bold flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Programado para {formatScheduledDate(t.scheduled_date)}</p>
                     <Button onClick={() => openActionDialog(t, "cancel")} variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 font-bold">Devolver</Button>
                   </div>
                 )}
@@ -470,7 +503,7 @@ function MyTripsSection() {
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
                 <p className="text-sm text-red-600 font-black mb-1 flex items-center gap-1.5 uppercase tracking-wider"><Clock className="w-5 h-5" /> Horarios de Traslado</p>
                 <p className="font-black text-red-900 text-xl md:text-2xl mt-1">Citación: {detailsDialog.appointment_time || "-"} <span className="text-slate-400 mx-2">|</span> Salida: {detailsDialog.departure_time || "-"}</p>
-                <p className="text-base font-bold text-red-800 mt-2 bg-red-100 inline-block px-3 py-1 rounded-lg">Fecha: {detailsDialog.scheduled_date}</p>
+                <p className="text-base font-bold text-red-800 mt-2 bg-red-100 inline-block px-3 py-1 rounded-lg">Fecha: {formatScheduledDate(detailsDialog.scheduled_date)}</p>
               </div>
 
               <div className="flex gap-2 mb-2 mt-4">

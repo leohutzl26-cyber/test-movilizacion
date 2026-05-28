@@ -42,6 +42,39 @@ function validateRut(rut) {
   return { valid, formatted: `${formatted}-${expected}` };
 }
 
+const formatScheduledDate = (dateStr) => {
+  if (!dateStr) return "";
+  try {
+    const cleanDateStr = dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+    const parts = cleanDateStr.split("-");
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const months = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ];
+      
+      if (monthIndex >= 0 && monthIndex < 12 && !isNaN(day) && !isNaN(year)) {
+        return `${day} ${months[monthIndex]} ${year}`;
+      }
+    }
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const day = date.getDate();
+      const year = date.getFullYear();
+      const months = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ];
+      return `${day} ${months[date.getMonth()]} ${year}`;
+    }
+  } catch (e) {}
+  return dateStr;
+};
+
 const COLORS = { pendiente: '#f59e0b', asignado: '#0d9488', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#ef4444', revision_gestor: '#8b5cf6' };
 const pColors = { urgente: "bg-red-500 text-white", alta: "bg-orange-400 text-white", normal: "bg-slate-200 text-slate-700" };
 const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
@@ -192,7 +225,7 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                     <div className="flex items-center justify-center gap-8 py-4 border-t border-slate-100">
                         <div className="text-center">
                             <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Fecha</p>
-                            <p className="text-sm font-black text-slate-700">{trip.scheduled_date || "Hoy"}</p>
+                            <p className="text-sm font-black text-slate-700">{formatScheduledDate(trip.scheduled_date) || "Hoy"}</p>
                         </div>
                         <div className="text-center">
                             <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Hora Cita</p>
@@ -414,7 +447,7 @@ function DispatchSection() {
                                         <div className="flex items-center gap-2 mb-2">
                                             <span className="bg-slate-900 text-teal-400 px-2 py-0.5 rounded-md text-[9px] font-black font-mono shadow-sm">#{t.tracking_number}</span>
                                             <Badge className={`text-[8px] font-black px-1.5 py-0 uppercase border-none ${t.priority === "urgente" ? "bg-red-500 text-white" : t.priority === "alta" ? "bg-orange-500 text-white" : "bg-slate-200 text-slate-700"}`}>{t.priority}</Badge>
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest ml-auto">{t.scheduled_date || "Hoy"}</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest ml-auto">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
                                         </div>
                                         <h3 className="text-sm font-black text-slate-900 mb-1 leading-tight uppercase group-hover:text-teal-700 transition-colors truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
                                         <div className="flex items-center gap-3">
@@ -723,7 +756,7 @@ function AssignSection() {
                                     <span className="bg-slate-900 text-teal-400 font-mono px-2 py-0.5 rounded-md text-[10px] font-black shadow-sm">#{t.tracking_number}</span>
                                     <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[8px] uppercase font-black px-2 py-0.5 rounded-full`}>{(t.status || "").replace(/_/g, " ")}</Badge>
                                     <Badge className={`${pColors[t.priority] || pColors.normal} border-none text-[8px] uppercase font-black px-2 py-0.5 rounded-full`}>{t.priority}</Badge>
-                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t.scheduled_date || "Hoy"}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
                                 </div>
                                 <h4 className="text-base font-black text-slate-900 uppercase truncate mb-2">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
                                 <div className="flex items-center gap-4 text-xs font-bold text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -1960,8 +1993,8 @@ function HistorySection() {
                                         <td className="px-6 py-5">
                                             <Badge className={`text-[9px] font-black uppercase tracking-widest border-none px-3 py-1 rounded-full shadow-sm mb-2 ${sColorsLocal[t.status] || "bg-slate-100 text-slate-600"}`}>{(t.status || "").replace(/_/g, " ")}</Badge>
                                             <p className="text-[11px] font-black text-slate-400 flex items-center gap-1.5 leading-none">
-                                                <CalendarDays className="w-3 h-3" />
-                                                {t.scheduled_date || new Date(t.created_at).toLocaleDateString()}
+                                                <CalendarDays className="w-3.5 h-3.5" />
+                                                {t.scheduled_date ? formatScheduledDate(t.scheduled_date) : new Date(t.created_at).toLocaleDateString()}
                                             </p>
                                         </td>
                                         <td className="px-6 py-5">

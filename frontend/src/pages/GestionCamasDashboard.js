@@ -18,6 +18,39 @@ import TripEvolutionLog from "@/components/TripEvolutionLog";
 const PERSONNEL_TYPES = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];
 const REQUIREMENT_OPTIONS = ["Camilla", "Incubadora", "Silla de rueda", "Oxigeno", "Monitor", "Aislamiento Aéreo", "Aislamiento Contacto", "Aislamiento Protector", "Dependiente severo"];
 
+const formatScheduledDate = (dateStr) => {
+  if (!dateStr) return "";
+  try {
+    const cleanDateStr = dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+    const parts = cleanDateStr.split("-");
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const months = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ];
+      
+      if (monthIndex >= 0 && monthIndex < 12 && !isNaN(day) && !isNaN(year)) {
+        return `${day} ${months[monthIndex]} ${year}`;
+      }
+    }
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const day = date.getDate();
+      const year = date.getFullYear();
+      const months = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ];
+      return `${day} ${months[date.getMonth()]} ${year}`;
+    }
+  } catch (e) {}
+  return dateStr;
+};
+
 export default function GestionCamasDashboard() {
   const [section, setSection] = useState(() => {
     return localStorage.getItem("movilizacion.gestor_camas.section") || "dashboard";
@@ -202,7 +235,7 @@ function AssignPersonnelSection() {
               <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[11px] font-bold shadow-sm w-fit">{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}</span>
               <div className="flex items-center gap-1.5 text-slate-500">
                 <CalendarDays className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-black uppercase tracking-tight">{t.scheduled_date || "Hoy"}</span>
+                <span className="text-[11px] font-black uppercase tracking-tight">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
                 <Clock className="w-3.5 h-3.5 ml-1" />
                 <span className="text-[11px] font-black">{t.appointment_time || "--:--"}</span>
               </div>
@@ -350,7 +383,7 @@ function AssignPersonnelSection() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs"><CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {t.scheduled_date || "Hoy"}</div>
+                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs"><CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {formatScheduledDate(t.scheduled_date) || "Hoy"}</div>
                         <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs"><Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {t.appointment_time || "--:--"}</div>
                       </div>
                     </td>
@@ -1168,7 +1201,7 @@ function ClinicalCalendarSection() {
                   </div>
                   <div>
                     <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
-                    <p className="font-black text-slate-800">{detailTrip.scheduled_date}</p>
+                    <p className="font-black text-slate-800">{formatScheduledDate(detailTrip.scheduled_date)}</p>
                   </div>
                   <div>
                     <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
@@ -1402,7 +1435,7 @@ function ClinicalHistorySection() {
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 whitespace-nowrap">
                       <span className="font-mono text-slate-700 font-bold text-xs bg-slate-200 px-1.5 py-0.5 rounded">#{t.tracking_number}</span>
-                      <p className="text-xs text-slate-500 mt-1">{t.scheduled_date}</p>
+                      <p className="text-xs text-slate-500 mt-1">{formatScheduledDate(t.scheduled_date)}</p>
                     </td>
                     <td className="p-4">
                       <p className="font-bold text-slate-900">{t.patient_name || "Sin nombre"}</p>
