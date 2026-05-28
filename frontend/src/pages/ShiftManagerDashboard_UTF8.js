@@ -127,7 +127,7 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                     </div>
                 </DialogHeader>
 
-                <div className="p-8 pt-4 space-y-8">
+                <div className="p-8 pt-4 space-y-6">
                     <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
                         <div>
                             <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
@@ -139,108 +139,125 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                         </div>
                     </div>
 
-                    {trip.trip_type === "clinico" ? (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><User className="w-3 h-3" /> Paciente</p>
-                                    <p className="font-black text-slate-900 text-lg">{trip.patient_name}</p>
-                                    <p className="text-xs font-bold text-slate-500 mt-1">RUT: {trip.rut || "No registrado"}</p>
-                                </div>
-                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity className="w-3 h-3" /> Estado Clínico</p>
-                                    <p className="font-bold text-slate-800">{trip.transfer_reason || "Traslado programado"}</p>
-                                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{trip.diagnosis || "Sin diagnóstico detallado"}</p>
-                                </div>
+                    {/* SECCIÓN 1: INFORMACIÓN GENERAL */}
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                            <User className="w-4 h-4 text-teal-600" /> Información General
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                            <div>
+                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Paciente / Solicitud:</span>
+                                <p className="font-bold text-slate-900 text-sm">{trip.patient_name || trip.task_details || "-"}</p>
                             </div>
-                            
-                            <div className="bg-teal-50/50 p-5 rounded-3xl border border-teal-100/50">
-                                <p className="text-[10px] font-black text-teal-700 uppercase tracking-widest mb-3">Personal & Requerimientos</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Motivo / Tipo:</span>
+                                <p className="font-bold text-slate-800">{trip.transfer_reason || (trip.trip_type === "clinico" ? "Clínico" : "Cometido General")}</p>
+                            </div>
+                            {trip.trip_type === "clinico" && (
+                                <>
                                     <div>
-                                        <p className="text-[9px] font-bold text-teal-600/70 uppercase mb-1">Equipo Clínico</p>
-                                        <div className="space-y-1">
-                                            {trip.assigned_clinical_staff && trip.assigned_clinical_staff.length > 0 ? (
-                                                trip.assigned_clinical_staff.map((s, idx) => (
-                                                    <p key={idx} className="text-sm font-black text-teal-900 leading-tight">
-                                                        <span className="text-[10px] text-teal-600/70 uppercase">{s.type}:</span> {s.staff_name || "PDTE. IDENTIFICAR"}
-                                                    </p>
-                                                ))
-                                            ) : (
-                                                <p className="text-sm font-black text-teal-900 leading-tight">
-                                                    {trip.required_personnel?.join(", ") || "No especificado"}
-                                                </p>
-                                            )}
-                                        </div>
+                                        <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">RUT:</span>
+                                        <p className="font-bold text-slate-800">{trip.rut || "-"}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-bold text-teal-600/70 uppercase mb-1">Equipamiento</p>
-                                        <p className="text-sm font-black text-teal-900">{trip.patient_requirements?.join(", ") || "Estándar"}</p>
+                                        <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Cama / Unidad:</span>
+                                        <p className="font-bold text-slate-800">{trip.bed || "-"} ({trip.patient_unit || "-"})</p>
                                     </div>
+                                    <div className="col-span-2">
+                                        <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Diagnóstico:</span>
+                                        <p className="font-bold text-slate-800 leading-relaxed">{trip.diagnosis || "-"}</p>
+                                    </div>
+                                </>
+                            )}
+                            {trip.trip_type !== "clinico" && trip.notes && (
+                                <div className="col-span-2">
+                                    <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Notas / Observaciones:</span>
+                                    <p className="font-semibold text-slate-700 italic leading-relaxed">"{trip.notes}"</p>
                                 </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ClipboardList className="w-3 h-3" /> Motivo del Cometido</p>
-                            <p className="text-xl font-black text-slate-900">{trip.task_details}</p>
-                            {trip.notes && <p className="text-sm text-slate-600 mt-3 italic">"{trip.notes}"</p>}
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0 shadow-inner"><MapPin className="w-6 h-6 text-teal-600" /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase">Origen</p>
-                                <p className="font-black text-slate-900">{trip.origin}</p>
-                                {trip.patient_unit && <p className="text-[10px] font-bold text-teal-600">{trip.patient_unit}</p>}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 shadow-inner"><ArrowRight className="w-6 h-6 text-blue-600" /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase">Destino</p>
-                                <p className="font-black text-slate-900">{trip.destination}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Conductor Asignado</p>
-                                {trip.driver_name ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center"><User className="w-4 h-4 text-slate-600" /></div>
-                                        <p className="font-black text-slate-900">{trip.driver_name}</p>
-                                        <Badge className="bg-teal-100 text-teal-800 border-none font-mono text-[10px]">{trip.vehicle_plate || "Móvil pendiente"}</Badge>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm font-bold text-slate-400 italic">No se ha asignado conductor aún</p>
-                                )}
-                            </div>
-                            {trip.driver_id && trip.status === "asignado" && (
-                                <Button onClick={handleUnassign} variant="destructive" size="sm" className="h-9 px-4 font-bold shadow-md">
-                                    Desasignar
-                                </Button>
                             )}
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-8 py-4 border-t border-slate-100">
-                        <div className="text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Fecha</p>
-                            <p className="text-sm font-black text-slate-700">{formatScheduledDate(trip.scheduled_date) || "Hoy"}</p>
+                    {/* SECCIÓN 2: RUTA Y TIEMPOS */}
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                            <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                            <div>
+                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Origen:</span>
+                                <p className="font-bold text-slate-800">{trip.origin}</p>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Destino:</span>
+                                <p className="font-bold text-slate-800">{trip.destination}</p>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Fecha Programada:</span>
+                                <p className="font-bold text-slate-800">{formatScheduledDate(trip.scheduled_date) || "Hoy"}</p>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Hora Citación:</span>
+                                <p className="font-bold text-teal-700">{trip.appointment_time || "--:--"}</p>
+                            </div>
                         </div>
-                        <div className="text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Hora Cita</p>
-                            <p className="text-sm font-black text-teal-700">{trip.appointment_time || "--:--"}</p>
+                    </div>
+
+                    {/* SECCIÓN 3: ASIGNACIÓN OPERATIVA */}
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                            <Truck className="w-4 h-4 text-teal-600" /> Asignación Operativa
+                        </p>
+                        <div className="space-y-4">
+                            {/* Conductor y Vehículo */}
+                            <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm flex items-center justify-between flex-wrap gap-2">
+                                <div>
+                                    <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-1">Móvil & Conductor Asignado:</span>
+                                    {trip.driver_name ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-4 h-4 text-slate-600" /></div>
+                                            <p className="font-bold text-slate-900 text-sm">{trip.driver_name}</p>
+                                            <Badge className="bg-teal-50 text-teal-800 border border-teal-200/50 font-mono text-[10px] shadow-sm">{trip.vehicle_plate || "Móvil pendiente"}</Badge>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-slate-400 italic font-semibold">No se ha asignado conductor aún</p>
+                                    )}
+                                </div>
+                                {trip.driver_id && trip.status === "asignado" && (
+                                    <Button onClick={handleUnassign} variant="destructive" size="sm" className="h-9 px-4 font-bold shadow-md">
+                                        Desasignar
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Personal Clínico & Requerimientos */}
+                            <div className="bg-teal-50/40 p-4 rounded-xl border border-teal-100/50 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
+                                <div>
+                                    <span className="text-teal-700 uppercase tracking-wider text-[10px] font-bold block mb-1">Equipo Clínico Asignado:</span>
+                                    <div className="space-y-1">
+                                        {trip.assigned_clinical_staff && trip.assigned_clinical_staff.length > 0 ? (
+                                            trip.assigned_clinical_staff.map((s, idx) => (
+                                                <p key={idx} className="text-xs font-bold text-teal-900 leading-tight">
+                                                    <span className="text-[10px] text-teal-600/70 uppercase">{s.type}:</span> {s.staff_name || "PDTE. IDENTIFICAR"}
+                                                </p>
+                                            ))
+                                        ) : (
+                                            <p className="text-xs font-bold text-teal-900 leading-tight">
+                                                {trip.required_personnel?.join(", ") || trip.clinical_team || "No especificado"}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-teal-700 uppercase tracking-wider text-[10px] font-bold block mb-1">Equipamiento / Requerimientos:</span>
+                                    <p className="text-xs font-bold text-teal-900 leading-relaxed">{trip.patient_requirements?.join(", ") || "Requerimientos estándar"}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Prioridad</p>
-                            <p className={`text-sm font-black px-2 py-0.5 rounded ${pColors[trip.priority] || pColors.normal}`}>{trip.priority.toUpperCase()}</p>
-                        </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <Button onClick={() => onOpenChange(false)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
                     </div>
                     
                     <TripEvolutionLog tripId={trip.id} />
