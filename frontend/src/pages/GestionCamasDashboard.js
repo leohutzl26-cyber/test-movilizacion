@@ -566,6 +566,10 @@ function AssignPersonnelSection() {
                     <Input type="time" className="h-9 text-sm font-bold bg-white" value={editData.appointment_time || ""} onChange={e => setEditData({ ...editData, appointment_time: e.target.value })} />
                   </div>
                   <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Hora Salida</Label>
+                    <Input type="time" className="h-9 text-sm font-bold bg-white" value={editData.departure_time || ""} onChange={e => setEditData({ ...editData, departure_time: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Fecha Programada</Label>
                     <Input type="date" className="h-9 text-sm font-bold bg-white" value={editData.scheduled_date ? editData.scheduled_date.split('T')[0] : ""} onChange={e => setEditData({ ...editData, scheduled_date: e.target.value })} />
                   </div>
@@ -1227,6 +1231,10 @@ function ClinicalCalendarSection() {
                     <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
                     <p className="font-black text-slate-800">{detailTrip.appointment_time || "--:--"}</p>
                   </div>
+                  <div>
+                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Salida:</span>
+                    <p className="font-black text-slate-800">{detailTrip.departure_time || "--:--"}</p>
+                  </div>
                 </div>
               </div>
 
@@ -1714,10 +1722,10 @@ function GestorNewTripSection() {
             {tripType === "clinico" && <>
               <div className="space-y-1"><Label>Servicio de Origen</Label>{!useCustomService ? <Select value={form.patient_unit || undefined} onValueChange={v => v === "otro" ? setUseCustomService(true) : setForm({ ...form, patient_unit: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.patient_unit || ""} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />}</div>
               <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Hora Citación</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Hora Salida</Label><Input type="time" value={form.departure_time} onChange={e => setForm({ ...form, departure_time: e.target.value })} /></div>
             </>}
             <div className="space-y-1"><Label>Fecha</Label><Input type="date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Hora Citación</Label><Input type="time" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Hora Salida</Label><Input type="time" value={form.departure_time} onChange={e => setForm({ ...form, departure_time: e.target.value })} /></div>
           </div>
           {/* Personal clínico tabla */}
           {tripType === "clinico" && (<div className="space-y-3">
