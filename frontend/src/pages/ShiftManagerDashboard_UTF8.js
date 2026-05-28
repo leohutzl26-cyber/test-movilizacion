@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, BadgeAlert, Droplets, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, BadgeAlert, Droplets, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -1688,6 +1688,8 @@ function HistorySection() {
     const [loading, setLoading] = useState(true);
     const [selectedTrip, setSelectedTrip] = useState(null);
     const [auditOpen, setAuditOpen] = useState(false);
+    const [sortField, setSortField] = useState("scheduled_date");
+    const [sortDirection, setSortDirection] = useState("desc");
     
     const [filters, setFilters] = useState({
         folio: "",
@@ -1722,13 +1724,53 @@ function HistorySection() {
         fetchHistory();
     }, [fetchHistory]);
 
+    const handleSort = (field) => {
+        if (sortField === field) {
+            setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
+        } else {
+            setSortField(field);
+            setSortDirection("asc");
+        }
+    };
+
+    const sortedTrips = [...trips].sort((a, b) => {
+        let valA, valB;
+        if (sortField === "scheduled_date") {
+            valA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+            valB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+            return sortDirection === "asc" ? valA - valB : valB - valA;
+        }
+
+        if (sortField === "tracking_number") {
+            valA = a.tracking_number || "";
+            valB = b.tracking_number || "";
+        } else if (sortField === "patient_name") {
+            valA = (a.trip_type === "clinico" ? a.patient_name : a.task_details) || "";
+            valB = (b.trip_type === "clinico" ? b.patient_name : b.task_details) || "";
+        } else if (sortField === "origin") {
+            valA = a.origin || "";
+            valB = b.origin || "";
+        } else if (sortField === "driver_name") {
+            valA = a.driver_name || "";
+            valB = b.driver_name || "";
+        } else if (sortField === "status") {
+            valA = a.status || "";
+            valB = b.status || "";
+        } else {
+            return 0;
+        }
+
+        const comp = valA.localeCompare(valB, "es", { sensitivity: "base" });
+        return sortDirection === "asc" ? comp : -comp;
+    });
+
     const handleExportExcel = () => {
-        if (trips.length === 0) {
+        if (sortedTrips.length === 0) {
             toast.error("No hay datos para exportar");
             return;
         }
 
-        const dataToExport = trips.map(t => ({
+        const dataToExport = sortedTrips.map(t => ({
             "Folio": t.tracking_number,
             "Tipo": t.trip_type === "clinico" ? "Clínico" : "No Clínico",
             "Paciente/Cometido": t.trip_type === "clinico" ? t.patient_name : t.task_details,
@@ -1760,6 +1802,29 @@ function HistorySection() {
 
     const sColorsLocal = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", revision_gestor: "bg-purple-100 text-purple-800" };
 
+    const renderSortHeader = (field, label, className = "", centered = false) => {
+        const isActive = sortField === field;
+        return (
+            <th 
+                onClick={() => handleSort(field)} 
+                className={`px-6 py-5 text-xs font-black uppercase tracking-[0.2em] cursor-pointer select-none hover:bg-slate-800 hover:text-white transition-all duration-200 group ${className} ${centered ? "text-center" : ""}`}
+            >
+                <div className={`flex items-center gap-1.5 ${centered ? "justify-center" : ""}`}>
+                    <span className="text-slate-400 group-hover:text-white transition-colors">{label}</span>
+                    {isActive ? (
+                        sortDirection === "asc" ? (
+                            <ArrowUp className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
+                        ) : (
+                            <ArrowDown className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
+                        )
+                    ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 opacity-40 group-hover:opacity-100 group-hover:text-slate-400 transition-all shrink-0" />
+                    )}
+                </div>
+            </th>
+        );
+    };
+
     return (
         <div className="animate-slide-up space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -1777,7 +1842,7 @@ function HistorySection() {
                     </Button>
                     <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm hidden sm:block">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Registros Encontrados</p>
-                        <p className="text-lg font-black text-slate-900">{trips.length}</p>
+                        <p className="text-lg font-black text-slate-900">{sortedTrips.length}</p>
                     </div>
                 </div>
             </div>
@@ -1839,11 +1904,11 @@ function HistorySection() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-900 border-b border-slate-800">
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em] w-[140px]">Folio</th>
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Detalle Solicitud</th>
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Trayecto Centralizado</th>
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Responsable Operativo</th>
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Estado / Fecha</th>
+                                {renderSortHeader("tracking_number", "Folio", "w-[140px]")}
+                                {renderSortHeader("patient_name", "Detalle Solicitud")}
+                                {renderSortHeader("origin", "Trayecto Centralizado")}
+                                {renderSortHeader("driver_name", "Responsable Operativo")}
+                                {renderSortHeader("scheduled_date", "Estado / Fecha")}
                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em] text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -1855,8 +1920,8 @@ function HistorySection() {
                                         <p className="text-xs font-black text-teal-800 uppercase tracking-[0.3em]">Actualizando Historial...</p>
                                     </td>
                                 </tr>
-                            ) : trips.length > 0 ? (
-                                trips.map(t => (
+                            ) : sortedTrips.length > 0 ? (
+                                sortedTrips.map(t => (
                                     <tr key={t.id} className="hover:bg-slate-50/80 transition-all cursor-default group">
                                         <td className="px-6 py-5">
                                             <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 font-mono text-[11px] font-black group-hover:bg-white group-hover:border-teal-200 group-hover:text-teal-700 transition-colors">#{t.tracking_number}</span>

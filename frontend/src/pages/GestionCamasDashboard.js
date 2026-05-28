@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload, Car } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload, Car, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import api from "@/lib/api";
 import BulkUploader from "@/components/BulkUploader";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
@@ -1208,6 +1208,8 @@ function ClinicalHistorySection() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [sortField, setSortField] = useState("scheduled_date");
+  const [sortDirection, setSortDirection] = useState("desc");
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -1222,6 +1224,15 @@ function ClinicalHistorySection() {
   }, []);
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
 
   const filteredHistory = history.filter(t => {
     const term = searchTerm.toLowerCase();
@@ -1240,15 +1251,44 @@ function ClinicalHistorySection() {
     return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
   });
 
+  const sortedHistory = [...filteredHistory].sort((a, b) => {
+    let valA, valB;
+
+    if (sortField === "scheduled_date") {
+      valA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
+      valB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
+      return sortDirection === "asc" ? valA - valB : valB - valA;
+    }
+
+    if (sortField === "patient_name") {
+      valA = a.patient_name || "";
+      valB = b.patient_name || "";
+    } else if (sortField === "origin") {
+      valA = a.origin || "";
+      valB = b.origin || "";
+    } else if (sortField === "clinical_team") {
+      valA = a.clinical_team || "";
+      valB = b.clinical_team || "";
+    } else if (sortField === "status") {
+      valA = a.status || "";
+      valB = b.status || "";
+    } else {
+      return 0;
+    }
+
+    const comp = valA.localeCompare(valB, "es", { sensitivity: "base" });
+    return sortDirection === "asc" ? comp : -comp;
+  });
+
   const handleExportExcel = () => {
-    if (filteredHistory.length === 0) {
+    if (sortedHistory.length === 0) {
       toast.error("No hay datos para exportar con estos filtros.");
       return;
     }
 
     const headers = ["Folio", "Fecha Programada", "Paciente", "RUT", "Origen", "Destino", "Motivo", "Personal Acompañante", "Conductor", "Patente Vehiculo", "Estado"];
 
-    const csvRows = filteredHistory.map(t => [
+    const csvRows = sortedHistory.map(t => [
       t.tracking_number || "",
       t.scheduled_date || "",
       `"${(t.patient_name || "").replace(/"/g, '""')}"`,
@@ -1275,6 +1315,29 @@ function ClinicalHistorySection() {
   };
 
   const statusColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+
+  const renderSortHeader = (field, label, centered = false) => {
+    const isActive = sortField === field;
+    return (
+      <th 
+        onClick={() => handleSort(field)} 
+        className={`p-4 cursor-pointer select-none hover:bg-slate-200 transition-colors duration-200 group ${centered ? "text-center" : ""}`}
+      >
+        <div className={`flex items-center gap-1.5 ${centered ? "justify-center" : ""}`}>
+          <span className="font-bold text-[10px] tracking-wider uppercase">{label}</span>
+          {isActive ? (
+            sortDirection === "asc" ? (
+              <ArrowUp className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200" />
+            ) : (
+              <ArrowDown className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200" />
+            )
+          ) : (
+            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-40 group-hover:opacity-100 transition-opacity" />
+          )}
+        </div>
+      </th>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
@@ -1327,18 +1390,18 @@ function ClinicalHistorySection() {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider sticky top-0 shadow-sm z-10">
                 <tr>
-                  <th className="p-4 whitespace-nowrap">Folio / Fecha</th>
-                  <th className="p-4">Paciente</th>
-                  <th className="p-4">Ruta</th>
-                  <th className="p-4">Equipo Acompañante</th>
-                  <th className="p-4 text-center">Estado</th>
+                  {renderSortHeader("scheduled_date", "Folio / Fecha")}
+                  {renderSortHeader("patient_name", "Paciente")}
+                  {renderSortHeader("origin", "Ruta")}
+                  {renderSortHeader("clinical_team", "Equipo Acompañante")}
+                  {renderSortHeader("status", "Estado", true)}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredHistory.map(t => (
+                {sortedHistory.map(t => (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 whitespace-nowrap">
-                      <span className="font-mono text-slate-700 font-bold text-xs bg-slate-200 px-1.5 py-0.5 rounded">{t.tracking_number}</span>
+                      <span className="font-mono text-slate-700 font-bold text-xs bg-slate-200 px-1.5 py-0.5 rounded">#{t.tracking_number}</span>
                       <p className="text-xs text-slate-500 mt-1">{t.scheduled_date}</p>
                     </td>
                     <td className="p-4">
@@ -1359,7 +1422,7 @@ function ClinicalHistorySection() {
                     </td>
                   </tr>
                 ))}
-                {filteredHistory.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-slate-400 font-medium">No se encontraron registros con los filtros actuales.</td></tr>}
+                {sortedHistory.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-slate-400 font-medium">No se encontraron registros con los filtros actuales.</td></tr>}
               </tbody>
             </table>
           )}
@@ -1368,7 +1431,7 @@ function ClinicalHistorySection() {
 
       <div className="mt-4 text-right">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-full">
-          Mostrando {filteredHistory.length} registros
+          Mostrando {sortedHistory.length} registros
         </span>
       </div>
     </div>
