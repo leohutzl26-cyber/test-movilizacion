@@ -323,7 +323,7 @@ function AssignPersonnelSection() {
       <div className="hidden lg:block bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">
+            <thead className="bg-slate-100/70 border-b border-slate-200/60 text-slate-600 font-bold uppercase text-[10px] tracking-[0.1em]">
               <tr>
                 <th className="px-6 py-5">Folio / Prioridad</th>
                 <th className="px-6 py-5">Paciente y Motivo</th>
@@ -434,8 +434,8 @@ function AssignPersonnelSection() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
           <DialogHeader className="p-8 pb-0">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
-                <Pencil className="w-6 h-6 text-teal-400" />
+              <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
+                <Pencil className="w-6 h-6 text-teal-600" />
               </div>
               <div>
                 <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">
@@ -1152,8 +1152,8 @@ function ClinicalCalendarSection() {
         <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="p-8 pb-0">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
-                <Activity className="w-6 h-6 text-teal-400 animate-pulse" />
+              <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
+                <Activity className="w-6 h-6 text-teal-600 animate-pulse" />
               </div>
               <div>
                 <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Detalle del Traslado</DialogTitle>
@@ -1165,13 +1165,13 @@ function ClinicalCalendarSection() {
           </DialogHeader>
           {detailTrip && (
             <div className="p-8 pt-4 space-y-5">
-              <div className="flex items-center justify-between bg-slate-900 text-white p-6 rounded-[2rem] shadow-xl">
+              <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
                 <div>
-                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Folio de Seguimiento</p>
-                  <p className="text-2xl font-mono font-black text-teal-400">#{detailTrip.tracking_number}</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
+                  <p className="text-2xl font-mono font-black text-slate-950">#{detailTrip.tracking_number}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Estado</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Estado</p>
                   <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColors[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
                     {(detailTrip.status || "").replace(/_/g, " ")}
                   </Badge>
@@ -1241,7 +1241,7 @@ function ClinicalCalendarSection() {
               <TripEvolutionLog tripId={detailTrip.id} />
 
               <div className="flex justify-end pt-2">
-                <Button onClick={() => setDetailTrip(null)} className="bg-slate-900 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-lg hover:bg-slate-800">Volver</Button>
+                <Button onClick={() => setDetailTrip(null)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
               </div>
             </div>
           )}
@@ -1374,18 +1374,18 @@ function ClinicalHistorySection() {
     return (
       <th 
         onClick={() => handleSort(field)} 
-        className={`px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer select-none hover:bg-slate-800 hover:text-white transition-all duration-200 group ${className} ${centered ? "text-center" : ""}`}
+        className={`px-6 py-5 text-[10px] font-bold uppercase tracking-[0.1em] cursor-pointer select-none hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 group ${className} ${centered ? "text-center" : ""}`}
       >
         <div className={`flex items-center gap-1.5 ${centered ? "justify-center" : ""}`}>
-          <span className="text-slate-400 group-hover:text-white transition-colors">{label}</span>
+          <span className="text-slate-500 group-hover:text-slate-800 transition-colors">{label}</span>
           {isActive ? (
             sortDirection === "asc" ? (
-              <ArrowUp className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
+              <ArrowUp className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200 shrink-0" />
             ) : (
-              <ArrowDown className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
+              <ArrowDown className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200 shrink-0" />
             )
           ) : (
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 opacity-40 group-hover:opacity-100 group-hover:text-slate-400 transition-all shrink-0" />
+            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-40 group-hover:opacity-100 group-hover:text-slate-600 transition-all shrink-0" />
           )}
         </div>
       </th>
@@ -1441,7 +1441,7 @@ function ClinicalHistorySection() {
             <div className="flex flex-col items-center justify-center py-20 text-slate-400"><RefreshCw className="w-8 h-8 animate-spin mb-4 text-teal-600" />Cargando registros...</div>
           ) : (
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] sticky top-0 shadow-sm z-10">
+              <thead className="bg-slate-100 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-[0.1em] sticky top-0 shadow-sm z-10">
                 <tr>
                   {renderSortHeader("scheduled_date", "Folio / Fecha")}
                   {renderSortHeader("patient_name", "Paciente")}

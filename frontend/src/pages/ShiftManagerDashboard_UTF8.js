@@ -113,8 +113,8 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
             <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="p-8 pb-0">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
-                            <Activity className="w-6 h-6 text-teal-400 animate-pulse" />
+                        <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
+                            <Activity className="w-6 h-6 text-teal-600 animate-pulse" />
                         </div>
                         <div>
                             <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">
@@ -128,14 +128,14 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                 </DialogHeader>
 
                 <div className="p-8 pt-4 space-y-8">
-                    <div className="flex items-center justify-between bg-slate-900 text-white p-6 rounded-[2rem] shadow-xl">
+                    <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
                         <div>
-                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Folio de Seguimiento</p>
-                            <p className="text-2xl font-mono font-black text-teal-400">{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}</p>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
+                            <p className="text-2xl font-mono font-black text-slate-950">#{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Tipo</p>
-                            <p className="font-black text-xl uppercase italic">{trip.trip_type === "clinico" ? "Clínico" : "General"}</p>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Tipo</p>
+                            <p className="font-black text-xl uppercase italic text-slate-900">{trip.trip_type === "clinico" ? "Clínico" : "General"}</p>
                         </div>
                     </div>
 
@@ -1647,8 +1647,8 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
             <DialogContent className="max-w-3xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[95vh] overflow-y-auto">
                 <DialogHeader className="p-8 pb-0">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
-                            <History className="w-6 h-6 text-teal-400" />
+                        <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
+                            <History className="w-6 h-6 text-teal-600" />
                         </div>
                         <div>
                             <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Registro de Acciones</DialogTitle>
@@ -1714,7 +1714,7 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                     </div>
                     
                     <div className="mt-8 flex justify-end">
-                        <Button onClick={() => onOpenChange(false)} className="bg-slate-900 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-lg hover:bg-slate-800">Cerrar Detalle</Button>
+                        <Button onClick={() => onOpenChange(false)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Cerrar Detalle</Button>
                     </div>
                 </div>
             </DialogContent>
@@ -1846,18 +1846,18 @@ function HistorySection() {
         return (
             <th 
                 onClick={() => handleSort(field)} 
-                className={`px-6 py-5 text-xs font-black uppercase tracking-[0.2em] cursor-pointer select-none hover:bg-slate-800 hover:text-white transition-all duration-200 group ${className} ${centered ? "text-center" : ""}`}
+                className={`px-6 py-5 text-[10px] font-bold uppercase tracking-[0.1em] cursor-pointer select-none hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 group ${className} ${centered ? "text-center" : ""}`}
             >
                 <div className={`flex items-center gap-1.5 ${centered ? "justify-center" : ""}`}>
-                    <span className="text-slate-400 group-hover:text-white transition-colors">{label}</span>
+                    <span className="text-slate-500 group-hover:text-slate-800 transition-colors">{label}</span>
                     {isActive ? (
                         sortDirection === "asc" ? (
-                            <ArrowUp className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
+                            <ArrowUp className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200 shrink-0" />
                         ) : (
-                            <ArrowDown className="w-3.5 h-3.5 text-teal-400 transition-transform duration-200 shrink-0" />
+                            <ArrowDown className="w-3.5 h-3.5 text-teal-600 transition-transform duration-200 shrink-0" />
                         )
                     ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 opacity-40 group-hover:opacity-100 group-hover:text-slate-400 transition-all shrink-0" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-40 group-hover:opacity-100 group-hover:text-slate-600 transition-all shrink-0" />
                     )}
                 </div>
             </th>
@@ -1942,13 +1942,13 @@ function HistorySection() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-900 border-b border-slate-800">
+                            <tr className="bg-slate-100/70 border-b border-slate-200/60">
                                 {renderSortHeader("tracking_number", "Folio", "w-[140px]")}
                                 {renderSortHeader("patient_name", "Detalle Solicitud")}
                                 {renderSortHeader("origin", "Trayecto Centralizado")}
                                 {renderSortHeader("driver_name", "Responsable Operativo")}
                                 {renderSortHeader("scheduled_date", "Estado / Fecha")}
-                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-[0.2em] text-center">Acciones</th>
+                                <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
