@@ -964,38 +964,41 @@ function CalendarSection() {
 
             {loading ? <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-teal-600" /></div> : (
                 <>
-                    {viewMode === "daily" && (
-                        <div className="space-y-4">
-                            {trips.length === 0 ? (
-                                <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200 shadow-sm">
-                                    <CalendarDays className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                                    <p className="text-xl font-bold text-slate-400">No hay traslados programados</p>
-                                </div>
-                            ) : trips.map(t => (
-                                <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm cursor-pointer group bg-white">
-                                    <CardContent className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl text-center min-w-[80px] group-hover:bg-teal-600 transition-colors">
-                                                <p className="text-[8px] font-black text-teal-600 uppercase group-hover:text-teal-100">Cita</p>
-                                                <p className="text-base font-black text-slate-800 group-hover:text-white">{t.appointment_time || "--:--"}</p>
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <Badge className="bg-slate-900 font-mono text-[9px] px-1.5 py-0">#{t.tracking_number}</Badge>
-                                                    <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[8px] uppercase font-black px-1.5 py-0`}>{(t.status || "").replace(/_/g, " ")}</Badge>
+                    {viewMode === "daily" && (() => {
+                        const dailyTrips = tripsByDate(getDateRange().start);
+                        return (
+                            <div className="space-y-4">
+                                {dailyTrips.length === 0 ? (
+                                    <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200 shadow-sm">
+                                        <CalendarDays className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                                        <p className="text-xl font-bold text-slate-400">No hay traslados programados</p>
+                                    </div>
+                                ) : dailyTrips.map(t => (
+                                    <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm cursor-pointer group bg-white">
+                                        <CardContent className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl text-center min-w-[80px] group-hover:bg-teal-600 transition-colors">
+                                                    <p className="text-[8px] font-black text-teal-600 uppercase group-hover:text-teal-100">Cita</p>
+                                                    <p className="text-base font-black text-slate-800 group-hover:text-white">{t.appointment_time || "--:--"}</p>
                                                 </div>
-                                                <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Badge className="bg-slate-900 font-mono text-[9px] px-1.5 py-0">#{t.tracking_number}</Badge>
+                                                        <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[8px] uppercase font-black px-1.5 py-0`}>{(t.status || "").replace(/_/g, " ")}</Badge>
+                                                    </div>
+                                                    <h4 className="text-sm font-black text-slate-900 uppercase group-hover:text-teal-700 transition-colors">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-right">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsable</p>
-                                            <p className="text-sm font-black text-teal-800">{t.clinical_team || "Equipo no asignado"}</p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
+                                            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-right">
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsable</p>
+                                                <p className="text-sm font-black text-teal-800">{t.clinical_team || "Equipo no asignado"}</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        );
+                    })()}
 
                     {viewMode === "weekly" && (
                         <div className="grid grid-cols-7 gap-3">

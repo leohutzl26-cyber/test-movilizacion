@@ -1007,31 +1007,34 @@ function ClinicalCalendarSection() {
       {loading ? <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-teal-600" /></div> : (
         <>
           {/* DAILY VIEW */}
-          {viewMode === "daily" && (
-            <div className="space-y-3">
-              {trips.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200"><CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-lg font-bold text-slate-500">Sin traslados para este día</p></div>
-              ) : trips.map(t => (
-                <Card key={t.id} onClick={() => setDetailTrip(t)} className="shadow-sm border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md transition-shadow bg-white">
-                  <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="bg-slate-100 p-2 rounded-xl text-center min-w-[70px]"><p className="text-[9px] font-bold text-slate-500 uppercase">Cita</p><p className="text-base font-black text-slate-900">{t.appointment_time || "--:--"}</p></div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold">{t.tracking_number}</span>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
-                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
+          {viewMode === "daily" && (() => {
+            const dailyTrips = tripsByDate(formatLocalDate(currentDate));
+            return (
+              <div className="space-y-3">
+                {dailyTrips.length === 0 ? (
+                  <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200"><CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-lg font-bold text-slate-500">Sin traslados para este día</p></div>
+                ) : dailyTrips.map(t => (
+                  <Card key={t.id} onClick={() => setDetailTrip(t)} className="shadow-sm border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md transition-shadow bg-white">
+                    <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-slate-100 p-2 rounded-xl text-center min-w-[70px]"><p className="text-[9px] font-bold text-slate-500 uppercase">Cita</p><p className="text-base font-black text-slate-900">{t.appointment_time || "--:--"}</p></div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold">{t.tracking_number}</span>
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
+                          </div>
+                          <p className="font-bold text-slate-900">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                          <p className="text-xs text-slate-500 mt-0.5"><MapPin className="w-3 h-3 inline text-teal-500" /> {t.origin} → {t.destination}</p>
                         </div>
-                        <p className="font-bold text-slate-900">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
-                        <p className="text-xs text-slate-500 mt-0.5"><MapPin className="w-3 h-3 inline text-teal-500" /> {t.origin} → {t.destination}</p>
                       </div>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded-lg border text-right"><p className="text-[9px] font-bold text-slate-400 uppercase">Personal</p><p className="text-xs font-black text-teal-800">{t.clinical_team || "Sin asignar"}</p></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      <div className="bg-slate-50 p-2 rounded-lg border text-right"><p className="text-[9px] font-bold text-slate-400 uppercase">Personal</p><p className="text-xs font-black text-teal-800">{t.clinical_team || "Sin asignar"}</p></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* WEEKLY VIEW */}
           {viewMode === "weekly" && (
