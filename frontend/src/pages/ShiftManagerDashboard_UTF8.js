@@ -1310,6 +1310,74 @@ function VehiclesSection() {
 
     if (loading && vehicles.length === 0) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
+    const renderVehicleCard = (v) => {
+        const cfg = statusConfig[v.status] || statusConfig.disponible;
+        return (
+            <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
+                <CardContent className="p-0">
+                    {/* Cabecera compacta */}
+                    <div className="p-2.5 flex items-center justify-between border-b border-inherit">
+                        <div className="flex items-center gap-2">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
+                                {v.type === "Ambulancia" ? <Siren className={`w-3.5 h-3.5 ${cfg.text}`} /> : <Truck className={`w-3.5 h-3.5 ${cfg.text}`} />}
+                            </div>
+                            <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
+                        </div>
+                        <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
+                    </div>
+
+                    {/* Cuerpo compacto */}
+                    <div className="p-2.5 space-y-2 min-h-[110px] flex flex-col justify-between">
+                        <div className="space-y-0.5">
+                            <p className="text-[11px] font-black text-slate-700 uppercase truncate leading-tight">{v.brand} {v.model}</p>
+                            <p className="text-[9px] font-bold text-slate-400 leading-none">{v.type}</p>
+                        </div>
+
+                        {v.status === "en_uso" ? (
+                            <div className="bg-white/60 rounded-lg p-2 border border-blue-100/50">
+                                <div className="flex items-center gap-1.5 mb-1 text-blue-700">
+                                    <User className="w-2.5 h-2.5" />
+                                    <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "Cargando..."}</p>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-blue-600">
+                                    <MapPin className="w-2.5 h-2.5" />
+                                    <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
+                                </div>
+                                {v.current_clinical_team && (
+                                    <div className="flex items-center gap-1.5 text-purple-600 border-t border-blue-100/30 mt-1 pt-1">
+                                        <Users className="w-2.5 h-2.5 shrink-0" />
+                                        <p className="text-[8px] font-bold truncate italic leading-tight">{v.current_clinical_team}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
+                                <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
+                            </div>
+                        )}
+
+                        {/* Botón de Acción ultra compacto */}
+                        {user?.role !== "gestion_camas" && (
+                            <div className="pt-1">
+                                <Button 
+                                    onClick={() => handleStatusToggle(v)}
+                                    disabled={v.status === "en_uso"}
+                                    variant="outline" 
+                                    className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
+                                >
+                                    {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    const ambulancias = vehicles.filter(v => v.type === "Ambulancia").sort((a,b) => a.plate.localeCompare(b.plate));
+    const otrosVehiculos = vehicles.filter(v => v.type !== "Ambulancia").sort((a,b) => a.plate.localeCompare(b.plate));
+
     return (
         <div className="animate-slide-up space-y-6">
             <div className="flex justify-between items-center">
@@ -1322,71 +1390,30 @@ function VehiclesSection() {
                 </Badge>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                {vehicles.sort((a,b) => a.plate.localeCompare(b.plate)).map(v => {
-                    const cfg = statusConfig[v.status] || statusConfig.disponible;
-                    return (
-                        <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
-                            <CardContent className="p-0">
-                                {/* Cabecera compacta */}
-                                <div className="p-2.5 flex items-center justify-between border-b border-inherit">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
-                                            {v.type === "Ambulancia" ? <Siren className={`w-3.5 h-3.5 ${cfg.text}`} /> : <Truck className={`w-3.5 h-3.5 ${cfg.text}`} />}
-                                        </div>
-                                        <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
-                                    </div>
-                                    <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
-                                </div>
+            <div className="space-y-8">
+                {ambulancias.length > 0 && (
+                    <div>
+                        <h2 className="text-xs font-black text-teal-600 uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
+                            <Siren className="w-5 h-5" /> Ambulancias Clínicas
+                            <Badge className="ml-2 bg-teal-100 text-teal-800 hover:bg-teal-200 border-none">{ambulancias.length}</Badge>
+                        </h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                            {ambulancias.map(renderVehicleCard)}
+                        </div>
+                    </div>
+                )}
 
-                                {/* Cuerpo compacto */}
-                                <div className="p-2.5 space-y-2 min-h-[110px] flex flex-col justify-between">
-                                    <div className="space-y-0.5">
-                                        <p className="text-[11px] font-black text-slate-700 uppercase truncate leading-tight">{v.brand} {v.model}</p>
-                                        <p className="text-[9px] font-bold text-slate-400 leading-none">{v.type}</p>
-                                    </div>
-
-                                    {v.status === "en_uso" ? (
-                                        <div className="bg-white/60 rounded-lg p-2 border border-blue-100/50">
-                                            <div className="flex items-center gap-1.5 mb-1 text-blue-700">
-                                                <User className="w-2.5 h-2.5" />
-                                                <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "Cargando..."}</p>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-blue-600">
-                                                <MapPin className="w-2.5 h-2.5" />
-                                                <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
-                                            </div>
-                                            {v.current_clinical_team && (
-                                                <div className="flex items-center gap-1.5 text-purple-600 border-t border-blue-100/30 mt-1 pt-1">
-                                                    <Users className="w-2.5 h-2.5 shrink-0" />
-                                                    <p className="text-[8px] font-bold truncate italic leading-tight">{v.current_clinical_team}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
-                                            <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
-                                        </div>
-                                    )}
-
-                                    {/* Botón de Acción ultra compacto */}
-                                    {user?.role !== "gestion_camas" && (
-                                        <div className="pt-1">
-                                            <Button 
-                                                onClick={() => handleStatusToggle(v)}
-                                                disabled={v.status === "en_uso"}
-                                                variant="outline" 
-                                                className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
-                                            >
-                                                {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+                {otrosVehiculos.length > 0 && (
+                    <div>
+                        <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
+                            <Truck className="w-5 h-5" /> Vehículos Generales
+                            <Badge className="ml-2 bg-slate-200 text-slate-800 hover:bg-slate-300 border-none">{otrosVehiculos.length}</Badge>
+                        </h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                            {otrosVehiculos.map(renderVehicleCard)}
+                        </div>
+                    </div>
+                )}
             </div>
             
             {vehicles.length === 0 && (
