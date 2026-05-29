@@ -110,157 +110,167 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
-                <DialogHeader className="p-8 pb-0">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
-                            <Activity className="w-6 h-6 text-teal-600 animate-pulse" />
+            <DialogContent className="max-w-4xl bg-slate-50 rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+                {/* Cabecera Estilizada */}
+                <div className="bg-slate-900 p-8 pb-10 relative">
+                    <div className="absolute top-6 right-6">
+                        <Badge className={`${trip.status === 'completado' ? 'bg-emerald-500' : 'bg-teal-500'} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                            {(trip.status || "").replace(/_/g, " ")}
+                        </Badge>
+                    </div>
+                    <div className="flex items-center gap-5">
+                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
+                            {trip.trip_type === "clinico" ? <Activity className="w-8 h-8 text-teal-400" /> : <Truck className="w-8 h-8 text-blue-400" />}
                         </div>
                         <div>
-                            <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">
-                                {trip.trip_type === "clinico" ? "Detalle Traslado Clínico" : "Detalle de Cometido"}
-                            </DialogTitle>
-                            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                Folio: <span className="text-teal-600 font-mono font-black">#{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}</span> — Consulta Informativa
-                            </DialogDescription>
+                            <p className="text-teal-400 text-[10px] uppercase tracking-[0.2em] font-black mb-1">
+                                Folio #{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}
+                            </p>
+                            <h2 className="text-3xl font-black text-white leading-tight uppercase tracking-tight">
+                                {trip.trip_type === "clinico" ? "Traslado Clínico" : "Cometido General"}
+                            </h2>
                         </div>
                     </div>
-                </DialogHeader>
+                </div>
 
-                <div className="p-8 pt-4 space-y-6">
-                    <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
-                        <div>
-                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
-                            <p className="text-2xl font-mono font-black text-slate-950">#{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Tipo</p>
-                            <p className="font-black text-xl uppercase italic text-slate-900">{trip.trip_type === "clinico" ? "Clínico" : "General"}</p>
-                        </div>
-                    </div>
-
-                    {/* SECCIÓN 1: INFORMACIÓN GENERAL */}
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                            <User className="w-4 h-4 text-teal-600" /> Información General
-                        </p>
-                        <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                            <div>
-                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Paciente / Solicitud:</span>
-                                <p className="font-bold text-slate-900 text-sm">{trip.patient_name || trip.task_details || "-"}</p>
-                            </div>
-                            <div>
-                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Motivo / Tipo:</span>
-                                <p className="font-bold text-slate-800">{trip.transfer_reason || (trip.trip_type === "clinico" ? "Clínico" : "Cometido General")}</p>
-                            </div>
-                            {trip.trip_type === "clinico" && (
-                                <>
-                                    <div>
-                                        <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">RUT:</span>
-                                        <p className="font-bold text-slate-800">{trip.rut || "-"}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Cama / Unidad:</span>
-                                        <p className="font-bold text-slate-800">{trip.bed || "-"} ({trip.patient_unit || "-"})</p>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Diagnóstico:</span>
-                                        <p className="font-bold text-slate-800 leading-relaxed">{trip.diagnosis || "-"}</p>
-                                    </div>
-                                </>
-                            )}
-                            {trip.trip_type !== "clinico" && trip.notes && (
-                                <div className="col-span-2">
-                                    <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Notas / Observaciones:</span>
-                                    <p className="font-semibold text-slate-700 italic leading-relaxed">"{trip.notes}"</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* SECCIÓN 2: RUTA Y TIEMPOS */}
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                            <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
-                        </p>
-                        <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                            <div>
-                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Origen:</span>
-                                <p className="font-bold text-slate-800">{trip.origin}</p>
-                            </div>
-                            <div>
-                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Destino:</span>
-                                <p className="font-bold text-slate-800">{trip.destination}</p>
-                            </div>
-                            <div>
-                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Fecha Programada:</span>
-                                <p className="font-bold text-slate-800">{formatScheduledDate(trip.scheduled_date) || "Hoy"}</p>
-                            </div>
-                            <div>
-                                <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-0.5">Hora Citación:</span>
-                                <p className="font-bold text-teal-700">{trip.appointment_time || "--:--"}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* SECCIÓN 3: ASIGNACIÓN OPERATIVA */}
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                            <Truck className="w-4 h-4 text-teal-600" /> Asignación Operativa
-                        </p>
-                        <div className="space-y-4">
-                            {/* Conductor y Vehículo */}
-                            <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm flex items-center justify-between flex-wrap gap-2">
+                {/* Contenido Principal */}
+                <div className="p-8 -mt-6 bg-slate-50 rounded-t-[2rem] relative space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Columna Izquierda */}
+                        <div className="space-y-6">
+                            {/* Información General */}
+                            <div className="bg-white p-6 rounded-[1.5rem] border border-slate-200/60 shadow-sm space-y-4 hover:shadow-md transition-shadow">
+                                <h3 className="text-[10px] uppercase font-black text-slate-400 tracking-[0.15em] flex items-center gap-2 border-b border-slate-100 pb-3">
+                                    <User className="w-4 h-4 text-teal-600" /> Información General
+                                </h3>
                                 <div>
-                                    <span className="text-slate-400 uppercase tracking-wider text-[10px] font-bold block mb-1">Móvil & Conductor Asignado:</span>
-                                    {trip.driver_name ? (
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-4 h-4 text-slate-600" /></div>
-                                            <p className="font-bold text-slate-900 text-sm">{trip.driver_name}</p>
-                                            <Badge className="bg-teal-50 text-teal-800 border border-teal-200/50 font-mono text-[10px] shadow-sm">{trip.vehicle_plate || "Móvil pendiente"}</Badge>
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-slate-400 italic font-semibold">No se ha asignado conductor aún</p>
-                                    )}
+                                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Paciente / Tarea</p>
+                                    <p className="text-sm font-black text-slate-900">{trip.patient_name || trip.task_details || "-"}</p>
                                 </div>
-                                {trip.driver_id && trip.status === "asignado" && (
-                                    <Button onClick={handleUnassign} variant="destructive" size="sm" className="h-9 px-4 font-bold shadow-md">
-                                        Desasignar
-                                    </Button>
+                                {trip.trip_type === "clinico" && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">RUT</p>
+                                            <p className="text-sm font-bold text-slate-800">{trip.rut || "-"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Cama/Unidad</p>
+                                            <p className="text-sm font-bold text-slate-800">{trip.bed || "-"} ({trip.patient_unit || "-"})</p>
+                                        </div>
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Motivo / Diagnóstico</p>
+                                    <p className="text-sm font-bold text-slate-800">{trip.diagnosis || trip.transfer_reason || "-"}</p>
+                                </div>
+                                {trip.notes && (
+                                    <div className="bg-amber-50 p-3 rounded-xl border border-amber-100/50 mt-2">
+                                        <p className="text-[10px] uppercase font-black text-amber-600 tracking-wider mb-1">Notas Adicionales</p>
+                                        <p className="text-xs font-bold text-amber-900 leading-relaxed">{trip.notes}</p>
+                                    </div>
                                 )}
                             </div>
 
-                            {/* Personal Clínico & Requerimientos */}
-                            <div className="bg-teal-50/40 p-4 rounded-xl border border-teal-100/50 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
-                                <div>
-                                    <span className="text-teal-700 uppercase tracking-wider text-[10px] font-bold block mb-1">Equipo Clínico Asignado:</span>
-                                    <div className="space-y-1">
+                            {/* Ruta y Tiempos */}
+                            <div className="bg-white p-6 rounded-[1.5rem] border border-slate-200/60 shadow-sm space-y-4 hover:shadow-md transition-shadow">
+                                <h3 className="text-[10px] uppercase font-black text-slate-400 tracking-[0.15em] flex items-center gap-2 border-b border-slate-100 pb-3">
+                                    <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Origen</p>
+                                        <p className="text-sm font-black text-slate-900">{trip.origin}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Destino</p>
+                                        <p className="text-sm font-black text-slate-900">{trip.destination}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Fecha Prog.</p>
+                                        <p className="text-sm font-bold text-slate-800">{formatScheduledDate(trip.scheduled_date) || "Hoy"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Citación</p>
+                                        <p className="text-sm font-black text-teal-600">{trip.appointment_time || "--:--"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Columna Derecha */}
+                        <div className="space-y-6">
+                            {/* Asignación Operativa */}
+                            <div className="bg-white p-6 rounded-[1.5rem] border border-slate-200/60 shadow-sm space-y-4 hover:shadow-md transition-shadow">
+                                <h3 className="text-[10px] uppercase font-black text-slate-400 tracking-[0.15em] flex items-center gap-2 border-b border-slate-100 pb-3">
+                                    <Truck className="w-4 h-4 text-teal-600" /> Asignación Operativa
+                                </h3>
+                                
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <p className="text-[10px] uppercase font-black text-slate-500 tracking-wider mb-3">Conductor y Móvil</p>
+                                    {trip.driver_name ? (
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-teal-700 border border-slate-200 shadow-sm">
+                                                    <User className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-slate-900 text-sm">{trip.driver_name}</p>
+                                                    <Badge className="bg-teal-50 text-teal-800 border border-teal-200/50 font-mono text-[10px] shadow-sm mt-0.5">{trip.vehicle_plate || "Sin patente"}</Badge>
+                                                </div>
+                                            </div>
+                                            {trip.driver_id && trip.status === "asignado" && (
+                                                <Button onClick={handleUnassign} variant="destructive" size="sm" className="h-8 px-4 text-xs font-bold shadow-md rounded-xl">
+                                                    Desasignar
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs font-semibold text-slate-400 italic">No se ha asignado conductor</p>
+                                    )}
+                                </div>
+
+                                {trip.trip_type === "clinico" && (
+                                    <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100/50">
+                                        <p className="text-[10px] uppercase font-black text-teal-700 tracking-wider mb-3">Equipo Clínico</p>
                                         {trip.assigned_clinical_staff && trip.assigned_clinical_staff.length > 0 ? (
-                                            trip.assigned_clinical_staff.map((s, idx) => (
-                                                <p key={idx} className="text-xs font-bold text-teal-900 leading-tight">
-                                                    <span className="text-[10px] text-teal-600/70 uppercase">{s.type}:</span> {s.staff_name || "PDTE. IDENTIFICAR"}
-                                                </p>
-                                            ))
+                                            <div className="space-y-2">
+                                                {trip.assigned_clinical_staff.map((s, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center text-xs">
+                                                        <span className="text-teal-600/80 font-bold uppercase tracking-wide text-[10px]">{s.type}</span>
+                                                        <span className="font-black text-teal-900">{s.staff_name || "PDTE."}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         ) : (
-                                            <p className="text-xs font-bold text-teal-900 leading-tight">
+                                            <p className="text-xs font-bold text-teal-900">
                                                 {trip.required_personnel?.join(", ") || trip.clinical_team || "No especificado"}
                                             </p>
                                         )}
                                     </div>
-                                </div>
-                                <div>
-                                    <span className="text-teal-700 uppercase tracking-wider text-[10px] font-bold block mb-1">Equipamiento / Requerimientos:</span>
-                                    <p className="text-xs font-bold text-teal-900 leading-relaxed">{trip.patient_requirements?.join(", ") || "Requerimientos estándar"}</p>
-                                </div>
+                                )}
+
+                                {trip.patient_requirements && trip.patient_requirements.length > 0 && (
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 mt-4">Requerimientos</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {trip.patient_requirements.map((req, i) => (
+                                                <span key={i} className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[10px] font-bold uppercase border border-slate-200">
+                                                    {req}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+
+                            <TripEvolutionLog tripId={trip.id} />
                         </div>
                     </div>
 
-                    <div className="flex justify-end pt-2">
-                        <Button onClick={() => onOpenChange(false)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
+                    <div className="flex justify-end pt-4 border-t border-slate-200/60 mt-6">
+                        <Button onClick={() => onOpenChange(false)} className="bg-slate-900 text-white rounded-2xl px-10 h-12 text-xs font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all">Cerrar</Button>
                     </div>
-                    
-                    <TripEvolutionLog tripId={trip.id} />
                 </div>
             </DialogContent>
         </Dialog>
@@ -1163,7 +1173,8 @@ function CalendarSection() {
                                         onDragOver={(e) => { e.preventDefault(); if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
                                         onDragLeave={() => { if (dragOverDate === dateStr) setDragOverDate(null); }}
                                         onDrop={async (e) => { e.preventDefault(); setDragOverDate(null); if (draggedTripId) { await handleMoveTrip(draggedTripId, dateStr); } }}
-                                        className={`bg-white rounded-2xl border-2 p-3 min-h-[350px] transition-all duration-200 flex flex-col ${
+                                        onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("daily"); }}
+                                        className={`bg-white rounded-2xl border-2 p-3 min-h-[350px] transition-all duration-200 flex flex-col cursor-pointer hover:bg-teal-50/10 ${
                                             isToday 
                                                 ? "border-teal-400 shadow-lg shadow-teal-900/5 bg-teal-50/10" 
                                                 : "border-slate-100 shadow-sm"
@@ -1174,8 +1185,7 @@ function CalendarSection() {
                                         }`}
                                     >
                                         <div 
-                                            onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("daily"); }}
-                                            className={`text-center mb-4 pb-2 border-b-2 cursor-pointer hover:bg-teal-50/50 hover:border-teal-300 rounded-xl transition-all py-1 ${isToday ? "border-teal-200 bg-teal-50/40" : "border-slate-50"}`}
+                                            className={`text-center mb-4 pb-2 border-b-2 rounded-xl transition-all py-1 ${isToday ? "border-teal-200 bg-teal-50/40" : "border-slate-50"}`}
                                             title="Ver vista diaria de este día"
                                         >
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{dayNames[i]}</p>
@@ -1186,9 +1196,9 @@ function CalendarSection() {
                                                 <div 
                                                     key={t.id} 
                                                     draggable={true}
-                                                    onDragStart={() => setDraggedTripId(t.id)}
-                                                    onDragEnd={() => setDraggedTripId(null)}
-                                                    onClick={() => setDetailTrip(t)} 
+                                                    onDragStart={(e) => { e.stopPropagation(); setDraggedTripId(t.id); }}
+                                                    onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); }}
+                                                    onClick={(e) => { e.stopPropagation(); setDetailTrip(t); }} 
                                                     className={`p-2 rounded-lg border-l-2 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${
                                                         t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"
                                                     } ${
