@@ -603,7 +603,6 @@ function DispatchSection() {
                         </div>
                     </div>
                 </div>
-            </div>   </div>
             </div>
 
             <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchTrips} />
