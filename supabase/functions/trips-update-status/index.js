@@ -51,9 +51,12 @@ exports.handler = async (event, context) => {
 
     // Prepare update data
     const updateData = {
-      status,
-      cancel_reason: status === 'cancelado' ? cancel_reason : null
+      status
     };
+
+    if (status === 'cancelado') {
+      updateData.cancel_reason = cancel_reason || null;
+    }
 
     // Handle vehicle assignment when starting/taking a trip
     const activeVehicleId = vehicle_id || currentTrip.vehicle_id;
