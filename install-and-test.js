@@ -10,7 +10,7 @@ console.log('🚀 Starting Complete Install and Test Process...\n');
 // 1. Check project structure
 console.log('📁 Checking project structure...');
 
-const requiredDirs = ['frontend', 'backend', 'supabase'];
+const requiredDirs = ['frontend', 'supabase'];
 const requiredFiles = [
     'frontend/package.json',
     'supabase/schema.sql',

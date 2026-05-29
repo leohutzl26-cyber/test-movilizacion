@@ -16,14 +16,7 @@ if (!fs.existsSync(frontendPath)) {
 
 console.log('✅ Frontend found:', frontendPath);
 
-// 2. Check if backend exists
-const backendPath = path.join(__dirname, 'backend');
-if (!fs.existsSync(backendPath)) {
-    console.error('❌ Backend directory not found:', backendPath);
-    process.exit(1);
-}
-
-console.log('✅ Backend found:', backendPath);
+// 2. Check if backend exists (REMOVED: Backend is now exclusively Supabase)
 
 // 3. Check if Supabase config exists
 const supabasePath = path.join(__dirname, 'supabase');
