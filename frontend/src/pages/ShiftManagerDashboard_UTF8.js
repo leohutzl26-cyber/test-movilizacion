@@ -1173,7 +1173,11 @@ function CalendarSection() {
                                                 : ""
                                         }`}
                                     >
-                                        <div className={`text-center mb-4 pb-2 border-b-2 ${isToday ? "border-teal-200" : "border-slate-50"}`}>
+                                        <div 
+                                            onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("daily"); }}
+                                            className={`text-center mb-4 pb-2 border-b-2 cursor-pointer hover:bg-teal-50/50 hover:border-teal-300 rounded-xl transition-all py-1 ${isToday ? "border-teal-200 bg-teal-50/40" : "border-slate-50"}`}
+                                            title="Ver vista diaria de este día"
+                                        >
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{dayNames[i]}</p>
                                             <p className={`text-xl font-black ${isToday ? "text-teal-700" : "text-slate-800"}`}>{dateStr.split("-")[2]}</p>
                                         </div>
