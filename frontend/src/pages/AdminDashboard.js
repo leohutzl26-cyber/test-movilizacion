@@ -319,7 +319,7 @@ function VehiclesManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
+  const [formData, setFormData] = useState({ plate: "", zonal_number: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
 
   const fetchVehicles = useCallback(async () => {
     try { 
@@ -348,13 +348,14 @@ function VehiclesManager() {
   const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingId(null);
-    setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
+    setFormData({ plate: "", zonal_number: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
   };
 
   const handleEdit = (v) => {
     setEditingId(v.id);
     setFormData({ 
       plate: v.plate, 
+      zonal_number: v.zonal_number || "",
       brand: v.brand, 
       model: v.model, 
       type: v.type, 
@@ -393,7 +394,7 @@ function VehiclesManager() {
         <h1 className="text-2xl font-bold text-slate-900">Gestión de Flota</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-11 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-2" />Carga Masiva</Button>
-          <Button onClick={() => { setEditingId(null); setFormData({ plate: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
+          <Button onClick={() => { setEditingId(null); setFormData({ plate: "", zonal_number: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
             <Plus className="w-4 h-4 mr-2" /> Agregar Vehículo
           </Button>
         </div>
@@ -404,12 +405,13 @@ function VehiclesManager() {
           <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
-                <tr><th className="p-4">Tipo</th><th className="p-4">Patente</th><th className="p-4">Marca/Modelo</th><th className="p-4">Año</th><th className="p-4">Kilometraje</th><th className="p-4">Estado</th><th className="p-4 text-right">Acciones</th></tr>
+                <tr><th className="p-4">Tipo</th><th className="p-4">N° Zonal</th><th className="p-4">Patente</th><th className="p-4">Marca/Modelo</th><th className="p-4">Año</th><th className="p-4">Kilometraje</th><th className="p-4">Estado</th><th className="p-4 text-right">Acciones</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {vehicles.map(v => (
                   <tr key={v.id} className="hover:bg-slate-50">
                     <td className="p-4">{vehicleIcons[v.type] || <Car className="w-4 h-4" />}</td>
+                    <td className="p-4 font-bold text-teal-700">{v.zonal_number ? `Z-${v.zonal_number}` : "-"}</td>
                     <td className="p-4 font-bold text-slate-900">{v.plate}</td>
                     <td className="p-4 text-slate-600">{v.brand} {v.model}</td>
                     <td className="p-4 text-slate-600">{v.year}</td>
@@ -433,6 +435,9 @@ function VehiclesManager() {
           <form onSubmit={handleSave} className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Patente *</Label><Input value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value.toUpperCase()})} placeholder="ABCD-12" required /></div>
+              <div className="space-y-2"><Label>N° Zonal (Opcional)</Label><Input value={formData.zonal_number} onChange={e => setFormData({...formData, zonal_number: e.target.value})} placeholder="Ej: 012" maxLength={5} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Vehículo *</Label>
                 <Select value={formData.type} onValueChange={v => setFormData({...formData, type: v})}>
@@ -469,6 +474,7 @@ function VehiclesManager() {
         title="Carga Masiva de Vehículos"
         columns={[
           { key: "patente", label: "Patente", required: true },
+          { key: "numero_zonal", label: "N° Zonal", required: false },
           { key: "marca", label: "Marca", required: false },
           { key: "modelo", label: "Modelo", required: false },
           { key: "tipo", label: "Tipo (Ambulancia/Auto/SUV/Camioneta/Van/camion)", required: false },
@@ -478,6 +484,7 @@ function VehiclesManager() {
         onImport={async (rows) => {
           const inserts = rows.map(r => ({
             plate: r.patente.toUpperCase(),
+            zonal_number: r.numero_zonal || "",
             brand: r.marca || "",
             model: r.modelo || "",
             type: r.tipo || "Auto/SUV",
@@ -489,8 +496,8 @@ function VehiclesManager() {
           fetchVehicles();
         }}
         exampleRows={[
-          ["ABCD-12", "Toyota", "Hilux", "Camioneta", "2022", "45000"],
-          ["WXYZ-34", "Fiat", "Ducato", "Ambulancia", "2021", "82000"]
+          ["ABCD-12", "012", "Toyota", "Hilux", "Camioneta", "2022", "45000"],
+          ["WXYZ-34", "015", "Fiat", "Ducato", "Ambulancia", "2021", "82000"]
         ]}
       />
     </div>

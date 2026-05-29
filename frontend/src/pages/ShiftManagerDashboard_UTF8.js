@@ -1321,7 +1321,16 @@ function VehiclesSection() {
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
                                 {v.type === "Ambulancia" ? <Siren className={`w-3.5 h-3.5 ${cfg.text}`} /> : <Truck className={`w-3.5 h-3.5 ${cfg.text}`} />}
                             </div>
-                            <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
+                            <div className="flex flex-col">
+                                {v.zonal_number ? (
+                                    <>
+                                        <span className={`font-black text-sm tracking-tighter leading-tight ${cfg.text}`}>N° {v.zonal_number}</span>
+                                        <span className={`font-bold text-[8px] opacity-70 leading-none ${cfg.text}`}>{v.plate}</span>
+                                    </>
+                                ) : (
+                                    <span className={`font-black text-sm tracking-tighter ${cfg.text}`}>{v.plate}</span>
+                                )}
+                            </div>
                         </div>
                         <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
                     </div>

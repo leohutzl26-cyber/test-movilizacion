@@ -39,6 +39,7 @@ CREATE TABLE vehicles (
     brand TEXT NOT NULL,
     model TEXT NOT NULL,
     type TEXT DEFAULT 'Auto/SUV' CHECK (type IN ('Auto/SUV', 'Van', 'Ambulancia', 'Camioneta')),
+    zonal_number TEXT,
     year INTEGER DEFAULT 2024,
     mileage FLOAT DEFAULT 0,
     next_maintenance_km FLOAT DEFAULT 10000,
