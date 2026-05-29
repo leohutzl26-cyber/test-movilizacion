@@ -189,10 +189,10 @@ function TripPoolSection({ onNavigate }) {
         )}
       </div>
 
-      <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{selectedTrip?.tracking_number}</Badge></DialogTitle></DialogHeader>
-          {selectedTrip && (
+      {selectedTrip && (
+        <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{selectedTrip.tracking_number}</Badge></DialogTitle></DialogHeader>
             <div className="space-y-5 text-sm pt-2">
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
                 <p className="text-sm text-red-600 font-black mb-1 flex items-center gap-1.5 uppercase tracking-wider"><Clock className="w-5 h-5" /> Horarios de Traslado</p>
@@ -239,9 +239,9 @@ function TripPoolSection({ onNavigate }) {
               </Button>
               <TripEvolutionLog tripId={selectedTrip.id} />
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -434,14 +434,14 @@ function MyTripsSection() {
         {displayTrips.length === 0 && <div className="text-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm"><p className="text-xl font-bold text-slate-500">{activeTab === "hoy" ? "No tienes viajes para hoy" : "No tienes viajes programados"}</p><p className="text-sm font-medium mt-2">{activeTab === "hoy" ? "Revisa la bolsa de viajes disponibles para tomar uno." : "Los viajes futuros aparecerán aquí."}</p></div>}
       </div>
 
-      <Dialog open={!!actionDialog} onOpenChange={closeActionDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              {actionType === "start" ? <><Play className="w-6 h-6 text-blue-600 fill-current" /> Iniciar Viaje</> : actionType === "end" ? <><CheckCircle className="w-6 h-6 text-emerald-600" /> Finalizar Viaje</> : <><AlertTriangle className="w-6 h-6 text-red-600" /> Devolver Viaje</>}
-            </DialogTitle>
-          </DialogHeader>
-          {actionDialog && (
+      {actionDialog && (
+        <Dialog open={!!actionDialog} onOpenChange={closeActionDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl flex items-center gap-2">
+                {actionType === "start" ? <><Play className="w-6 h-6 text-blue-600 fill-current" /> Iniciar Viaje</> : actionType === "end" ? <><CheckCircle className="w-6 h-6 text-emerald-600" /> Finalizar Viaje</> : <><AlertTriangle className="w-6 h-6 text-red-600" /> Devolver Viaje</>}
+              </DialogTitle>
+            </DialogHeader>
             <div className="space-y-6 pt-4">
 
               {showWarning && (
@@ -490,14 +490,14 @@ function MyTripsSection() {
                 </Button>
               </DialogFooter>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{detailsDialog?.tracking_number}</Badge></DialogTitle></DialogHeader>
-          {detailsDialog && (
+      {detailsDialog && (
+        <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{detailsDialog.tracking_number}</Badge></DialogTitle></DialogHeader>
             <div className="space-y-5 text-sm pt-2">
 
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
@@ -546,9 +546,9 @@ function MyTripsSection() {
               {detailsDialog.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 font-medium border border-amber-200">{detailsDialog.notes}</p></div>)}
               <TripEvolutionLog tripId={detailsDialog.id} />
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -625,10 +625,10 @@ function DriverHistorySection() {
         {trips.length === 0 && <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200"><p className="text-lg font-bold text-slate-500">Aún no tiene viajes finalizados</p></div>}
       </div>
 
-      <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-xl border-b pb-3">Detalle del Viaje</DialogTitle></DialogHeader>
-          {selectedTrip && (
+      {selectedTrip && (
+        <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle className="text-xl border-b pb-3">Detalle del Viaje</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2 text-sm">
               <div className="flex gap-2">
                 <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold">{selectedTrip.tracking_number}</span>
@@ -654,9 +654,9 @@ function DriverHistorySection() {
               {selectedTrip.notes && <div className="bg-amber-50 p-3 rounded-xl border border-amber-200"><p className="text-[10px] font-bold text-amber-700 uppercase mb-1">Notas</p><p className="text-slate-800">{selectedTrip.notes}</p></div>}
               <TripEvolutionLog tripId={selectedTrip.id} />
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

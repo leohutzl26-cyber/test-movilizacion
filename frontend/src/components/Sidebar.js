@@ -184,17 +184,19 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         </div>
       </div>
 
-      <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Cambiar Contraseña</DialogTitle></DialogHeader>
-          <form onSubmit={handlePasswordChange} className="space-y-4 pt-2">
-            <div className="space-y-2"><Label>Contraseña Actual</Label><Input type="password" value={pwdForm.current_password} onChange={(e) => setPwdForm({ ...pwdForm, current_password: e.target.value })} required /></div>
-            <div className="space-y-2"><Label>Nueva Contraseña</Label><Input type="password" value={pwdForm.new_password} onChange={(e) => setPwdForm({ ...pwdForm, new_password: e.target.value })} required /></div>
-            <div className="space-y-2"><Label>Confirmar Nueva Contraseña</Label><Input type="password" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({ ...pwdForm, confirm_password: e.target.value })} required /></div>
-            <DialogFooter className="mt-6"><Button type="button" variant="outline" onClick={() => setPasswordDialog(false)}>Cancelar</Button><Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>{loading ? "Actualizando..." : "Actualizar Contraseña"}</Button></DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {passwordDialog && (
+        <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader><DialogTitle>Cambiar Contraseña</DialogTitle></DialogHeader>
+            <form onSubmit={handlePasswordChange} className="space-y-4 pt-2">
+              <div className="space-y-2"><Label>Contraseña Actual</Label><Input type="password" value={pwdForm.current_password} onChange={(e) => setPwdForm({ ...pwdForm, current_password: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Nueva Contraseña</Label><Input type="password" value={pwdForm.new_password} onChange={(e) => setPwdForm({ ...pwdForm, new_password: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Confirmar Nueva Contraseña</Label><Input type="password" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({ ...pwdForm, confirm_password: e.target.value })} required /></div>
+              <DialogFooter className="mt-6"><Button type="button" variant="outline" onClick={() => setPasswordDialog(false)}>Cancelar</Button><Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>{loading ? "Actualizando..." : "Actualizar Contraseña"}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
