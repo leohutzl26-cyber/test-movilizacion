@@ -1,6 +1,51 @@
 import supabaseApi from './supabase-api';
 import { supabase } from './supabase';
 
+const getCurrentUserSession = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      return {
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.name || session.user.email
+        }
+      };
+    }
+  } catch (e) {
+    console.warn("supabase.auth.getSession() failed, falling back to localStorage JWT:", e);
+  }
+
+  try {
+    const token = localStorage.getItem('supabase.auth.token');
+    if (token) {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payloadText = atob(parts[1]);
+        const payload = JSON.parse(payloadText);
+        
+        if (payload.exp && Date.now() >= payload.exp * 1000) {
+          localStorage.removeItem('supabase.auth.token');
+          throw new Error("Token expired");
+        }
+
+        return {
+          user: {
+            id: payload.userId,
+            email: payload.email,
+            name: payload.name || payload.email
+          }
+        };
+      }
+    }
+  } catch (e) {
+    console.error("Error decoding custom JWT token from localStorage:", e);
+  }
+
+  throw new Error("No session");
+};
+
 const generateFolio = () => `TR-${Math.floor(Math.random() * 1000000)}`;
 
 const formatValue = (key, val) => {
@@ -34,8 +79,7 @@ const api = {
 
       switch (baseUrl) {
         case "/auth/me": {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) throw new Error("No session");
+          const session = await getCurrentUserSession();
           const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           return { data: profile };
         }
@@ -60,20 +104,19 @@ const api = {
         }
 
         case "/trips/user": {
-          const { data: { session: userSession } } = await supabase.auth.getSession();
-          const userTrips = await supabaseApi.trips.getTrips({ requester_id: userSession?.user?.id });
+          const session = await getCurrentUserSession();
+          const userTrips = await supabaseApi.trips.getTrips({ requester_id: session.user.id });
           return { data: userTrips };
         }
 
         case "/trips/driver": {
-          const { data: { session: driverSession } } = await supabase.auth.getSession();
-          const driverTrips = await supabaseApi.trips.getTrips({ driver_id: driverSession?.user?.id });
+          const session = await getCurrentUserSession();
+          const driverTrips = await supabaseApi.trips.getTrips({ driver_id: session.user.id });
           return { data: driverTrips };
         }
 
         case "/trips/v2/history": {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) throw new Error("No session");
+          const session = await getCurrentUserSession();
           const driverId = session.user.id;
           const historyTrips = await supabaseApi.trips.getTrips({
             driver_id: driverId,
@@ -218,18 +261,10 @@ const api = {
         case "/trips": {
           let currentUserId = null;
           try {
-            const token = localStorage.getItem('supabase.auth.token');
-            if (token) {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              currentUserId = payload.userId;
-            }
+            const session = await getCurrentUserSession();
+            currentUserId = session.user.id;
           } catch (e) {
-            console.error("Error decoding token in api.js", e);
-          }
-          
-          if (!currentUserId) {
-            const { data: { session: tripsSession } } = await supabase.auth.getSession();
-            currentUserId = tripsSession?.user?.id;
+            console.error("Error getting session in /trips GET", e);
           }
           
           const userTrips = await supabaseApi.trips.getTrips(currentUserId ? { requester_id: currentUserId } : {});
@@ -263,18 +298,10 @@ const api = {
         case "/trips": {
           let currentUserId = null;
           try {
-            const token = localStorage.getItem('supabase.auth.token');
-            if (token) {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              currentUserId = payload.userId;
-            }
+            const session = await getCurrentUserSession();
+            currentUserId = session.user.id;
           } catch (e) {
-            console.error("Error decoding token in api.js POST", e);
-          }
-
-          if (!currentUserId) {
-             const { data: { session } } = await supabase.auth.getSession();
-             currentUserId = session?.user?.id;
+            console.error("Error getting session in /trips POST", e);
           }
 
           const tripData = {
@@ -342,8 +369,7 @@ const api = {
         if (parts[3] === "manager-assign") {
           return { data: await supabaseApi.trips.assignDriver(tripId, data.driver_id, data.vehicle_id) };
         } else if (parts[3] === "assign") {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) throw new Error("No session");
+          const session = await getCurrentUserSession();
           const driverId = session.user.id;
           
           const { data: profile, error: profileErr } = await supabase
