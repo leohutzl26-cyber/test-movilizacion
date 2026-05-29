@@ -71,6 +71,17 @@ const api = {
           return { data: driverTrips };
         }
 
+        case "/trips/v2/history": {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error("No session");
+          const driverId = session.user.id;
+          const historyTrips = await supabaseApi.trips.getTrips({
+            driver_id: driverId,
+            status: ['completado', 'cancelado']
+          });
+          return { data: { trips: historyTrips || [] } };
+        }
+
         case "/trips/pool": {
           const poolTrips = await supabaseApi.trips.getTripPool();
           return { data: poolTrips };
@@ -330,6 +341,23 @@ const api = {
 
         if (parts[3] === "manager-assign") {
           return { data: await supabaseApi.trips.assignDriver(tripId, data.driver_id, data.vehicle_id) };
+        } else if (parts[3] === "assign") {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error("No session");
+          const driverId = session.user.id;
+          
+          const { data: profile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('vehicle_id')
+            .eq('id', driverId)
+            .single();
+          
+          if (profileErr) {
+            console.error("Error fetching driver profile:", profileErr);
+          }
+          
+          const vehicleId = profile?.vehicle_id || null;
+          return { data: await supabaseApi.trips.assignDriver(tripId, driverId, vehicleId) };
         } else if (parts[3] === "unassign") {
           return {
             data: await supabaseApi.trips.updateTrip(tripId, {

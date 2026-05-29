@@ -263,7 +263,7 @@ function MyTripsSection() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [t, v] = await Promise.all([api.get("/trips"), api.get("/vehicles")]);
+      const [t, v] = await Promise.all([api.get("/trips/driver"), api.get("/vehicles")]);
       console.log("My trips data:", t.data);
       console.log("Filtered trips:", (t.data || []).filter(tr => ["asignado", "en_curso"].includes(tr.status)));
       setTrips((t.data || []).filter(tr => ["asignado", "en_curso"].includes(tr.status)));
@@ -677,7 +677,7 @@ function LogbookSection() {
       try {
         const [vRes, tRes] = await Promise.all([
           api.get("/vehicles"),
-          api.get("/trips")
+          api.get("/trips/driver")
         ]);
         setVehicles(vRes.data || []);
         const currentTrip = (tRes.data || []).find(t => t.status === "en_curso");
