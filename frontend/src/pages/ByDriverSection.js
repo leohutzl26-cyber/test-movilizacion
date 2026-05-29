@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle, Car, Bus, Siren } from "lucide-react";
+import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle, Car, Bus, Siren, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -25,6 +25,20 @@ export default function ByDriverSection() {
     const [data, setData] = useState([]);
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [loading, setLoading] = useState(true);
+
+    const handlePrevDay = () => {
+        setLoading(true);
+        const current = new Date(date + "T12:00:00");
+        current.setDate(current.getDate() - 1);
+        setDate(current.toISOString().split("T")[0]);
+    };
+
+    const handleNextDay = () => {
+        setLoading(true);
+        const current = new Date(date + "T12:00:00");
+        current.setDate(current.getDate() + 1);
+        setDate(current.toISOString().split("T")[0]);
+    };
 
     const fetchBoard = useCallback(async () => {
         try {
@@ -82,9 +96,17 @@ export default function ByDriverSection() {
         <div className="animate-slide-up">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3"><Users className="w-8 h-8 text-teal-600" /> Pizarra Gráfica (Conductores)</h1>
-                <div className="flex items-center gap-2 bg-white rounded-lg shadow-sm border border-slate-200 px-3 py-1">
-                    <CalendarIcon className="w-4 h-4 text-slate-500" />
-                    <Input type="date" value={date} onChange={e => { setLoading(true); setDate(e.target.value); }} className="border-0 shadow-none focus-visible:ring-0 w-auto" />
+                <div className="flex items-center gap-1 bg-white rounded-xl shadow-sm border border-slate-200 p-1">
+                    <button onClick={handlePrevDay} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" title="Día Anterior">
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <div className="flex items-center gap-2 px-2 py-1">
+                        <CalendarIcon className="w-4 h-4 text-slate-500" />
+                        <Input type="date" value={date} onChange={e => { setLoading(true); setDate(e.target.value); }} className="border-0 shadow-none focus-visible:ring-0 w-auto p-0 h-auto text-xs font-bold text-slate-700 bg-transparent cursor-pointer" />
+                    </div>
+                    <button onClick={handleNextDay} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" title="Día Siguiente">
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 

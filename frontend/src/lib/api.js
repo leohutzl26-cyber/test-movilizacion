@@ -96,12 +96,11 @@ const api = {
         case "/trips/by-driver": {
           const targetDate = queryParams.date || new Date().toISOString().split('T')[0];
           
-          // 1. Obtener todos los conductores aprobados
+          // 1. Obtener todos los conductores
           const { data: drivers, error: driversError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('role', 'conductor')
-            .eq('status', 'approved');
+            .eq('role', 'conductor');
           
           if (driversError) throw driversError;
           
@@ -174,12 +173,11 @@ const api = {
             t.vehicle_type = tVeh ? tVeh.type : 'Auto/SUV';
           });
           
-          if (unassignedTrips.length > 0 || res.length === 0) {
-            res.push({
-              driver: { id: "unassigned", name: "Sin Conductor" },
-              trips: unassignedTrips
-            });
-          }
+          // Agregar la columna "Sin Conductor" al principio del listado de forma permanente
+          res.unshift({
+            driver: { id: "unassigned", name: "Sin Conductor" },
+            trips: unassignedTrips
+          });
           
           return { data: res };
         }
