@@ -759,6 +759,8 @@ function AssignSection() {
     };
 
     const filteredTrips = filter === "all" ? trips : trips.filter(t => t.status === filter);
+    const clinicalTrips = filteredTrips.filter(t => t.trip_type === "clinico");
+    const nonClinicalTrips = filteredTrips.filter(t => t.trip_type !== "clinico");
 
     if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
@@ -771,47 +773,90 @@ function AssignSection() {
                 ))}
             </div>
             
-            <div className="grid grid-cols-1 gap-4">
-                {filteredTrips.map(t => (
-                    <Card key={t.id} className="card-hover border-l-4 border-l-teal-500 shadow-md bg-white">
-                        <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            {(() => {
+                const renderTripCard = (t) => (
+                    <Card key={t.id} className={`card-hover border-l-4 shadow-md bg-white transition-all duration-300 ${t.trip_type === "clinico" ? "border-l-teal-500" : "border-l-indigo-400"}`}>
+                        <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex-1 min-w-0" onClick={() => setDetailTrip(t)}>
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                     <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">#{t.tracking_number}</span>
-                                    <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-xs uppercase font-bold px-2.5 py-1 rounded-full shadow-sm`}>{(t.status || "").replace(/_/g, " ")}</Badge>
-                                    <Badge className={`${pColors[t.priority] || pColors.normal} border-none text-xs uppercase font-bold px-2.5 py-1 rounded-full shadow-sm`}>{t.priority}</Badge>
-                                    <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+                                    <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm`}>{(t.status || "").replace(/_/g, " ")}</Badge>
+                                    <Badge className={`${pColors[t.priority] || pColors.normal} border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm`}>{t.priority}</Badge>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
                                 </div>
-                                <h4 className="text-base font-bold text-slate-900 uppercase truncate mb-2">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
-                                <div className="flex items-center gap-4 text-xs font-bold text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-teal-600" /> {t.origin}</div>
-                                    <ArrowRight className="w-3 h-3 text-slate-400" />
-                                    <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-blue-600" /> {t.destination}</div>
+                                <h4 className="text-sm font-black text-slate-900 uppercase truncate mb-2">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
+                                <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" /> <span className="truncate">{t.origin}</span></div>
+                                    <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" /> <span className="truncate">{t.destination}</span></div>
                                 </div>
                             </div>
                             
-                            <div className="flex md:flex-col gap-2 shrink-0 w-full md:w-[160px]">
+                            <div className="flex md:flex-col gap-2 shrink-0 w-full md:w-[140px]">
                                 {t.driver_name ? (
-                                    <div className="flex flex-col gap-1 w-full bg-teal-50 p-2 rounded-xl border border-teal-100 mb-1">
-                                        <p className="text-[9px] font-black text-teal-800 uppercase tracking-widest leading-none">Asignado a:</p>
-                                        <p className="text-xs font-black text-teal-900 leading-tight">{t.driver_name}</p>
-                                        <p className="text-[9px] font-bold text-teal-600/70 font-mono uppercase">{t.vehicle_plate || "Sin Móvil"}</p>
+                                    <div className="flex flex-col gap-0.5 w-full bg-teal-50/50 p-2 rounded-xl border border-teal-100 mb-1 text-[10px]">
+                                        <p className="text-[8px] font-black text-teal-800 uppercase tracking-widest leading-none">Asignado:</p>
+                                        <p className="font-black text-teal-900 leading-tight truncate">{t.driver_name}</p>
+                                        <p className="text-[8px] font-bold text-teal-600/70 font-mono uppercase leading-none mt-0.5">{t.vehicle_plate || "Sin Móvil"}</p>
                                     </div>
                                 ) : null}
-                                <Button onClick={() => setAssignDialog(t)} className={`h-11 w-full font-black uppercase text-[10px] shadow-lg rounded-xl transition-all active:scale-95 ${t.driver_id ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"}`}>
-                                    <ClipboardList className="w-4 h-4 mr-2" />{t.driver_id ? "Reasignar" : "Asignar Móvil"}
+                                <Button onClick={() => setAssignDialog(t)} className={`h-9 w-full font-black uppercase text-[9px] shadow-md rounded-xl transition-all active:scale-95 ${t.driver_id ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"}`}>
+                                    <ClipboardList className="w-3.5 h-3.5 mr-1.5" />{t.driver_id ? "Reasignar" : "Asignar"}
                                 </Button>
                                 {t.driver_id && t.status === "asignado" && (
-                                    <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-10 w-full font-black uppercase text-[10px] text-red-600 border-red-100 hover:bg-red-50 rounded-xl transition-all">
-                                        <RotateCcw className="w-4 h-4 mr-2" /> Quitar Conductor
+                                    <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-8 w-full font-black uppercase text-[9px] text-red-600 border-red-100 hover:bg-red-50 rounded-xl transition-all">
+                                        <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Quitar
                                     </Button>
                                 )}
                             </div>
                         </CardContent>
                     </Card>
-                ))}
-                {filteredTrips.length === 0 && <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest leading-none">Sin traslados en esta categoría</div>}
-            </div>
+                );
+
+                return (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Columna Traslados Clínicos */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b-2 border-teal-100 pb-2.5">
+                                <h2 className="text-sm font-black text-teal-800 flex items-center gap-2 uppercase tracking-widest">
+                                    <Stethoscope className="w-5 h-5 text-teal-600" /> Clínicos
+                                </h2>
+                                <Badge className="bg-teal-100 text-teal-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
+                                    {clinicalTrips.length} activos
+                                </Badge>
+                            </div>
+                            <div className="space-y-3">
+                                {clinicalTrips.map(renderTripCard)}
+                                {clinicalTrips.length === 0 && (
+                                    <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Sin traslados clínicos activos
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Columna Traslados No Clínicos */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-2.5">
+                                <h2 className="text-sm font-black text-indigo-900 flex items-center gap-2 uppercase tracking-widest">
+                                    <Truck className="w-5 h-5 text-indigo-600" /> No Clínicos
+                                </h2>
+                                <Badge className="bg-indigo-100 text-indigo-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
+                                    {nonClinicalTrips.length} activos
+                                </Badge>
+                            </div>
+                            <div className="space-y-3">
+                                {nonClinicalTrips.map(renderTripCard)}
+                                {nonClinicalTrips.length === 0 && (
+                                    <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Sin traslados no clínicos activos
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchAll} />
 
