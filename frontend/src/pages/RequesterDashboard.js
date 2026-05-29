@@ -15,7 +15,7 @@ import TripEvolutionLog from "@/components/TripEvolutionLog";
 // ========== RUT VALIDATION (MÓDULO 11) ==========
 function validateRut(rut) {
   const clean = rut.replace(/\./g, "").replace(/-/g, "").toUpperCase().trim();
-  if (clean.length < 2) return { valid: false, formatted: rut };
+  if (clean.length < 2) return { valid: false, formatted: clean };
   const body = clean.slice(0, -1);
   const dv = clean.slice(-1);
   if (!/^\d+$/.test(body)) return { valid: false, formatted: rut };
@@ -28,12 +28,8 @@ function validateRut(rut) {
   const expected = remainder === 11 ? "0" : remainder === 10 ? "K" : String(remainder);
   const valid = dv === expected;
   // Format: XX.XXX.XXX-X
-  let formatted = "";
-  for (let i = body.length - 1, count = 0; i >= 0; i--, count++) {
-    if (count > 0 && count % 3 === 0) formatted = "." + formatted;
-    formatted = body[i] + formatted;
-  }
-  return { valid, formatted: `${formatted}-${expected}` };
+  let formatted = body.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+  return { valid, formatted: `${formatted}-${dv}` };
 }
 
 const defaultForm = {
@@ -149,9 +145,14 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
 
   // RUT validation on change
   const handleRutChange = (value) => {
-    setForm({ ...form, rut: value });
+    if (!value) {
+      setForm({ ...form, rut: "" });
+      setRutStatus(null);
+      return;
+    }
+    const result = validateRut(value);
+    setForm({ ...form, rut: result.formatted });
     if (value.trim().length >= 2) {
-      const result = validateRut(value);
       setRutStatus(result);
     } else {
       setRutStatus(null);

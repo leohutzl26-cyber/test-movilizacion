@@ -398,6 +398,16 @@ function NewTripSection() {
   const rOpt = ["Camilla", "Incubadora", "Silla de rueda", "Oxigeno", "Monitor", "Aislamiento Aéreo", "Aislamiento Contacto", "Aislamiento Protector", "Dependiente severo"];
   const tOpt = ["Examen", "Hospitalización", "Dialisis", "Rescate", "Alta", "Procedimiento"];
 
+  const validateRut = (value) => {
+    const clean = value.replace(/\./g, "").replace(/-/g, "").toUpperCase().trim();
+    if (clean.length < 2) return clean;
+    const body = clean.slice(0, -1);
+    const dv = clean.slice(-1);
+    if (!/^\d+$/.test(body)) return value;
+    const formatted = body.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+    return `${formatted}-${dv}`;
+  };
+
   const handleCB = (field, val) => { setF(p => ({ ...p, [field]: p[field].includes(val) ? p[field].filter(i => i !== val) : [...p[field], val] })); };
 
   const handleSubmit = async (e) => {
@@ -423,7 +433,7 @@ function NewTripSection() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {tripType === "clinico" && (
             <><h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2"><User className="w-5 h-5" /> Datos Paciente</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="space-y-1"><Label>Nombre *</Label><Input value={f.patient_name} onChange={e => setF({ ...f, patient_name: e.target.value })} /></div><div className="space-y-1"><Label>RUT</Label><Input value={f.rut} onChange={e => setF({ ...f, rut: e.target.value })} /></div><div className="space-y-1"><Label>Edad</Label><Input value={f.age} onChange={e => setF({ ...f, age: e.target.value })} /></div><div className="space-y-1"><Label>Peso</Label><Input value={f.weight} onChange={e => setF({ ...f, weight: e.target.value })} /></div><div className="space-y-1 md:col-span-2"><Label>Diagnóstico</Label><Input value={f.diagnosis} onChange={e => setF({ ...f, diagnosis: e.target.value })} /></div></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="space-y-1"><Label>Nombre *</Label><Input value={f.patient_name} onChange={e => setF({ ...f, patient_name: e.target.value })} /></div><div className="space-y-1"><Label>RUT</Label><Input value={f.rut} onChange={e => setF({ ...f, rut: validateRut(e.target.value) })} /></div><div className="space-y-1"><Label>Edad</Label><Input value={f.age} onChange={e => setF({ ...f, age: e.target.value })} /></div><div className="space-y-1"><Label>Peso</Label><Input value={f.weight} onChange={e => setF({ ...f, weight: e.target.value })} /></div><div className="space-y-1 md:col-span-2"><Label>Diagnóstico</Label><Input value={f.diagnosis} onChange={e => setF({ ...f, diagnosis: e.target.value })} /></div></div>
               <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 mt-8 flex items-center gap-2"><Activity className="w-5 h-5" /> Detalles Médicos</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="space-y-1"><Label>Solicitante Clínico *</Label><Input value={f.requester_person} onChange={e => setF({ ...f, requester_person: e.target.value })} /></div><div className="space-y-1"><Label>Médico Tratante</Label><Input value={f.attending_physician} onChange={e => setF({ ...f, attending_physician: e.target.value })} /></div><div className="space-y-1"><Label>Motivo *</Label><Select value={f.transfer_reason} onValueChange={v => setF({ ...f, transfer_reason: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{tOpt.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select></div></div></>
           )}

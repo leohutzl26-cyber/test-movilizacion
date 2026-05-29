@@ -1609,7 +1609,7 @@ function GestorNewTripSection() {
 
   const validateRut = (value) => {
     let clean = value.replace(/\./g, "").replace(/-/g, "").toUpperCase();
-    if (clean.length < 2) return { valid: false, formatted: value };
+    if (clean.length < 2) return { valid: false, formatted: clean };
     let body = clean.slice(0, -1);
     let dv = clean.slice(-1);
     if (!/^\d+$/.test(body)) return { valid: false, formatted: value };
