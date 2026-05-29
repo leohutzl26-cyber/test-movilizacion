@@ -127,7 +127,7 @@ const api = {
 
         case "/trips/pool": {
           const poolTrips = await supabaseApi.trips.getTripPool();
-          return { data: poolTrips };
+          return { data: (poolTrips || []).filter(t => !t.driver_id) };
         }
 
         case "/drivers": {
@@ -374,7 +374,7 @@ const api = {
           
           const { data: profile, error: profileErr } = await supabase
             .from('profiles')
-            .select('vehicle_id')
+            .select('vehicle_plate')
             .eq('id', driverId)
             .single();
           
@@ -382,7 +382,21 @@ const api = {
             console.error("Error fetching driver profile:", profileErr);
           }
           
-          const vehicleId = profile?.vehicle_id || null;
+          let vehicleId = null;
+          if (profile?.vehicle_plate) {
+            const { data: vehicle, error: vehicleErr } = await supabase
+              .from('vehicles')
+              .select('id')
+              .eq('plate', profile.vehicle_plate)
+              .single();
+            
+            if (vehicleErr) {
+              console.error("Error fetching vehicle by plate:", vehicleErr);
+            } else if (vehicle) {
+              vehicleId = vehicle.id;
+            }
+          }
+          
           return { data: await supabaseApi.trips.assignDriver(tripId, driverId, vehicleId) };
         } else if (parts[3] === "unassign") {
           return {
