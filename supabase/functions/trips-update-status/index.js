@@ -7,7 +7,7 @@ const supabase = createClient(
 
 exports.handler = async (event, context) => {
   try {
-    const { trip_id, status, mileage, cancel_reason } = JSON.parse(event.body);
+    const { trip_id, status, mileage, cancel_reason, vehicle_id } = JSON.parse(event.body);
     const userId = context.user?.id;
     const userRole = context.user?.role;
 
@@ -55,6 +55,21 @@ exports.handler = async (event, context) => {
       cancel_reason: status === 'cancelado' ? cancel_reason : null
     };
 
+    // Handle vehicle assignment when starting/taking a trip
+    const activeVehicleId = vehicle_id || currentTrip.vehicle_id;
+    if (vehicle_id) {
+      updateData.vehicle_id = vehicle_id;
+      const { data: vehicle } = await supabase
+        .from('vehicles')
+        .select('plate')
+        .eq('id', vehicle_id)
+        .single();
+      
+      if (vehicle) {
+        updateData.vehicle_plate = vehicle.plate;
+      }
+    }
+
     // Handle mileage tracking
     if (mileage !== undefined) {
       if (status === 'en_curso') {
@@ -80,6 +95,34 @@ exports.handler = async (event, context) => {
         statusCode: 400,
         body: JSON.stringify({ error: updateError.message })
       };
+    }
+
+    // Update vehicle status in vehicles table
+    if (activeVehicleId) {
+      if (status === 'en_curso') {
+        await supabase
+          .from('vehicles')
+          .update({
+            status: 'en_curso',
+            mileage: mileage !== undefined ? mileage : currentTrip.start_mileage || 0
+          })
+          .eq('id', activeVehicleId);
+      } else if (status === 'completado') {
+        await supabase
+          .from('vehicles')
+          .update({
+            status: 'disponible',
+            mileage: mileage !== undefined ? mileage : currentTrip.end_mileage || 0
+          })
+          .eq('id', activeVehicleId);
+      } else if (status === 'cancelado' || status === 'pendiente') {
+        await supabase
+          .from('vehicles')
+          .update({
+            status: 'disponible'
+          })
+          .eq('id', activeVehicleId);
+      }
     }
 
     // Log the status change
