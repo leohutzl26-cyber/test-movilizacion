@@ -1627,12 +1627,12 @@ function GestorNewTripSection() {
   const handleRutChange = (e) => {
     const val = e.target.value;
     if (!val) {
-      setForm({ ...form, rut: "" });
+      setForm(prev => ({ ...prev, rut: "" }));
       setRutValid(true);
       return;
     }
     const { valid, formatted } = validateRut(val);
-    setForm({ ...form, rut: formatted });
+    setForm(prev => ({ ...prev, rut: formatted }));
     setRutValid(valid);
   };
 

@@ -39,7 +39,7 @@ function validateRut(rut) {
     if (count > 0 && count % 3 === 0) formatted = "." + formatted;
     formatted = body[i] + formatted;
   }
-  return { valid, formatted: `${formatted}-${expected}` };
+  return { valid, formatted: `${formatted}-${dv}` };
 }
 
 const formatScheduledDate = (dateStr) => {
@@ -1362,9 +1362,14 @@ function NewTripSection({ onNavigate }) {
     };
 
     const handleRutChange = (value) => {
-        setForm({ ...form, rut: value });
+        if (!value) {
+            setForm(prev => ({ ...prev, rut: "" }));
+            setRutStatus(null);
+            return;
+        }
+        const result = validateRut(value);
+        setForm(prev => ({ ...prev, rut: result.formatted }));
         if (value.trim().length >= 2) {
-            const result = validateRut(value);
             setRutStatus(result);
         } else {
             setRutStatus(null);

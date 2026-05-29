@@ -146,12 +146,12 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   // RUT validation on change
   const handleRutChange = (value) => {
     if (!value) {
-      setForm({ ...form, rut: "" });
+      setForm(prev => ({ ...prev, rut: "" }));
       setRutStatus(null);
       return;
     }
     const result = validateRut(value);
-    setForm({ ...form, rut: result.formatted });
+    setForm(prev => ({ ...prev, rut: result.formatted }));
     if (value.trim().length >= 2) {
       setRutStatus(result);
     } else {
