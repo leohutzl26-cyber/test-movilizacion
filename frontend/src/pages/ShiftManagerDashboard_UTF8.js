@@ -402,7 +402,6 @@ function DispatchSection() {
     };
 
     const handleEditSubmission = async (e) => {
-
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
@@ -414,6 +413,8 @@ function DispatchSection() {
     };
 
     const filteredTrips = trips.filter(t => t.status === filterStatus);
+    const clinicalTrips = filteredTrips.filter(t => t.trip_type === "clinico");
+    const nonClinicalTrips = filteredTrips.filter(t => t.trip_type !== "clinico");
 
     if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
@@ -427,6 +428,107 @@ function DispatchSection() {
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
             <p className={`text-2xl font-black ${filterStatus === id ? "text-slate-900" : "text-slate-500"}`}>{count}</p>
         </button>
+    );
+
+    const renderTripCard = (t) => (
+        <Card key={t.id} className={`group overflow-hidden border-none shadow-md ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-lg transition-all duration-300 bg-white border-l-4 ${t.trip_type === "clinico" ? "border-l-teal-500" : "border-l-indigo-400"}`}>
+            <CardContent className="p-4 space-y-3">
+                {/* Cabecera de la Tarjeta */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <span 
+                            className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-sm cursor-pointer hover:bg-teal-100 transition-colors"
+                            onClick={() => setDetailTrip(t)}
+                        >
+                            #{t.tracking_number}
+                        </span>
+                        <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm ${t.priority === "urgente" ? "bg-red-500 text-white" : t.priority === "alta" ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>{t.priority}</Badge>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+                </div>
+
+                {/* Título / Paciente / Cometido */}
+                <div className="cursor-pointer" onClick={() => setDetailTrip(t)}>
+                    <h3 className="text-sm font-black text-slate-900 leading-tight uppercase group-hover:text-teal-700 transition-colors truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                            {t.trip_type === "clinico" ? <Stethoscope className="w-2.5 h-2.5 text-teal-600" /> : <Truck className="w-2.5 h-2.5 text-indigo-600" />}
+                            {t.transfer_reason || "Gral."}
+                        </p>
+                        <p className={`text-[9px] font-bold px-1.5 rounded uppercase ${t.trip_type === "clinico" ? "text-teal-600 bg-teal-50" : "text-indigo-600 bg-indigo-50"}`}>{t.trip_type}</p>
+                    </div>
+                </div>
+
+                {/* Ruta (Origen -> Destino) */}
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-[10px] font-bold text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                        <span className="truncate uppercase text-slate-800">{t.origin}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 pl-5 border-l border-dashed border-slate-300">
+                        <ArrowRight className="w-3 h-3 text-blue-500 shrink-0" />
+                        <span className="truncate uppercase text-slate-800">{t.destination}</span>
+                    </div>
+                </div>
+
+                {/* Estado Operativo / Cita */}
+                <div className="grid grid-cols-2 gap-2 text-[10px] font-bold border-t border-slate-100 pt-2.5">
+                    <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
+                            {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-3.5 h-3.5 text-slate-400" />}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Móvil / Cond.</p>
+                            <p className="text-[10px] font-black text-slate-900 leading-none truncate uppercase">{t.driver_name ? t.driver_name.split(' ')[0] : "PDTE."}</p>
+                            {t.vehicle_plate && <p className="text-[8px] font-bold text-teal-600 font-mono leading-none mt-0.5">{t.vehicle_plate}</p>}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 justify-end">
+                        <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Hora Cita</p>
+                            <p className="text-[10px] font-black text-slate-900 leading-none">{t.appointment_time || "--:--"}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="border-t border-slate-100 pt-2.5 flex flex-col gap-1.5">
+                    {["pendiente", "asignado"].includes(t.status) && (
+                        <>
+                            <div className="flex gap-1.5 w-full">
+                                <Button onClick={() => setAssignDialog(t)} className="flex-1 h-8 bg-teal-600 hover:bg-teal-700 text-white text-[9px] font-black uppercase shadow-sm rounded-xl">
+                                    {t.driver_id ? "Reasignar" : "Asignar"}
+                                </Button>
+                                {t.driver_id && t.status === "asignado" && (
+                                    <Button onClick={() => handleUnassign(t.id)} variant="ghost" className="flex-1 h-8 text-[9px] font-black uppercase text-amber-600 hover:bg-amber-50 shadow-sm border border-amber-100 italic rounded-xl">
+                                        <RotateCcw className="w-3 h-3 mr-1" /> Quitar
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex w-full gap-1">
+                                <Button onClick={() => setEditDialog(t)} variant="outline" className="flex-1 h-7 text-[8px] font-black uppercase text-teal-600 border-teal-100 hover:bg-teal-50 rounded-lg" title="Editar Traslado">
+                                    <Edit className="w-3 h-3 mr-1" /> Editar
+                                </Button>
+                                <Button onClick={() => setReturnDialog(t)} variant="outline" className="flex-1 h-7 text-[8px] font-black uppercase text-slate-600 border-slate-200 rounded-lg" title="Devolver al Gestor">
+                                    <RotateCcw className="w-3 h-3 mr-1" /> Devolver
+                                </Button>
+                                <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-7 w-7 p-0 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700 rounded-lg" title="Cancelar Traslado">
+                                    <XCircle className="w-3 h-3" />
+                                </Button>
+                                {user?.role === 'admin' && (
+                                    <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-7 w-7 p-0 text-red-700 border-red-200 bg-red-50 hover:bg-red-100 rounded-lg" title="ELIMINAR PERMANENTEMENTE">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                )}
+                            </div>
+                        </>
+                    )}
+                    {t.status === "en_curso" && <Badge className="w-full justify-center bg-blue-100 text-blue-700 border-none font-black text-[9px] uppercase py-1 shadow-sm rounded-xl">En Ruta</Badge>}
+                    {t.status === "completado" && <Badge className="w-full justify-center bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase py-1 shadow-sm rounded-xl">Finalizado</Badge>}
+                </div>
+            </CardContent>
+        </Card>
     );
 
     return (
@@ -460,101 +562,48 @@ function DispatchSection() {
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
-                    {filteredTrips.map(t => (
-                        <Card key={t.id} className="group overflow-hidden border-none shadow-sm ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-md transition-all bg-white">
-                            <CardContent className="p-0">
-                                <div className="flex flex-col xl:flex-row divide-y xl:divide-y-0 xl:divide-x divide-slate-100">
-                                    {/* INFO PRINCIPAL */}
-                                    <div className="p-4 flex-1 cursor-pointer" onClick={() => setDetailTrip(t)}>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">#{t.tracking_number}</span>
-                                            <Badge className={`text-xs font-bold px-2.5 py-1 uppercase rounded-full border-none shadow-sm ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>{t.priority}</Badge>
-                                            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide ml-auto">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
-                                        </div>
-                                        <h3 className="text-sm font-black text-slate-900 mb-1 leading-tight uppercase group-hover:text-teal-700 transition-colors truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-                                        <div className="flex items-center gap-3">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                                {t.trip_type === "clinico" ? <Stethoscope className="w-2.5 h-2.5" /> : <Truck className="w-2.5 h-2.5" />}
-                                                {t.transfer_reason || "Gral."}
-                                            </p>
-                                            <p className="text-[9px] font-bold text-teal-600 bg-teal-50 px-1.5 rounded uppercase">{t.trip_type}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* RUTA */}
-                                    <div className="p-3 w-full xl:w-72 bg-slate-50/30 flex flex-col justify-center gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="w-3 h-3 text-teal-600 shrink-0" />
-                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Desde</p><p className="text-[11px] font-black text-slate-800 uppercase truncate leading-none">{t.origin}</p></div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <ArrowRight className="w-3 h-3 text-blue-600 shrink-0" />
-                                            <div className="truncate"><p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Hacia</p><p className="text-[11px] font-black text-slate-800 uppercase truncate leading-none">{t.destination}</p></div>
-                                        </div>
-                                    </div>
-
-                                    {/* ESTADO OPERATIVO */}
-                                    <div className="p-3 w-full xl:w-48 bg-white flex flex-col justify-center gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
-                                                {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-4 h-4 text-slate-400" />}
-                                            </div>
-                                            <div className="truncate">
-                                                <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Móvil / Conductor</p>
-                                                <p className="text-xs font-black text-slate-900 leading-none truncate uppercase">{t.driver_name ? t.driver_name.split(' ')[0] : "PENDIENTE"}</p>
-                                                <p className="text-[9px] font-bold text-teal-600 font-mono mt-0.5">{t.vehicle_plate || (t.driver_id ? "S/M" : "")}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                            <div>
-                                                <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Cita</p>
-                                                <p className="text-xs font-black text-slate-900 leading-none">{t.appointment_time || "--:--"}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ACCIONES */}
-                                    <div className="p-3 w-full xl:w-auto bg-slate-50/50 flex flex-row xl:flex-col items-center justify-center gap-1.5 min-w-[140px]">
-                                        {["pendiente", "asignado"].includes(t.status) && (
-                                            <>
-                                                <Button onClick={() => setAssignDialog(t)} className="w-full h-8 bg-teal-600 hover:bg-teal-700 text-white text-[9px] font-black uppercase shadow-sm">
-                                                    {t.driver_id ? "Reasignar" : "Asignar"}
-                                                </Button>
-                                                {t.driver_id && t.status === "asignado" && (
-                                                    <Button onClick={() => handleUnassign(t.id)} variant="ghost" className="w-full h-8 text-[9px] font-black uppercase text-amber-600 hover:bg-amber-50 shadow-sm border border-amber-100 italic">
-                                                        <RotateCcw className="w-3 h-3 mr-1" /> Desasignar
-                                                    </Button>
-                                                )}
-                                                <div className="flex w-full gap-1">
-                                                    <Button onClick={() => setEditDialog(t)} variant="outline" className="flex-1 h-8 text-[9px] font-black uppercase text-teal-600 border-teal-100 hover:bg-teal-50" title="Editar Traslado">
-                                                        <Edit className="w-3 h-3 mr-1" /> Editar
-                                                    </Button>
-                                                    <Button onClick={() => setReturnDialog(t)} variant="outline" className="flex-1 h-8 text-[9px] font-black uppercase text-slate-600 border-slate-200" title="Devolver al Gestor">
-                                                        <RotateCcw className="w-3 h-3 mr-1" /> Devolver
-                                                    </Button>
-                                                    <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-8 w-8 p-0 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700" title="Cancelar Traslado">
-                                                        <XCircle className="w-3 h-3" />
-                                                    </Button>
-                                                    {user?.role === 'admin' && (
-                                                        <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-8 w-8 p-0 text-red-700 border-red-200 bg-red-50 hover:bg-red-100" title="ELIMINAR PERMANENTEMENTE">
-                                                            <Trash2 className="w-3 h-3" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-
-
-                                            </>
-                                        )}
-                                        {t.status === "en_curso" && <Badge className="bg-blue-100 text-blue-700 border-none font-black text-[9px] uppercase">En Ruta</Badge>}
-                                        {t.status === "completado" && <Badge className="bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase">Finalizado</Badge>}
-                                    </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Columna Traslados Clínicos */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b-2 border-teal-100 pb-2.5">
+                            <h2 className="text-sm font-black text-teal-800 flex items-center gap-2 uppercase tracking-widest">
+                                <Stethoscope className="w-5 h-5 text-teal-600" /> Clínicos
+                            </h2>
+                            <Badge className="bg-teal-100 text-teal-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
+                                {clinicalTrips.length} activos
+                            </Badge>
+                        </div>
+                        <div className="space-y-3">
+                            {clinicalTrips.map(renderTripCard)}
+                            {clinicalTrips.length === 0 && (
+                                <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    Sin traslados clínicos activos
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Columna Traslados No Clínicos */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-2.5">
+                            <h2 className="text-sm font-black text-indigo-900 flex items-center gap-2 uppercase tracking-widest">
+                                <Truck className="w-5 h-5 text-indigo-600" /> No Clínicos
+                            </h2>
+                            <Badge className="bg-indigo-100 text-indigo-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
+                                {nonClinicalTrips.length} activos
+                            </Badge>
+                        </div>
+                        <div className="space-y-3">
+                            {nonClinicalTrips.map(renderTripCard)}
+                            {nonClinicalTrips.length === 0 && (
+                                <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    Sin traslados no clínicos activos
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
+            </div>   </div>
             </div>
 
             <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchTrips} />
