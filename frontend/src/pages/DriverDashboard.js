@@ -259,7 +259,7 @@ function MyTripsSection() {
   const [showWarning, setShowWarning] = useState(false);
   const [activeTab, setActiveTab] = useState("hoy");
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA");
 
   const fetchAll = useCallback(async () => {
     try {
@@ -277,8 +277,13 @@ function MyTripsSection() {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
-  const tripsHoy = trips.filter(t => t.scheduled_date === today || t.status === "en_curso");
-  const tripsProgramados = trips.filter(t => t.scheduled_date !== today && t.status !== "en_curso");
+  const cleanDateStr = (dateStr) => {
+    if (!dateStr) return "";
+    return dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+  };
+
+  const tripsHoy = trips.filter(t => cleanDateStr(t.scheduled_date) === today || t.status === "en_curso");
+  const tripsProgramados = trips.filter(t => cleanDateStr(t.scheduled_date) !== today && t.status !== "en_curso");
   const displayTrips = activeTab === "hoy" ? tripsHoy : tripsProgramados;
 
   // FUNCIÓN PARA ABRIR VENTANAS Y LIMPIAR LA MEMORIA SUCIA
@@ -378,7 +383,7 @@ function MyTripsSection() {
 
       <div className="space-y-6">
         {displayTrips.map(t => {
-          const isToday = t.scheduled_date === today || t.status === "en_curso";
+          const isToday = cleanDateStr(t.scheduled_date) === today || t.status === "en_curso";
           return (
           <Card key={t.id} className={`shadow-md border-slate-200 overflow-hidden rounded-xl ${!isToday ? "opacity-80" : ""}`}>
             <CardContent className="p-0">
