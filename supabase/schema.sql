@@ -9,6 +9,8 @@ DROP TABLE IF EXISTS trips CASCADE;
 DROP TABLE IF EXISTS vehicles CASCADE;
 DROP TABLE IF EXISTS clinical_staff CASCADE;
 DROP TABLE IF EXISTS origin_services CASCADE;
+DROP TABLE IF EXISTS origins CASCADE;
+DROP TABLE IF EXISTS destinations CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
 
 -- Create profiles table
@@ -50,6 +52,24 @@ CREATE TABLE vehicles (
 
 -- Create origin_services table
 CREATE TABLE origin_services (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Create origins table
+CREATE TABLE origins (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Create destinations table
+CREATE TABLE destinations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     address TEXT,
@@ -160,6 +180,8 @@ CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE origin_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE origins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE destinations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clinical_staff ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
@@ -181,6 +203,18 @@ CREATE POLICY "Origin services are viewable by everyone" ON origin_services FOR 
 CREATE POLICY "Admins can insert origin services" ON origin_services FOR INSERT WITH CHECK (auth.role() = 'admin');
 CREATE POLICY "Admins can update origin services" ON origin_services FOR UPDATE USING (auth.role() = 'admin');
 CREATE POLICY "Admins can delete origin services" ON origin_services FOR DELETE USING (auth.role() = 'admin');
+
+-- RLS Policies for origins
+CREATE POLICY "Origins are viewable by everyone" ON origins FOR SELECT USING (true);
+CREATE POLICY "Admins can insert origins" ON origins FOR INSERT WITH CHECK (auth.role() = 'admin');
+CREATE POLICY "Admins can update origins" ON origins FOR UPDATE USING (auth.role() = 'admin');
+CREATE POLICY "Admins can delete origins" ON origins FOR DELETE USING (auth.role() = 'admin');
+
+-- RLS Policies for destinations
+CREATE POLICY "Destinations are viewable by everyone" ON destinations FOR SELECT USING (true);
+CREATE POLICY "Admins can insert destinations" ON destinations FOR INSERT WITH CHECK (auth.role() = 'admin');
+CREATE POLICY "Admins can update destinations" ON destinations FOR UPDATE USING (auth.role() = 'admin');
+CREATE POLICY "Admins can delete destinations" ON destinations FOR DELETE USING (auth.role() = 'admin');
 
 -- RLS Policies for clinical_staff
 CREATE POLICY "Clinical staff are viewable by everyone" ON clinical_staff FOR SELECT USING (true);
@@ -231,6 +265,14 @@ CREATE TRIGGER log_origin_services_changes
     AFTER INSERT OR UPDATE OR DELETE ON origin_services
     FOR EACH ROW EXECUTE FUNCTION log_action();
 
+CREATE TRIGGER log_origins_changes
+    AFTER INSERT OR UPDATE OR DELETE ON origins
+    FOR EACH ROW EXECUTE FUNCTION log_action();
+
+CREATE TRIGGER log_destinations_changes
+    AFTER INSERT OR UPDATE OR DELETE ON destinations
+    FOR EACH ROW EXECUTE FUNCTION log_action();
+
 CREATE TRIGGER log_clinical_staff_changes
     AFTER INSERT OR UPDATE OR DELETE ON clinical_staff
     FOR EACH ROW EXECUTE FUNCTION log_action();
@@ -267,5 +309,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_vehicles_updated_at BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_origin_services_updated_at BEFORE UPDATE ON origin_services FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_origins_updated_at BEFORE UPDATE ON origins FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_destinations_updated_at BEFORE UPDATE ON destinations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_clinical_staff_updated_at BEFORE UPDATE ON clinical_staff FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_trips_updated_at BEFORE UPDATE ON trips FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

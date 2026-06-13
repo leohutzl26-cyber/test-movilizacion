@@ -135,6 +135,9 @@ const api = {
           return { data: drivers?.filter(u => u.role === 'conductor') || [] };
         }
 
+        case "/origins":
+          return { data: await supabaseApi.origins.getOrigins() };
+
         case "/destinations":
           return { data: await supabaseApi.destinations.getDestinations() };
 
@@ -311,6 +314,11 @@ const api = {
             scheduled_date: data.scheduled_date || new Date().toISOString().split('T')[0]
           };
           return { data: await supabaseApi.trips.createTrip(tripData) };
+        }
+
+        case "/origins": {
+          const originData = { name: data.name };
+          return { data: await supabaseApi.origins.createOrigin(originData) };
         }
 
         case "/destinations": {
@@ -599,6 +607,18 @@ const api = {
         return { data: await supabaseApi.clinicalStaff.updateClinicalStaff(staffId, data) };
       }
 
+      if (url.startsWith("/destinations/")) {
+        const destId = parts[2];
+        const updateData = { name: data.name };
+        return { data: await supabaseApi.destinations.updateDestination(destId, updateData) };
+      }
+
+      if (url.startsWith("/origins/")) {
+        const originId = parts[2];
+        const updateData = { name: data.name };
+        return { data: await supabaseApi.origins.updateOrigin(originId, updateData) };
+      }
+
       if (url.startsWith("/origin-services/")) {
         const serviceId = parts[2];
         const updateData = { name: data.name };
@@ -647,6 +667,12 @@ const api = {
       if (url.startsWith("/destinations/")) {
         const destId = parts[2];
         await supabaseApi.destinations.deleteDestination(destId);
+        return { data: { success: true } };
+      }
+
+      if (url.startsWith("/origins/")) {
+        const originId = parts[2];
+        await supabaseApi.origins.deleteOrigin(originId);
         return { data: { success: true } };
       }
 

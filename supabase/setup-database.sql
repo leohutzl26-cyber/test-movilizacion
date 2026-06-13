@@ -11,6 +11,8 @@ DROP TABLE IF EXISTS trips CASCADE;
 DROP TABLE IF EXISTS vehicles CASCADE;
 DROP TABLE IF EXISTS clinical_staff CASCADE;
 DROP TABLE IF EXISTS origin_services CASCADE;
+DROP TABLE IF EXISTS origins CASCADE;
+DROP TABLE IF EXISTS destinations CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
 
 -- Create profiles table
@@ -51,6 +53,24 @@ CREATE TABLE vehicles (
 
 -- Create origin_services table
 CREATE TABLE origin_services (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Create origins table
+CREATE TABLE origins (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Create destinations table
+CREATE TABLE destinations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     address TEXT,
@@ -161,6 +181,8 @@ CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE origin_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE origins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE destinations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clinical_staff ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
@@ -189,6 +211,36 @@ CREATE POLICY "Gestores and Admins can update origin services" ON origin_service
 );
 
 CREATE POLICY "Gestores and Admins can delete origin services" ON origin_services FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+-- RLS Policies for origins
+CREATE POLICY "Origins are viewable by everyone" ON origins FOR SELECT USING (true);
+
+CREATE POLICY "Gestores and Admins can insert origins" ON origins FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can update origins" ON origins FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can delete origins" ON origins FOR DELETE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+-- RLS Policies for destinations
+CREATE POLICY "Destinations are viewable by everyone" ON destinations FOR SELECT USING (true);
+
+CREATE POLICY "Gestores and Admins can insert destinations" ON destinations FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can update destinations" ON destinations FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
+);
+
+CREATE POLICY "Gestores and Admins can delete destinations" ON destinations FOR DELETE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'gestion_camas'))
 );
 
@@ -250,6 +302,14 @@ CREATE TRIGGER log_origin_services_changes
     AFTER INSERT OR UPDATE OR DELETE ON origin_services
     FOR EACH ROW EXECUTE FUNCTION log_action();
 
+CREATE TRIGGER log_origins_changes
+    AFTER INSERT OR UPDATE OR DELETE ON origins
+    FOR EACH ROW EXECUTE FUNCTION log_action();
+
+CREATE TRIGGER log_destinations_changes
+    AFTER INSERT OR UPDATE OR DELETE ON destinations
+    FOR EACH ROW EXECUTE FUNCTION log_action();
+
 CREATE TRIGGER log_clinical_staff_changes
     AFTER INSERT OR UPDATE OR DELETE ON clinical_staff
     FOR EACH ROW EXECUTE FUNCTION log_action();
@@ -286,6 +346,8 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_vehicles_updated_at BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_origin_services_updated_at BEFORE UPDATE ON origin_services FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_origins_updated_at BEFORE UPDATE ON origins FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_destinations_updated_at BEFORE UPDATE ON destinations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_clinical_staff_updated_at BEFORE UPDATE ON clinical_staff FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_trips_updated_at BEFORE UPDATE ON trips FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -301,11 +363,19 @@ INSERT INTO vehicles (plate, brand, model, type, year, mileage, status) VALUES
 ('DEF-456', 'Ford', 'Transit', 'Van', 2023, 12000, 'disponible'),
 ('GHI-789', 'Mercedes', 'Sprinter', 'Van', 2024, 3000, 'en_mantenimiento');
 
-INSERT INTO origin_services (name, address) VALUES 
+INSERT INTO origins (name, address) VALUES 
 ('Hospital Central', 'Av. Libertador Bernardo O''Higgins 1234, Santiago'),
+('Bodega Central', 'Calle Ficticia 123, Santiago');
+
+INSERT INTO destinations (name, address) VALUES 
 ('Clínica Las Condes', 'Av. Las Condes 763, Las Condes, Santiago'),
-('Bodega Central', 'Calle Ficticia 123, Santiago'),
 ('Laboratorio Central', 'Av. Providencia 1234, Providencia, Santiago');
+
+INSERT INTO origin_services (name, address) VALUES 
+('Urgencias', 'Piso 1, Sector A'),
+('UCI Adulto', 'Piso 3, Sector B'),
+('Pabellón', 'Piso 2, Sector Quirúrgico'),
+('Maternidad', 'Piso 4, Sector C');
 
 INSERT INTO clinical_staff (name, role, is_active) VALUES 
 ('Dr. García', 'Médico', true),

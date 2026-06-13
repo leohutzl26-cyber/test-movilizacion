@@ -32,6 +32,7 @@ export default function AdminDashboard() {
       <main className="flex-1 lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
         {section === "dashboard" && <AdminOverview onNavigate={setSection} />}
         {section === "users" && <UsersManager />}
+        {section === "origins" && <OriginsManager />}
         {section === "destinations" && <DestinationsManager />}
         {section === "audit" && <AuditLogs />}
         {section === "trips" && <TripsManager />}
@@ -212,7 +213,7 @@ function DestinationsManager() {
   const [name, setName] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const fetchDests = useCallback(async () => {
-    const { data } = await supabase.from('origin_services').select('*').order('name');
+    const { data } = await supabase.from('destinations').select('*').order('name');
     if (data) setDests(data || []);
   }, []);
   useEffect(() => { fetchDests(); }, [fetchDests]);
@@ -220,29 +221,29 @@ function DestinationsManager() {
   const handleAdd = async (e) => {
     e.preventDefault(); if(!name.trim()) return;
     try { 
-      await supabase.from('origin_services').insert([{ name }]);
+      await supabase.from('destinations').insert([{ name }]);
       setName(""); fetchDests(); toast.success("Destino agregado"); 
     } catch (e) { toast.error("Error al agregar"); }
   };
   
   const handleDelete = async (id) => {
-    try { await supabase.from('origin_services').delete().eq('id', id); fetchDests(); toast.success("Eliminado"); } 
+    try { await supabase.from('destinations').delete().eq('id', id); fetchDests(); toast.success("Eliminado"); } 
     catch (e) { toast.error("Error al eliminar"); }
   };
 
   const handleBulkImport = async (rows) => {
     const inserts = rows.map(r => ({ name: r.nombre }));
-    const { error } = await supabase.from('origin_services').insert(inserts);
+    const { error } = await supabase.from('destinations').insert(inserts);
     if (error) throw error;
     fetchDests();
   };
 
   return (
     <div className="max-w-4xl mx-auto animate-slide-up">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Puntos Frecuentes (Orígenes/Destinos)</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Puntos Frecuentes (Destinos)</h1>
       <Card className="mb-6 shadow-sm"><CardContent className="p-5">
         <form onSubmit={handleAdd} className="flex gap-3 items-end">
-          <div className="flex-1 space-y-2"><Label className="font-bold">Nombre del Destino</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Hospital Base, Cesfam X..." className="h-11" /></div>
+          <div className="flex-1 space-y-2"><Label className="font-bold">Nombre del Destino</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Clínica Las Condes, Laboratorio Central..." className="h-11" /></div>
           <Button type="submit" className="h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold">Agregar a Lista</Button>
           <Button type="button" variant="outline" onClick={() => setBulkOpen(true)} className="h-11 font-bold border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-2" />Carga Masiva</Button>
         </form>
@@ -261,7 +262,67 @@ function DestinationsManager() {
         title="Carga Masiva de Destinos"
         columns={[{ key: "nombre", label: "Nombre del Destino", required: true }]}
         onImport={handleBulkImport}
-        exampleRows={[["Hospital Base"], ["Cesfam Norte"], ["Clínica Privada"]]}
+        exampleRows={[["Clínica Las Condes"], ["Laboratorio Central"]]}
+      />
+    </div>
+  );
+}
+
+function OriginsManager() {
+  const [origins, setOrigins] = useState([]);
+  const [name, setName] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const fetchOrigins = useCallback(async () => {
+    const { data } = await supabase.from('origins').select('*').order('name');
+    if (data) setOrigins(data || []);
+  }, []);
+  useEffect(() => { fetchOrigins(); }, [fetchOrigins]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault(); if(!name.trim()) return;
+    try { 
+      await supabase.from('origins').insert([{ name }]);
+      setName(""); fetchOrigins(); toast.success("Origen agregado"); 
+    } catch (e) { toast.error("Error al agregar"); }
+  };
+  
+  const handleDelete = async (id) => {
+    try { await supabase.from('origins').delete().eq('id', id); fetchOrigins(); toast.success("Eliminado"); } 
+    catch (e) { toast.error("Error al eliminar"); }
+  };
+
+  const handleBulkImport = async (rows) => {
+    const inserts = rows.map(r => ({ name: r.nombre }));
+    const { error } = await supabase.from('origins').insert(inserts);
+    if (error) throw error;
+    fetchOrigins();
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto animate-slide-up">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Puntos Frecuentes (Orígenes)</h1>
+      <Card className="mb-6 shadow-sm"><CardContent className="p-5">
+        <form onSubmit={handleAdd} className="flex gap-3 items-end">
+          <div className="flex-1 space-y-2"><Label className="font-bold">Nombre del Origen</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Hospital Central, Bodega Central..." className="h-11" /></div>
+          <Button type="submit" className="h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold">Agregar a Lista</Button>
+          <Button type="button" variant="outline" onClick={() => setBulkOpen(true)} className="h-11 font-bold border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-2" />Carga Masiva</Button>
+        </form>
+      </CardContent></Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {origins.map(o => (
+          <div key={o.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center group hover:border-teal-300 transition-colors">
+            <span className="font-bold text-slate-700 flex items-center gap-2"><MapPin className="w-4 h-4 text-teal-500"/> {o.name}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" onClick={()=>handleDelete(o.id)}><Trash2 className="w-4 h-4"/></Button>
+          </div>
+        ))}
+      </div>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Orígenes"
+        columns={[{ key: "nombre", label: "Nombre del Origen", required: true }]}
+        onImport={handleBulkImport}
+        exampleRows={[["Hospital Central"], ["Bodega Central"]]}
       />
     </div>
   );

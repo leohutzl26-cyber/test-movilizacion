@@ -24,6 +24,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "users", label: "Usuarios", icon: Users },
       { id: "trips", label: "Gestión de Viajes", icon: FileText },
       { id: "vehicles", label: "Flota", icon: Truck },
+      { id: "origins", label: "Orígenes", icon: MapPin },
       { id: "destinations", label: "Destinos", icon: MapPin },
       { id: "drivers", label: "Conductores", icon: ClipboardList },
       { id: "audit", label: "Auditoría", icon: Shield },
@@ -68,6 +69,8 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         icon: Settings,
         subItems: [
           { id: "staff", label: "Personal Clínico", icon: Users },
+          { id: "origins", label: "Orígenes", icon: MapPin },
+          { id: "destinations", label: "Destinos", icon: MapPin },
           { id: "services", label: "Servicios / Unidades", icon: MapPin },
         ]
       },

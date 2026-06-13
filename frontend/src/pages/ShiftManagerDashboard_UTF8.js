@@ -1516,6 +1516,7 @@ function DriversSection() {
 }
 
 function NewTripSection({ onNavigate }) {
+    const [origins, setOrigins] = useState([]);
     const [destinations, setDestinations] = useState([]);
     const [originServices, setOriginServices] = useState([]);
     const [clinicalStaffOptions, setClinicalStaffOptions] = useState([]);
@@ -1540,6 +1541,7 @@ function NewTripSection({ onNavigate }) {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
+        api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
         api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
         api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
         api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
@@ -1748,7 +1750,7 @@ function NewTripSection({ onNavigate }) {
                                             else { setForm({ ...form, origin: v }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }
                                         }}>
                                             <SelectTrigger className={`h-9 text-xs font-semibold ${errors.origin ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                                            <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
+                                            <SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
                                         </Select>
                                     ) : <Input className={`h-9 text-xs font-semibold ${errors.origin ? "border-red-500 bg-red-50" : ""}`} placeholder="Escriba origen" value={form.origin} onChange={e => { setForm({ ...form, origin: e.target.value }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }} onDoubleClick={() => setUseCustomOrigin(false)} />}
                                 </div>

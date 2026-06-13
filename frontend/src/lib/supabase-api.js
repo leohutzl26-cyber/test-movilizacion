@@ -388,23 +388,23 @@ export const statsApi = {
   }
 };
 
-// Destinations/Origin Services functions
+// Destinations/Origins/Origin Services functions
 export const destinationsApi = {
   getDestinations: async () => {
-    const { data, error } = await supabase.from('origin_services').select('*').order('name');
+    const { data, error } = await supabase.from('destinations').select('*').order('name');
     if (error) throw error;
     return data || [];
   },
 
   createDestination: async (destinationData) => {
-    const { data, error } = await supabase.from('origin_services').insert([destinationData]).select().single();
+    const { data, error } = await supabase.from('destinations').insert([destinationData]).select().single();
     if (error) throw error;
     return data;
   },
 
   updateDestination: async (destinationId, updateData) => {
     const { data, error } = await supabase
-      .from('origin_services')
+      .from('destinations')
       .update(updateData)
       .eq('id', destinationId)
       .select()
@@ -416,9 +416,44 @@ export const destinationsApi = {
 
   deleteDestination: async (destinationId) => {
     const { error } = await supabase
-      .from('origin_services')
+      .from('destinations')
       .delete()
       .eq('id', destinationId);
+    
+    if (error) throw error;
+  }
+};
+
+export const originsApi = {
+  getOrigins: async () => {
+    const { data, error } = await supabase.from('origins').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+  },
+
+  createOrigin: async (originData) => {
+    const { data, error } = await supabase.from('origins').insert([originData]).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateOrigin: async (originId, updateData) => {
+    const { data, error } = await supabase
+      .from('origins')
+      .update(updateData)
+      .eq('id', originId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  deleteOrigin: async (originId) => {
+    const { error } = await supabase
+      .from('origins')
+      .delete()
+      .eq('id', originId);
     
     if (error) throw error;
   }
@@ -540,6 +575,7 @@ export default {
   vehicles: vehiclesApi,
   stats: statsApi,
   destinations: destinationsApi,
+  origins: originsApi,
   originServicesApi: originServicesApi,
   clinicalStaff: clinicalStaffApi,
   auditLogs: auditLogsApi

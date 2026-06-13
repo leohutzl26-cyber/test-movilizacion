@@ -50,13 +50,23 @@ VALUES
   ('DEF-456', 'Ford', 'Transit', 'Van', 2023, 12000, 'disponible'),
   ('GHI-789', 'Mercedes', 'Sprinter', 'Van', 2024, 3000, 'en_mantenimiento');
 
--- Insert test origin services
-INSERT INTO origin_services (name, address) 
+-- Insert test origins, destinations, and origin services
+INSERT INTO origins (name, address) 
 VALUES 
   ('Hospital Central', 'Av. Libertador Bernardo O'Higgins 1234, Santiago'),
+  ('Bodega Central', 'Calle Ficticia 123, Santiago');
+
+INSERT INTO destinations (name, address) 
+VALUES 
   ('Clínica Las Condes', 'Av. Las Condes 763, Las Condes, Santiago'),
-  ('Bodega Central', 'Calle Ficticia 123, Santiago'),
   ('Laboratorio Central', 'Av. Providencia 1234, Providencia, Santiago');
+
+INSERT INTO origin_services (name, address) 
+VALUES 
+  ('Urgencias', 'Piso 1, Sector A'),
+  ('UCI Adulto', 'Piso 3, Sector B'),
+  ('Pabellón', 'Piso 2, Sector Quirúrgico'),
+  ('Maternidad', 'Piso 4, Sector C');
 
 -- Insert test clinical staff
 INSERT INTO clinical_staff (name, role, is_active) 

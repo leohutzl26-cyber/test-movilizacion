@@ -67,6 +67,8 @@ export default function GestionCamasDashboard() {
         {section === "assign" && <AssignPersonnelSection />}
         {section === "new" && <GestorNewTripSection />}
         {section === "staff" && <ClinicalStaffMantenedor />}
+        {section === "origins" && <OriginsMantenedor />}
+        {section === "destinations" && <DestinationsMantenedor />}
         {section === "services" && <OriginServicesMantenedor />}
         {section === "calendar" && <ClinicalCalendarSection />}
         {section === "history" && <ClinicalHistorySection />}
@@ -92,6 +94,7 @@ function AssignPersonnelSection() {
   const [priority, setPriority] = useState("normal");
   const [editData, setEditData] = useState({});
   const [stats, setStats] = useState({ revision: 0, pendiente: 0, asignado: 0, en_curso: 0 });
+  const [origins, setOrigins] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [originServices, setOriginServices] = useState([]);
   const [filterStatus, setFilterStatus] = useState("revision_gestor");
@@ -101,16 +104,18 @@ function AssignPersonnelSection() {
 
   const fetchTripsAndStaff = useCallback(async () => {
     try {
-      const [revTrips, staffInfo, allActive, dests, services] = await Promise.all([
+      const [revTrips, staffInfo, allActive, originsData, dests, services] = await Promise.all([
         api.get("/trips/gestion_revision"),
         api.get("/clinical-staff"),
         api.get("/trips/active"),
+        api.get("/origins"),
         api.get("/destinations"),
         api.get("/origin-services")
       ]);
       
       setTrips(revTrips.data || []);
       setClinicalStaffOptions((staffInfo.data || []).filter(s => s.is_active));
+      setOrigins(originsData.data || []);
       setDestinations(dests.data || []);
       setOriginServices((services.data || []).filter(s => s.is_active !== false));
       
@@ -526,10 +531,10 @@ function AssignPersonnelSection() {
                         <SelectValue placeholder="Seleccione origen" />
                       </SelectTrigger>
                       <SelectContent>
-                        {destinations.map(d => (
-                          <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                        {origins.map(o => (
+                          <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>
                         ))}
-                        {editData.origin && editData.origin !== "none" && !destinations.find(d => d.name === editData.origin) && <SelectItem value={editData.origin}>{editData.origin} (Personalizado)</SelectItem>}
+                        {editData.origin && editData.origin !== "none" && !origins.find(o => o.name === editData.origin) && <SelectItem value={editData.origin}>{editData.origin} (Personalizado)</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1588,6 +1593,7 @@ function OriginServicesMantenedor() {
 // SECCIÓN 7: NUEVA SOLICITUD (GESTOR DE CAMAS)
 // ==========================================
 function GestorNewTripSection() {
+  const [origins, setOrigins] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [originServices, setOriginServices] = useState([]);
   const [clinicalStaffOptions, setClinicalStaffOptions] = useState([]);
@@ -1638,6 +1644,7 @@ function GestorNewTripSection() {
   };
 
   useEffect(() => {
+    api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
     api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
     api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
     api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
@@ -1718,7 +1725,7 @@ function GestorNewTripSection() {
           </div>)}
           {/* Ubicación */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1"><Label>Origen *</Label>{!useCustomOrigin ? <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}</div>
+            <div className="space-y-1"><Label>Origen *</Label>{!useCustomOrigin ? <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}</div>
             <div className="space-y-1"><Label>Destino *</Label>{!useCustomDest ? <Select value={form.destination || undefined} onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}</div>
             {tripType === "clinico" && <>
               <div className="space-y-1"><Label>Servicio de Origen</Label>{!useCustomService ? <Select value={form.patient_unit || undefined} onValueChange={v => v === "otro" ? setUseCustomService(true) : setForm({ ...form, patient_unit: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.patient_unit || ""} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />}</div>
@@ -1981,3 +1988,172 @@ function VehiclesSection() {
         </div>
     );
 }
+
+// ==========================================
+// SECCIÓN 8: MANTENEDOR DE ORÍGENES (GESTOR DE CAMAS)
+// ==========================================
+function OriginsMantenedor() {
+  const [origins, setOrigins] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editingOrigin, setEditingOrigin] = useState(null);
+  const [formData, setFormData] = useState({ name: "", is_active: true });
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrigins = useCallback(async () => {
+    try { const r = await api.get("/origins"); setOrigins(r.data || []); } catch { } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { fetchOrigins(); }, [fetchOrigins]);
+
+  const openCreate = () => { setEditingOrigin(null); setFormData({ name: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (o) => { setEditingOrigin(o); setFormData({ name: o.name, is_active: o.is_active !== false }); setIsDialogOpen(true); };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) { toast.error("Ingrese un nombre"); return; }
+    try {
+      if (editingOrigin) { await api.put(`/origins/${editingOrigin.id}`, formData); toast.success("Origen actualizado"); }
+      else { await api.post("/origins", formData); toast.success("Origen creado"); }
+      setIsDialogOpen(false); fetchOrigins();
+    } catch { toast.error("Error al guardar"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar este origen?")) return;
+    try { await api.delete(`/origins/${id}`); toast.success("Origen eliminado"); fetchOrigins(); } catch { toast.error("Error"); }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto animate-slide-up">
+      <div className="flex justify-between items-center mb-6">
+        <div><h1 className="text-2xl font-black text-slate-900">Mantenedor de Orígenes</h1><p className="text-sm text-slate-500 mt-1">Administre las ubicaciones físicas de origen predefinidas para los traslados.</p></div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-10 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-1" /> Carga Masiva</Button>
+          <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+        </div>
+      </div>
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Origen</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {origins.map(o => (
+                <tr key={o.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-bold text-slate-900">{o.name}</td>
+                  <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(o)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(o.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
+                </tr>
+              ))}
+              {origins.length === 0 && !loading && <tr><td colSpan={2} className="text-center py-12 text-slate-400">No hay orígenes registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingOrigin ? "Editar Origen" : "Nuevo Origen"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Nombre del Origen *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Hospital Central, Bodega Central" /></div>
+          </div>
+          <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingOrigin ? "Guardar Cambios" : "Crear Origen"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Orígenes"
+        columns={[{ key: "nombre", label: "Nombre del Origen", required: true }]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/origins", { name: r.nombre })
+          );
+          await Promise.all(promises);
+          fetchOrigins();
+        }}
+        exampleRows={[["Hospital Central"], ["Bodega Central"]]}
+      />
+    </div>
+  );
+}
+
+// ==========================================
+// SECCIÓN 9: MANTENEDOR DE DESTINOS (GESTOR DE CAMAS)
+// ==========================================
+function DestinationsMantenedor() {
+  const [destinations, setDestinations] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editingDest, setEditingDest] = useState(null);
+  const [formData, setFormData] = useState({ name: "", is_active: true });
+  const [loading, setLoading] = useState(true);
+
+  const fetchDestinations = useCallback(async () => {
+    try { const r = await api.get("/destinations"); setDestinations(r.data || []); } catch { } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { fetchDestinations(); }, [fetchDestinations]);
+
+  const openCreate = () => { setEditingDest(null); setFormData({ name: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (d) => { setEditingDest(d); setFormData({ name: d.name, is_active: d.is_active !== false }); setIsDialogOpen(true); };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) { toast.error("Ingrese un nombre"); return; }
+    try {
+      if (editingDest) { await api.put(`/destinations/${editingDest.id}`, formData); toast.success("Destino actualizado"); }
+      else { await api.post("/destinations", formData); toast.success("Destino creado"); }
+      setIsDialogOpen(false); fetchDestinations();
+    } catch { toast.error("Error al guardar"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar este destino?")) return;
+    try { await api.delete(`/destinations/${id}`); toast.success("Destino eliminado"); fetchDestinations(); } catch { toast.error("Error"); }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto animate-slide-up">
+      <div className="flex justify-between items-center mb-6">
+        <div><h1 className="text-2xl font-black text-slate-900">Mantenedor de Destinos</h1><p className="text-sm text-slate-500 mt-1">Administre las ubicaciones físicas de destino predefinidas para los traslados.</p></div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-10 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-1" /> Carga Masiva</Button>
+          <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+        </div>
+      </div>
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Destino</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {destinations.map(d => (
+                <tr key={d.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-bold text-slate-900">{d.name}</td>
+                  <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(d)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
+                </tr>
+              ))}
+              {destinations.length === 0 && !loading && <tr><td colSpan={2} className="text-center py-12 text-slate-400">No hay destinos registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingDest ? "Editar Destino" : "Nuevo Destino"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Nombre del Destino *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Clínica Las Condes, Laboratorio Central" /></div>
+          </div>
+          <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingDest ? "Guardar Cambios" : "Crear Destino"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Destinos"
+        columns={[{ key: "nombre", label: "Nombre del Destino", required: true }]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/destinations", { name: r.nombre })
+          );
+          await Promise.all(promises);
+          fetchDestinations();
+        }}
+        exampleRows={[["Clínica Las Condes"], ["Laboratorio Central"]]}
+      />
+    </div>
+  );
+}
+
