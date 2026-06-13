@@ -1260,8 +1260,27 @@ function VehiclesSection() {
     const [loading, setLoading] = useState(true);
     const fetchVehicles = useCallback(async () => { 
         try { 
-            const r = await api.get("/vehicles"); 
-            setVehicles(r.data || []); 
+            const [vRes, tRes] = await Promise.all([
+                api.get("/vehicles"),
+                api.get("/trips/active")
+            ]);
+            const vehList = vRes.data || [];
+            const activeTrips = tRes.data || [];
+            
+            // Map active trip details directly onto vehicle objects
+            const mapped = vehList.map(veh => {
+                const matchingTrip = activeTrips.find(t => t.vehicle_plate === veh.plate && t.status === "en_curso");
+                if (matchingTrip) {
+                    return {
+                        ...veh,
+                        current_driver: matchingTrip.driver_name,
+                        current_destination: matchingTrip.destination,
+                        current_clinical_team: matchingTrip.clinical_team
+                    };
+                }
+                return veh;
+            });
+            setVehicles(mapped); 
         } catch { } 
         finally { setLoading(false); } 
     }, []);
@@ -1273,7 +1292,8 @@ function VehiclesSection() {
     }, [fetchVehicles]);
 
     const handleStatusToggle = async (v) => {
-        const newStatus = v.status === "fuera_de_servicio" ? "disponible" : "fuera_de_servicio";
+        const isInactive = v.status === "fuera_de_servicio" || v.status === "no_disponible";
+        const newStatus = isInactive ? "disponible" : "fuera_de_servicio";
         try { 
             await api.put(`/vehicles/${v.id}/status`, { status: newStatus }); 
             toast.success(`Móvil ${v.plate} ${newStatus === "disponible" ? "habilitado" : "fuera de servicio"}`); 
@@ -1286,7 +1306,7 @@ function VehiclesSection() {
             bg: "bg-emerald-50", 
             border: "border-emerald-200", 
             text: "text-emerald-700", 
-            badge: "bg-emerald-100 text-emerald-800",
+            badge: "bg-emerald-100 text-emerald-800 border-emerald-200",
             label: "Disponible",
             icon: <CheckCircle className="w-4 h-4" />
         },
@@ -1294,16 +1314,32 @@ function VehiclesSection() {
             bg: "bg-rose-50", 
             border: "border-rose-200", 
             text: "text-rose-700", 
-            badge: "bg-rose-100 text-rose-800",
+            badge: "bg-rose-100 text-rose-800 border-rose-200",
             label: "Fuera de Servicio",
             icon: <AlertTriangle className="w-4 h-4" />
         },
-        en_uso: { 
-            bg: "bg-blue-50", 
-            border: "border-blue-200", 
+        no_disponible: { 
+            bg: "bg-rose-50", 
+            border: "border-rose-200", 
+            text: "text-rose-700", 
+            badge: "bg-rose-100 text-rose-800 border-rose-200",
+            label: "Fuera de Servicio",
+            icon: <AlertTriangle className="w-4 h-4" />
+        },
+        en_mantenimiento: { 
+            bg: "bg-amber-50", 
+            border: "border-amber-200", 
+            text: "text-amber-700", 
+            badge: "bg-amber-100 text-amber-800 border-amber-200",
+            label: "Mantenimiento",
+            icon: <AlertTriangle className="w-4 h-4" />
+        },
+        en_curso: { 
+            bg: "bg-blue-50/70", 
+            border: "border-blue-300", 
             text: "text-blue-700", 
-            badge: "bg-blue-100 text-blue-800",
-            label: "En Uso (Ruta)",
+            badge: "bg-blue-100 text-blue-800 border-blue-200",
+            label: "En Ruta",
             icon: <Activity className="w-4 h-4" />
         }
     };
@@ -1312,11 +1348,19 @@ function VehiclesSection() {
 
     const renderVehicleCard = (v) => {
         const cfg = statusConfig[v.status] || statusConfig.disponible;
+        const isEnCurso = v.status === "en_curso";
+        
         return (
-            <Card key={v.id} className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md`}>
+            <Card 
+                key={v.id} 
+                className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md ${isEnCurso ? "opacity-90 ring-1 ring-blue-300 shadow-blue-100/50" : ""}`}
+                style={isEnCurso ? {
+                    backgroundImage: 'repeating-linear-gradient(45deg, rgba(239, 246, 255, 0.9), rgba(239, 246, 255, 0.9) 10px, rgba(219, 234, 254, 0.4) 10px, rgba(219, 234, 254, 0.4) 20px)'
+                } : undefined}
+            >
                 <CardContent className="p-0">
                     {/* Cabecera compacta */}
-                    <div className="p-2.5 flex items-center justify-between border-b border-inherit">
+                    <div className="p-2.5 flex items-center justify-between border-b border-inherit bg-white/40">
                         <div className="flex items-center gap-2">
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white shadow-sm border border-inherit`}>
                                 {v.type === "Ambulancia" ? <Siren className={`w-3.5 h-3.5 ${cfg.text}`} /> : <Truck className={`w-3.5 h-3.5 ${cfg.text}`} />}
@@ -1332,7 +1376,17 @@ function VehiclesSection() {
                                 )}
                             </div>
                         </div>
-                        <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : v.status === 'en_uso' ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
+                        <div className="flex items-center gap-1.5">
+                            <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded-full ${cfg.badge} select-none leading-none border shadow-2xs`}>
+                                {cfg.label}
+                            </span>
+                            <div className="relative flex h-2 w-2">
+                                {isEnCurso && (
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                )}
+                                <div className={`w-2 h-2 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : isEnCurso ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Cuerpo compacto */}
@@ -1342,15 +1396,15 @@ function VehiclesSection() {
                             <p className="text-[9px] font-bold text-slate-400 leading-none">{v.type}</p>
                         </div>
 
-                        {v.status === "en_uso" ? (
-                            <div className="bg-white/60 rounded-lg p-2 border border-blue-100/50">
+                        {isEnCurso ? (
+                            <div className="bg-white/85 rounded-lg p-2 border border-blue-200/80 shadow-3xs">
                                 <div className="flex items-center gap-1.5 mb-1 text-blue-700">
-                                    <User className="w-2.5 h-2.5" />
-                                    <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "Cargando..."}</p>
+                                    <User className="w-2.5 h-2.5 shrink-0" />
+                                    <p className="text-[9px] font-black uppercase truncate">{v.current_driver || "En traslado"}</p>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-blue-600">
-                                    <MapPin className="w-2.5 h-2.5" />
-                                    <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta..."}</p>
+                                    <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                    <p className="text-[9px] font-bold truncate">{v.current_destination || "Ruta"}</p>
                                 </div>
                                 {v.current_clinical_team && (
                                     <div className="flex items-center gap-1.5 text-purple-600 border-t border-blue-100/30 mt-1 pt-1">
@@ -1360,7 +1414,7 @@ function VehiclesSection() {
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40">
+                            <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40 bg-white/20">
                                 <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
                             </div>
                         )}
@@ -1370,11 +1424,11 @@ function VehiclesSection() {
                             <div className="pt-1">
                                 <Button 
                                     onClick={() => handleStatusToggle(v)}
-                                    disabled={v.status === "en_uso"}
+                                    disabled={isEnCurso}
                                     variant="outline" 
-                                    className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
+                                    className={`w-full h-7 text-[8px] font-black uppercase tracking-tighter transition-all bg-white hover:bg-white/80 ${v.status === "fuera_de_servicio" || v.status === "no_disponible" ? "text-emerald-700 border-emerald-200" : "text-rose-700 border-rose-200"}`}
                                 >
-                                    {v.status === "fuera_de_servicio" ? "Habilitar" : "Fuera Serv."}
+                                    {v.status === "fuera_de_servicio" || v.status === "no_disponible" ? "Habilitar" : "Fuera Serv."}
                                 </Button>
                             </div>
                         )}
@@ -2071,6 +2125,7 @@ function HistorySection() {
                                 <SelectTrigger className="h-10 text-xs font-bold rounded-xl border-slate-200 uppercase"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">TODOS LOS ESTADOS</SelectItem>
+                                    <SelectItem value="revision_gestor">POR VISAR</SelectItem>
                                     <SelectItem value="pendiente">PENDIENTE</SelectItem>
                                     <SelectItem value="asignado">ASIGNADO</SelectItem>
                                     <SelectItem value="en_curso">RECORRIENDO</SelectItem>

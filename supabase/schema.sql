@@ -17,7 +17,7 @@ CREATE TABLE profiles (
     email TEXT UNIQUE NOT NULL,
     encrypted_password TEXT,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('admin', 'solicitante', 'conductor', 'coordinador')),
+    role TEXT NOT NULL CHECK (role IN ('admin', 'solicitante', 'conductor', 'coordinador', 'gestion_camas')),
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
@@ -80,7 +80,7 @@ CREATE TABLE trips (
     priority TEXT DEFAULT 'normal' CHECK (priority IN ('baja', 'normal', 'alta', 'urgente')),
     notes TEXT,
     trip_type TEXT DEFAULT 'no_clinico' CHECK (trip_type IN ('clinico', 'no_clinico')),
-    status TEXT DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'asignado', 'en_curso', 'completado', 'cancelado')),
+    status TEXT DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'asignado', 'en_curso', 'completado', 'cancelado', 'revision_gestor')),
     
     -- Clinical fields
     clinical_team TEXT,
