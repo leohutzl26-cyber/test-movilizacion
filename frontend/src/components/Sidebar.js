@@ -35,7 +35,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "new", label: "Nueva Solicitud", icon: Plus },
       { id: "by_driver", label: "Pizarra por Conductores", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
-      { id: "vehicles", label: "Vehículos", icon: Truck },
       { 
         id: "bitacora", 
         label: "Bitácora", 
@@ -46,6 +45,19 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         ]
       },
       { id: "history", label: "Historial", icon: History },
+      { 
+        id: "mantenedores", 
+        label: "Mantenedores", 
+        icon: Settings,
+        subItems: [
+          { id: "staff", label: "Personal Clínico", icon: Users },
+          { id: "origins", label: "Orígenes", icon: MapPin },
+          { id: "destinations", label: "Destinos", icon: MapPin },
+          { id: "services", label: "Servicios / Unidades", icon: MapPin },
+          { id: "vehicles", label: "Vehículos / Flota", icon: Truck },
+          { id: "drivers", label: "Conductores", icon: ClipboardList },
+        ]
+      },
     ],
     conductor: [
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },

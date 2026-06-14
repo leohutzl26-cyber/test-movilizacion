@@ -12,13 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, Map, ArrowRight, ShieldAlert, BadgeAlert, Droplets, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { MapPin, Map, ArrowRight, ShieldAlert, BadgeAlert, Droplets, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter, ArrowUp, ArrowDown, ArrowUpDown, Pencil, Upload } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
 import LogbookReport from "@/components/LogbookReport";
 import MapAddressSelector from "@/components/MapAddressSelector";
+import BulkUploader from "@/components/BulkUploader";
 
 // ========== RUT VALIDATION (MÓDULO 11) ==========
 function validateRut(rut) {
@@ -347,6 +348,10 @@ export default function ShiftManagerDashboard_UTF8() {
                     {section === "logbook_monitor" && <LogbookMonitorSection />}
                     {section === "history" && <HistorySection />}
                     {section === "reports" && <LogbookReport />}
+                    {section === "staff" && <ClinicalStaffMantenedor />}
+                    {section === "origins" && <OriginsMantenedor />}
+                    {section === "destinations" && <DestinationsMantenedor />}
+                    {section === "services" && <OriginServicesMantenedor />}
                 </div>
             </main>
         </div>
@@ -2938,6 +2943,443 @@ function LogbookMonitorSection() {
         )
       }
       </div>
+    </div>
+  );
+}
+
+// ==========================================
+// MANTENEDORES ADAPTADOS PARA EL COORDINADOR
+// ==========================================
+const PERSONNEL_TYPES = personnelTypes;
+
+function ClinicalStaffMantenedor() {
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [formData, setFormData] = useState({ name: "", role: "", is_active: true });
+
+  const fetchStaff = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/clinical-staff");
+      setStaff(res.data || []);
+    } catch { } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.role) { toast.error("Nombre y rol son obligatorios"); return; }
+    try {
+      if (editingStaff) {
+        await api.put(`/clinical-staff/${editingStaff.id}`, formData);
+        toast.success("Personal actualizado");
+      } else {
+        await api.post("/clinical-staff", formData);
+        toast.success("Personal creado");
+      }
+      setIsDialogOpen(false); fetchStaff();
+    } catch (e) { toast.error("Error al guardar data"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("¿Seguro que quiere eliminar este registro?")) {
+      try {
+        await api.delete(`/clinical-staff/${id}`);
+        toast.success("Eliminado");
+        fetchStaff();
+      } catch (e) { toast.error("Error al eliminar"); }
+    }
+  };
+
+  const openNew = () => { setEditingStaff(null); setFormData({ name: "", role: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (s) => { setEditingStaff(s); setFormData({ name: s.name, role: s.role, is_active: s.is_active }); setIsDialogOpen(true); };
+
+  return (
+    <div className="max-w-4xl mx-auto animate-slide-up">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900">Mantenedor de Personal Clínico</h1>
+          <p className="text-slate-500 font-medium mt-1">Gestione el personal de apoyo (Tens, Enfermeros, etc) para traslados.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-11 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-2" />Carga Masiva</Button>
+          <Button onClick={openNew} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11 flex gap-2">
+            <Plus className="w-4 h-4" /> Agregar Personal
+          </Button>
+        </div>
+      </div>
+
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Input 
+          placeholder="Buscar personal por nombre o tipo (ej. TENS)..." 
+          className="pl-10 h-11 bg-white border-slate-200 shadow-sm rounded-xl focus:ring-teal-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      <Card className="shadow-sm">
+        <CardContent className="p-0 overflow-hidden">
+          {loading ? <div className="py-20 flex justify-center text-teal-600"><RefreshCw className="w-8 h-8 animate-spin" /></div> : (
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th className="p-4">Nombre Completo</th>
+                  <th className="p-4">Rol / Cargo</th>
+                  <th className="p-4 text-center">Estado</th>
+                  <th className="p-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {staff.filter(s => 
+                  s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  s.role.toLowerCase().includes(searchTerm.toLowerCase())
+                ).map(s => (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="p-4 font-bold text-slate-800"><div className="flex items-center gap-2"><Users className="w-4 h-4 text-teal-500" /> {s.name}</div></td>
+                    <td className="p-4 text-slate-600">{s.role}</td>
+                    <td className="p-4 text-center">
+                      <Badge className={s.is_active ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}>
+                        {s.is_active ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-right">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="text-blue-600"><Pencil className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                    </td>
+                  </tr>
+                ))}
+                {staff.length > 0 && staff.filter(s => 
+                  s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  s.role.toLowerCase().includes(searchTerm.toLowerCase())
+                ).length === 0 && (
+                  <tr><td colSpan={4} className="text-center py-10 text-slate-400 font-medium">No se encontraron resultados para "{searchTerm}"</td></tr>
+                )}
+                {staff.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-slate-400">No hay personal registrado.</td></tr>}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>{editingStaff ? "Editar Personal" : "Nuevo Personal Clínico"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Nombre Completo</Label>
+              <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Ana María Rojas" />
+            </div>
+            <div className="space-y-2">
+              <Label>Cargo / Rol *</Label>
+              <Select value={formData.role} onValueChange={v => setFormData({ ...formData, role: v })}>
+                <SelectTrigger><SelectValue placeholder="Seleccione rol" /></SelectTrigger>
+                <SelectContent>{PERSONNEL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 flex items-center justify-between border p-3 rounded-lg mt-4">
+              <Label>Estado Activo</Label>
+              <input type="checkbox" className="w-5 h-5 accent-teal-600" checked={formData.is_active} onChange={e => setFormData({ ...formData, is_active: e.target.checked })} />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white">Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Personal Clínico"
+        columns={[
+          { key: "nombre", label: "Nombre Completo", required: true },
+          { key: "rol", label: "Cargo / Rol", required: true }
+        ]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/clinical-staff", { name: r.nombre, role: r.rol, is_active: true })
+          );
+          await Promise.all(promises);
+          fetchStaff();
+        }}
+        exampleRows={[
+          ["Ana María Rojas", "TENS"],
+          ["Carlos Pérez", "Enfermero/a"],
+          ["Dr. Juan Silva", "Médico"]
+        ]}
+      />
+    </div>
+  );
+}
+
+function OriginsMantenedor() {
+  const [origins, setOrigins] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editingOrigin, setEditingOrigin] = useState(null);
+  const [formData, setFormData] = useState({ name: "", address: "", is_active: true });
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrigins = useCallback(async () => {
+    try { const r = await api.get("/origins"); setOrigins(r.data || []); } catch { } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { fetchOrigins(); }, [fetchOrigins]);
+
+  const openCreate = () => { setEditingOrigin(null); setFormData({ name: "", address: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (o) => { setEditingOrigin(o); setFormData({ name: o.name, address: o.address || "", is_active: o.is_active !== false }); setIsDialogOpen(true); };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) { toast.error("Ingrese un nombre"); return; }
+    try {
+      if (editingOrigin) { await api.put(`/origins/${editingOrigin.id}`, formData); toast.success("Origen actualizado"); }
+      else { await api.post("/origins", formData); toast.success("Origen creado"); }
+      setIsDialogOpen(false); fetchOrigins();
+    } catch { toast.error("Error al guardar"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar este origen?")) return;
+    try { await api.delete(`/origins/${id}`); toast.success("Origen eliminado"); fetchOrigins(); } catch { toast.error("Error"); }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto animate-slide-up">
+      <div className="flex justify-between items-center mb-6">
+        <div><h1 className="text-2xl font-black text-slate-900">Mantenedor de Orígenes</h1><p className="text-sm text-slate-500 mt-1">Administre las ubicaciones físicas de origen predefinidas para los traslados.</p></div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-10 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-1" /> Carga Masiva</Button>
+          <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+        </div>
+      </div>
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Origen</th>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección</th>
+                <th className="p-4 text-center w-32">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {origins.map(o => (
+                <tr key={o.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-bold text-slate-900">{o.name}</td>
+                  <td className="p-4 text-slate-600 font-medium">{o.address || "-"}</td>
+                  <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(o)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(o.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
+                </tr>
+              ))}
+              {origins.length === 0 && !loading && <tr><td colSpan={3} className="text-center py-12 text-slate-400">No hay orígenes registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingOrigin ? "Editar Origen" : "Nuevo Origen"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Nombre del Origen *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Hospital Central, Bodega Central" /></div>
+            <div className="space-y-2"><Label>Dirección del Origen</Label><Input value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Ej. Av. Principal 123" /></div>
+          </div>
+          <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingOrigin ? "Guardar Cambios" : "Crear Origen"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Orígenes"
+        columns={[
+          { key: "nombre", label: "Nombre del Origen", required: true },
+          { key: "direccion", label: "Dirección del Origen" }
+        ]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/origins", { name: r.nombre, address: r.direccion || "" })
+          );
+          await Promise.all(promises);
+          fetchOrigins();
+        }}
+        exampleRows={[["Hospital Central", "Av. Principal 123"], ["Bodega Central", "Sector Industrial 45"]]}
+      />
+    </div>
+  );
+}
+
+function DestinationsMantenedor() {
+  const [destinations, setDestinations] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editingDest, setEditingDest] = useState(null);
+  const [formData, setFormData] = useState({ name: "", address: "", is_active: true });
+  const [loading, setLoading] = useState(true);
+
+  const fetchDestinations = useCallback(async () => {
+    try { const r = await api.get("/destinations"); setDestinations(r.data || []); } catch { } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { fetchDestinations(); }, [fetchDestinations]);
+
+  const openCreate = () => { setEditingDest(null); setFormData({ name: "", address: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (d) => { setEditingDest(d); setFormData({ name: d.name, address: d.address || "", is_active: d.is_active !== false }); setIsDialogOpen(true); };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) { toast.error("Ingrese un nombre"); return; }
+    try {
+      if (editingDest) { await api.put(`/destinations/${editingDest.id}`, formData); toast.success("Destino actualizado"); }
+      else { await api.post("/destinations", formData); toast.success("Destino creado"); }
+      setIsDialogOpen(false); fetchDestinations();
+    } catch { toast.error("Error al guardar"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar este destino?")) return;
+    try { await api.delete(`/destinations/${id}`); toast.success("Destino eliminado"); fetchDestinations(); } catch { toast.error("Error"); }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto animate-slide-up">
+      <div className="flex justify-between items-center mb-6">
+        <div><h1 className="text-2xl font-black text-slate-900">Mantenedor de Destinos</h1><p className="text-sm text-slate-500 mt-1">Administre las ubicaciones físicas de destino predefinidas para los traslados.</p></div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-10 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-1" /> Carga Masiva</Button>
+          <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+        </div>
+      </div>
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Destino</th>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección</th>
+                <th className="p-4 text-center w-32">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {destinations.map(d => (
+                <tr key={d.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-bold text-slate-900">{d.name}</td>
+                  <td className="p-4 text-slate-600 font-medium">{d.address || "-"}</td>
+                  <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(d)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
+                </tr>
+              ))}
+              {destinations.length === 0 && !loading && <tr><td colSpan={3} className="text-center py-12 text-slate-400">No hay destinos registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingDest ? "Editar Destino" : "Nuevo Destino"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Nombre del Destino *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Clínica Las Condes, Laboratorio Central" /></div>
+            <div className="space-y-2"><Label>Dirección del Destino</Label><Input value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Ej. Av. Las Condes 763" /></div>
+          </div>
+          <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingDest ? "Guardar Cambios" : "Crear Destino"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Destinos"
+        columns={[
+          { key: "nombre", label: "Nombre del Destino", required: true },
+          { key: "direccion", label: "Dirección del Destino" }
+        ]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/destinations", { name: r.nombre, address: r.direccion || "" })
+          );
+          await Promise.all(promises);
+          fetchDestinations();
+        }}
+        exampleRows={[["Clínica Las Condes", "Av. Las Condes 763"], ["Laboratorio Central", "Av. Providencia 1234"]]}
+      />
+    </div>
+  );
+}
+
+function OriginServicesMantenedor() {
+  const [services, setServices] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [formData, setFormData] = useState({ name: "", is_active: true });
+  const [loading, setLoading] = useState(true);
+
+  const fetchServices = useCallback(async () => {
+    try { const r = await api.get("/origin-services"); setServices(r.data || []); } catch { } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { fetchServices(); }, [fetchServices]);
+
+  const openCreate = () => { setEditingService(null); setFormData({ name: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (s) => { setEditingService(s); setFormData({ name: s.name, is_active: s.is_active !== false }); setIsDialogOpen(true); };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) { toast.error("Ingrese un nombre"); return; }
+    try {
+      if (editingService) { await api.put(`/origin-services/${editingService.id}`, formData); toast.success("Servicio actualizado"); }
+      else { await api.post("/origin-services", formData); toast.success("Servicio creado"); }
+      setIsDialogOpen(false); fetchServices();
+    } catch { toast.error("Error al guardar"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar este servicio?")) return;
+    try { await api.delete(`/origin-services/${id}`); toast.success("Servicio eliminado"); fetchServices(); } catch { toast.error("Error"); }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto animate-slide-up">
+      <div className="flex justify-between items-center mb-6">
+        <div><h1 className="text-2xl font-black text-slate-900">Mantenedor de Servicios de Origen</h1><p className="text-sm text-slate-500 mt-1">Administre los servicios que aparecen como opciones de origen al crear traslados.</p></div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-10 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-1" /> Carga Masiva</Button>
+          <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+        </div>
+      </div>
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Servicio</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {services.map(s => (
+                <tr key={s.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-bold text-slate-900">{s.name}</td>
+                  <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
+                </tr>
+              ))}
+              {services.length === 0 && !loading && <tr><td colSpan={2} className="text-center py-12 text-slate-400">No hay servicios registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingService ? "Editar Servicio" : "Nuevo Servicio"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Nombre del Servicio *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Urgencias, UCI Adulto, Pabellón" /></div>
+          </div>
+          <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingService ? "Guardar Cambios" : "Crear Servicio"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <BulkUploader
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        title="Carga Masiva de Servicios de Origen"
+        columns={[{ key: "nombre", label: "Nombre del Servicio", required: true }]}
+        onImport={async (rows) => {
+          const promises = rows.map(r => 
+            api.post("/origin-services", { name: r.nombre })
+          );
+          await Promise.all(promises);
+          fetchServices();
+        }}
+        exampleRows={[["Urgencias"], ["UCI Adulto"], ["Pabellón"], ["Medicina Quirúrgica"]]}
+      />
     </div>
   );
 }
