@@ -151,12 +151,31 @@ function TripPoolSection({ onNavigate }) {
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-4 space-y-3">
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
-                  <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p><p className="text-base font-bold text-slate-900 leading-snug">{t.origin}</p><p className="text-xs text-slate-500 font-medium">{t.patient_unit || ""}</p></div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p>
+                    <p className="text-base font-bold text-slate-900 leading-snug">{t.origin}</p>
+                    {t.origin_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.origin_address}</p>}
+                    <p className="text-xs text-slate-500 font-medium">{t.patient_unit || ""}</p>
+                    {t.origin_maps_url && (
+                      <a href={t.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                        <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="ml-2.5 pl-3.5 border-l-2 border-dashed border-slate-300 py-1"></div>
                 <div className="flex items-start gap-3">
                   <Navigation className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                  <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p><p className="text-base font-bold text-slate-900 leading-snug">{t.destination}</p></div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p>
+                    <p className="text-base font-bold text-slate-900 leading-snug">{t.destination}</p>
+                    {t.destination_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.destination_address}</p>}
+                    {t.destination_maps_url && (
+                      <a href={t.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -230,8 +249,27 @@ function TripPoolSection({ onNavigate }) {
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><MapPin className="w-4 h-4 text-teal-600" /> Origen</p><p className="font-black text-lg text-slate-900">{selectedTrip.origin}</p><p className="text-sm font-medium text-slate-500 mt-1">{selectedTrip.patient_unit || ""} {selectedTrip.bed ? `(Cama ${selectedTrip.bed})` : ""}</p></div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><Navigation className="w-4 h-4 text-blue-600" /> Destino</p><p className="font-black text-lg text-slate-900">{selectedTrip.destination}</p></div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><MapPin className="w-4 h-4 text-teal-600" /> Origen</p>
+                  <p className="font-black text-lg text-slate-900">{selectedTrip.origin}</p>
+                  {selectedTrip.origin_address && <p className="text-sm font-bold text-slate-700 mt-1">{selectedTrip.origin_address}</p>}
+                  <p className="text-sm font-medium text-slate-500 mt-1">{selectedTrip.patient_unit || ""} {selectedTrip.bed ? `(Cama ${selectedTrip.bed})` : ""}</p>
+                  {selectedTrip.origin_maps_url && (
+                    <a href={selectedTrip.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg border border-teal-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                      <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
+                    </a>
+                  )}
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><Navigation className="w-4 h-4 text-blue-600" /> Destino</p>
+                  <p className="font-black text-lg text-slate-900">{selectedTrip.destination}</p>
+                  {selectedTrip.destination_address && <p className="text-sm font-bold text-slate-700 mt-1">{selectedTrip.destination_address}</p>}
+                  {selectedTrip.destination_maps_url && (
+                    <a href={selectedTrip.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                      <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
+                    </a>
+                  )}
+                </div>
               </div>
               {selectedTrip.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 font-medium border border-amber-200">{selectedTrip.notes}</p></div>)}
               <Button onClick={() => { handleTakeTrip(selectedTrip.id); setSelectedTrip(null); }} className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold h-14 text-lg rounded-xl shadow-md">
@@ -402,13 +440,31 @@ function MyTripsSection() {
                 <p className="font-black text-xl text-slate-900 leading-tight mb-4">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center shrink-0 border border-teal-100"><MapPin className="w-5 h-5 text-teal-600" /></div>
-                    <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p><p className="text-base font-bold text-slate-900 leading-tight">{t.origin}</p></div>
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center shrink-0 border border-teal-100 mt-0.5"><MapPin className="w-5 h-5 text-teal-600" /></div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p>
+                      <p className="text-base font-bold text-slate-900 leading-tight">{t.origin}</p>
+                      {t.origin_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.origin_address}</p>}
+                      {t.origin_maps_url && (
+                        <a href={t.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1.5 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                          <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100"><Navigation className="w-5 h-5 text-blue-600" /></div>
-                    <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p><p className="text-base font-bold text-slate-900 leading-tight">{t.destination}</p></div>
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100 mt-0.5"><Navigation className="w-5 h-5 text-blue-600" /></div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p>
+                      <p className="text-base font-bold text-slate-900 leading-tight">{t.destination}</p>
+                      {t.destination_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.destination_address}</p>}
+                      {t.destination_maps_url && (
+                        <a href={t.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1.5 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                          <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -544,8 +600,27 @@ function MyTripsSection() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><MapPin className="w-4 h-4 text-teal-600" /> Origen</p><p className="font-black text-lg text-slate-900">{detailsDialog.origin}</p><p className="text-sm font-medium text-slate-500 mt-1">{detailsDialog.patient_unit || ""} {detailsDialog.bed ? `(Cama ${detailsDialog.bed})` : ""}</p></div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><Navigation className="w-4 h-4 text-blue-600" /> Destino</p><p className="font-black text-lg text-slate-900">{detailsDialog.destination}</p></div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><MapPin className="w-4 h-4 text-teal-600" /> Origen</p>
+                  <p className="font-black text-lg text-slate-900">{detailsDialog.origin}</p>
+                  {detailsDialog.origin_address && <p className="text-sm font-bold text-slate-700 mt-1">{detailsDialog.origin_address}</p>}
+                  <p className="text-sm font-medium text-slate-500 mt-1">{detailsDialog.patient_unit || ""} {detailsDialog.bed ? `(Cama ${detailsDialog.bed})` : ""}</p>
+                  {detailsDialog.origin_maps_url && (
+                    <a href={detailsDialog.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg border border-teal-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                      <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
+                    </a>
+                  )}
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><Navigation className="w-4 h-4 text-blue-600" /> Destino</p>
+                  <p className="font-black text-lg text-slate-900">{detailsDialog.destination}</p>
+                  {detailsDialog.destination_address && <p className="text-sm font-bold text-slate-700 mt-1">{detailsDialog.destination_address}</p>}
+                  {detailsDialog.destination_maps_url && (
+                    <a href={detailsDialog.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                      <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
+                    </a>
+                  )}
+                </div>
               </div>
 
               {detailsDialog.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 font-medium border border-amber-200">{detailsDialog.notes}</p></div>)}

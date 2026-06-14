@@ -207,6 +207,30 @@ function AssignPersonnelSection() {
     setEditData({ ...editData, patient_requirements: updated });
   };
 
+  const handleEditOriginChange = (v) => {
+    const matched = origins.find(o => o.name === v);
+    const address = matched ? (matched.address || "") : "";
+    const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v + ", " + address)}` : "";
+    setEditData({
+      ...editData,
+      origin: v,
+      origin_address: address,
+      origin_maps_url: mapsUrl
+    });
+  };
+
+  const handleEditDestChange = (v) => {
+    const matched = destinations.find(d => d.name === v);
+    const address = matched ? (matched.address || "") : "";
+    const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v + ", " + address)}` : "";
+    setEditData({
+      ...editData,
+      destination: v,
+      destination_address: address,
+      destination_maps_url: mapsUrl
+    });
+  };
+
   const displayedTrips = filterStatus === "revision_gestor" 
     ? trips 
     : allActiveTrips.filter(t => t.status === filterStatus);
@@ -526,7 +550,7 @@ function AssignPersonnelSection() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Origen</Label>
-                    <Select value={editData.origin || "none"} onValueChange={v => setEditData({...editData, origin: v})}>
+                    <Select value={editData.origin || "none"} onValueChange={handleEditOriginChange}>
                       <SelectTrigger className="h-9 text-sm font-bold bg-white">
                         <SelectValue placeholder="Seleccione origen" />
                       </SelectTrigger>
@@ -540,7 +564,7 @@ function AssignPersonnelSection() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Destino</Label>
-                    <Select value={editData.destination || "none"} onValueChange={v => setEditData({...editData, destination: v})}>
+                    <Select value={editData.destination || "none"} onValueChange={handleEditDestChange}>
                       <SelectTrigger className="h-9 text-sm font-bold bg-white">
                         <SelectValue placeholder="Seleccione destino" />
                       </SelectTrigger>
@@ -552,6 +576,27 @@ function AssignPersonnelSection() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Campos de Dirección y Maps Origen */}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Dirección de Origen</Label>
+                    <Input className="h-9 text-sm font-bold bg-white" placeholder="Dirección exacta o referencia" value={editData.origin_address || ""} onChange={e => setEditData({ ...editData, origin_address: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Google Maps Origen (URL)</Label>
+                    <Input className="h-9 text-sm font-bold bg-white" placeholder="URL de Google Maps" value={editData.origin_maps_url || ""} onChange={e => setEditData({ ...editData, origin_maps_url: e.target.value })} />
+                  </div>
+
+                  {/* Campos de Dirección y Maps Destino */}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Dirección de Destino</Label>
+                    <Input className="h-9 text-sm font-bold bg-white" placeholder="Dirección exacta o referencia" value={editData.destination_address || ""} onChange={e => setEditData({ ...editData, destination_address: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Google Maps Destino (URL)</Label>
+                    <Input className="h-9 text-sm font-bold bg-white" placeholder="URL de Google Maps" value={editData.destination_maps_url || ""} onChange={e => setEditData({ ...editData, destination_maps_url: e.target.value })} />
+                  </div>
+
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Servicio / Unidad</Label>
                     <Select value={editData.patient_unit || "none"} onValueChange={v => setEditData({...editData, patient_unit: v})}>
@@ -1599,7 +1644,9 @@ function GestorNewTripSection() {
   const [clinicalStaffOptions, setClinicalStaffOptions] = useState([]);
   const [tripType, setTripType] = useState("clinico");
   const [form, setForm] = useState({
-    origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
+    origin: "", origin_address: "", origin_maps_url: "",
+    destination: "", destination_address: "", destination_maps_url: "",
+    patient_name: "", patient_unit: "", priority: "normal", notes: "",
     scheduled_date: new Date().toISOString().split("T")[0],
     rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
     attending_physician: "", appointment_time: "", departure_time: "",
@@ -1674,6 +1721,40 @@ function GestorNewTripSection() {
   };
   const getStaffByType = (type) => type ? clinicalStaffOptions.filter(s => s.role.toLowerCase() === type.toLowerCase()) : [];
 
+  const handleOriginChange = (val) => {
+    if (val === "otro") {
+      setUseCustomOrigin(true);
+      setForm(prev => ({ ...prev, origin: "", origin_address: "", origin_maps_url: "" }));
+    } else {
+      const matched = origins.find(o => o.name === val);
+      const address = matched ? (matched.address || "") : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      setForm(prev => ({ 
+        ...prev, 
+        origin: val, 
+        origin_address: address,
+        origin_maps_url: mapsUrl
+      }));
+    }
+  };
+
+  const handleDestChange = (val) => {
+    if (val === "otro") {
+      setUseCustomDest(true);
+      setForm(prev => ({ ...prev, destination: "", destination_address: "", destination_maps_url: "" }));
+    } else {
+      const matched = destinations.find(d => d.name === val);
+      const address = matched ? (matched.address || "") : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      setForm(prev => ({ 
+        ...prev, 
+        destination: val, 
+        destination_address: address,
+        destination_maps_url: mapsUrl
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (tripType === "clinico") {
@@ -1688,7 +1769,16 @@ function GestorNewTripSection() {
     try {
       await api.post("/trips", { ...form, trip_type: tripType, required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`), assigned_clinical_staff: staffRows });
       toast.success("Traslado creado exitosamente");
-      setForm({ origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "", scheduled_date: new Date().toISOString().split("T")[0], rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "", attending_physician: "", appointment_time: "", departure_time: "", patient_requirements: [], accompaniment: "", task_details: "", staff_count: "" });
+      setForm({
+        origin: "", origin_address: "", origin_maps_url: "",
+        destination: "", destination_address: "", destination_maps_url: "",
+        patient_name: "", patient_unit: "", priority: "normal", notes: "",
+        scheduled_date: new Date().toISOString().split("T")[0],
+        rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
+        attending_physician: "", appointment_time: "", departure_time: "",
+        patient_requirements: [], accompaniment: "",
+        task_details: "", staff_count: ""
+      });
       setStaffRows([]);
     } catch { toast.error("Error al crear"); } finally { setLoading(false); }
   };
@@ -1725,8 +1815,29 @@ function GestorNewTripSection() {
           </div>)}
           {/* Ubicación */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1"><Label>Origen *</Label>{!useCustomOrigin ? <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}</div>
-            <div className="space-y-1"><Label>Destino *</Label>{!useCustomDest ? <Select value={form.destination || undefined} onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}</div>
+            <div className="space-y-1"><Label>Origen *</Label>{!useCustomOrigin ? <Select value={form.origin || undefined} onValueChange={handleOriginChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}</div>
+            <div className="space-y-1"><Label>Destino *</Label>{!useCustomDest ? <Select value={form.destination || undefined} onValueChange={handleDestChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}</div>
+            
+            {/* Campos de Dirección y Maps Origen */}
+            <div className="space-y-1">
+              <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
+              <Input placeholder="Dirección exacta o referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-500 text-xs">Google Maps Origen (URL)</Label>
+              <Input placeholder="https://maps.google.com/..." value={form.origin_maps_url || ""} onChange={e => setForm({ ...form, origin_maps_url: e.target.value })} />
+            </div>
+
+            {/* Campos de Dirección y Maps Destino */}
+            <div className="space-y-1">
+              <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
+              <Input placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-500 text-xs">Google Maps Destino (URL)</Label>
+              <Input placeholder="https://maps.google.com/..." value={form.destination_maps_url || ""} onChange={e => setForm({ ...form, destination_maps_url: e.target.value })} />
+            </div>
+
             {tripType === "clinico" && <>
               <div className="space-y-1"><Label>Servicio de Origen</Label>{!useCustomService ? <Select value={form.patient_unit || undefined} onValueChange={v => v === "otro" ? setUseCustomService(true) : setForm({ ...form, patient_unit: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.patient_unit || ""} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />}</div>
               <div className="space-y-1"><Label>Cama</Label><Input value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>

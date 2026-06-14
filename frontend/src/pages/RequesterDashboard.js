@@ -33,7 +33,9 @@ function validateRut(rut) {
 }
 
 const defaultForm = {
-  origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
+  origin: "", origin_address: "", origin_maps_url: "",
+  destination: "", destination_address: "", destination_maps_url: "",
+  patient_name: "", patient_unit: "", priority: "normal", notes: "",
   scheduled_date: new Date().toISOString().split("T")[0],
   rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
   attending_physician: "", appointment_time: "", departure_time: "",
@@ -72,6 +74,7 @@ export default function RequesterDashboard() {
 }
 
 function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
+  const [origins, setOrigins] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [originServices, setOriginServices] = useState([]);
   const [clinicalStaffOptions, setClinicalStaffOptions] = useState([]);
@@ -113,10 +116,10 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
 
   useEffect(() => {
     if (editingTrip) {
-      if (editingTrip.origin && (!destinations.length || !destinations.find(d => d.name.toLowerCase() === editingTrip.origin.toLowerCase()))) setUseCustomOrigin(true);
+      if (editingTrip.origin && (!origins.length || !origins.find(o => o.name.toLowerCase() === editingTrip.origin.toLowerCase()))) setUseCustomOrigin(true);
       if (editingTrip.destination && (!destinations.length || !destinations.find(d => d.name.toLowerCase() === editingTrip.destination.toLowerCase()))) setUseCustomDest(true);
     }
-  }, [editingTrip, destinations]);
+  }, [editingTrip, origins, destinations]);
 
   useEffect(() => {
     if (editingTrip) {
@@ -125,6 +128,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   }, [editingTrip, originServices]);
 
   useEffect(() => {
+    api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
     api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
     api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
     api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
@@ -194,6 +198,40 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   const getStaffByType = (type) => {
     if (!type) return [];
     return clinicalStaffOptions.filter(s => s.role.toLowerCase() === type.toLowerCase());
+  };
+
+  const handleOriginChange = (val) => {
+    if (val === "otro") {
+      setUseCustomOrigin(true);
+      setForm(prev => ({ ...prev, origin: "", origin_address: "", origin_maps_url: "" }));
+    } else {
+      const matched = origins.find(o => o.name === val);
+      const address = matched ? (matched.address || "") : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      setForm(prev => ({ 
+        ...prev, 
+        origin: val, 
+        origin_address: address,
+        origin_maps_url: mapsUrl
+      }));
+    }
+  };
+
+  const handleDestChange = (val) => {
+    if (val === "otro") {
+      setUseCustomDest(true);
+      setForm(prev => ({ ...prev, destination: "", destination_address: "", destination_maps_url: "" }));
+    } else {
+      const matched = destinations.find(d => d.name === val);
+      const address = matched ? (matched.address || "") : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      setForm(prev => ({ 
+        ...prev, 
+        destination: val, 
+        destination_address: address,
+        destination_maps_url: mapsUrl
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -328,14 +366,35 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1"><Label>Origen *</Label>
                   {!useCustomOrigin ? (
-                    <Select value={form.origin || undefined} onValueChange={v => v === "otro" ? setUseCustomOrigin(true) : setForm({ ...form, origin: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}{form.origin && !destinations.find(d => d.name === form.origin) && <SelectItem value={form.origin}>{form.origin} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
+                    <Select value={form.origin || undefined} onValueChange={handleOriginChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}{form.origin && !origins.find(o => o.name === form.origin) && <SelectItem value={form.origin}>{form.origin} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
                   ) : <Input placeholder="Escriba origen" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}
                 </div>
                 <div className="space-y-1"><Label>Destino *</Label>
                   {!useCustomDest ? (
-                    <Select value={form.destination || undefined} onValueChange={v => v === "otro" ? setUseCustomDest(true) : setForm({ ...form, destination: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}{form.destination && !destinations.find(d => d.name === form.destination) && <SelectItem value={form.destination}>{form.destination} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
+                    <Select value={form.destination || undefined} onValueChange={handleDestChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}{form.destination && !destinations.find(d => d.name === form.destination) && <SelectItem value={form.destination}>{form.destination} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
                   ) : <Input placeholder="Escriba destino" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}
                 </div>
+
+                {/* Campos de Dirección y Maps Origen */}
+                <div className="space-y-1">
+                  <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
+                  <Input placeholder="Ej: Av. Principal 123 o Referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-slate-500 text-xs">Enlace Google Maps Origen</Label>
+                  <Input placeholder="https://maps.google.com/?q=..." value={form.origin_maps_url || ""} onChange={e => setForm({ ...form, origin_maps_url: e.target.value })} />
+                </div>
+
+                {/* Campos de Dirección y Maps Destino */}
+                <div className="space-y-1">
+                  <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
+                  <Input placeholder="Ej: Lo Fontecilla 441 o Referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-slate-500 text-xs">Enlace Google Maps Destino</Label>
+                  <Input placeholder="https://maps.google.com/?q=..." value={form.destination_maps_url || ""} onChange={e => setForm({ ...form, destination_maps_url: e.target.value })} />
+                </div>
+
                 {tripType === "clinico" && (
                   <>
                     <div className="space-y-1"><Label>Servicio de Origen *</Label>

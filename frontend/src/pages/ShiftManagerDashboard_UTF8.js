@@ -1523,7 +1523,9 @@ function NewTripSection({ onNavigate }) {
     const [tripType, setTripType] = useState("clinico");
 
     const [form, setForm] = useState({
-        origin: "", destination: "", patient_name: "", patient_unit: "", priority: "normal", notes: "",
+        origin: "", origin_address: "", origin_maps_url: "",
+        destination: "", destination_address: "", destination_maps_url: "",
+        patient_name: "", patient_unit: "", priority: "normal", notes: "",
         scheduled_date: new Date().toISOString().split("T")[0],
         rut: "", age: "", diagnosis: "", weight: "", bed: "", transfer_reason: "",
         attending_physician: "", appointment_time: "", departure_time: "",
@@ -1605,6 +1607,40 @@ function NewTripSection({ onNavigate }) {
     const getStaffByType = (type) => {
         if (!type) return [];
         return clinicalStaffOptions.filter(s => s.role.toLowerCase() === type.toLowerCase());
+    };
+
+    const handleOriginChange = (val) => {
+        if (val === "otro") {
+            setUseCustomOrigin(true);
+            setForm(prev => ({ ...prev, origin: "", origin_address: "", origin_maps_url: "" }));
+        } else {
+            const matched = origins.find(o => o.name === val);
+            const address = matched ? (matched.address || "") : "";
+            const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+            setForm(prev => ({ 
+                ...prev, 
+                origin: val, 
+                origin_address: address,
+                origin_maps_url: mapsUrl
+            }));
+        }
+    };
+
+    const handleDestChange = (val) => {
+        if (val === "otro") {
+            setUseCustomDest(true);
+            setForm(prev => ({ ...prev, destination: "", destination_address: "", destination_maps_url: "" }));
+        } else {
+            const matched = destinations.find(d => d.name === val);
+            const address = matched ? (matched.address || "") : "";
+            const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+            setForm(prev => ({ 
+                ...prev, 
+                destination: val, 
+                destination_address: address,
+                destination_maps_url: mapsUrl
+            }));
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -1745,10 +1781,7 @@ function NewTripSection({ onNavigate }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                                 <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.origin ? "text-red-500" : "text-slate-500"}`}>Origen *</Label>
                                     {!useCustomOrigin ? (
-                                        <Select onValueChange={v => { 
-                                            if (v === "otro") { setUseCustomOrigin(true); } 
-                                            else { setForm({ ...form, origin: v }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }
-                                        }}>
+                                        <Select onValueChange={handleOriginChange}>
                                             <SelectTrigger className={`h-9 text-xs font-semibold ${errors.origin ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione" /></SelectTrigger>
                                             <SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
                                         </Select>
@@ -1756,15 +1789,31 @@ function NewTripSection({ onNavigate }) {
                                 </div>
                                 <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.destination ? "text-red-500" : "text-slate-500"}`}>Destino *</Label>
                                     {!useCustomDest ? (
-                                        <Select onValueChange={v => {
-                                            if (v === "otro") { setUseCustomDest(true); } 
-                                            else { setForm({ ...form, destination: v }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }
-                                        }}>
+                                        <Select onValueChange={handleDestChange}>
                                             <SelectTrigger className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione" /></SelectTrigger>
                                             <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
                                         </Select>
                                     ) : <Input className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`} placeholder="Escriba destino" value={form.destination} onChange={e => { setForm({ ...form, destination: e.target.value }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }} onDoubleClick={() => setUseCustomDest(false)} />}
                                 </div>
+
+                                {/* Direcciones y Maps */}
+                                <div className="space-y-1">
+                                    <Label className="text-slate-500 text-[10px] font-bold">Dirección de Origen</Label>
+                                    <Input className="h-9 text-xs font-semibold" placeholder="Dirección exacta o referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-slate-500 text-[10px] font-bold">Google Maps Origen (URL)</Label>
+                                    <Input className="h-9 text-xs font-semibold" placeholder="https://maps.google.com/..." value={form.origin_maps_url || ""} onChange={e => setForm({ ...form, origin_maps_url: e.target.value })} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-slate-500 text-[10px] font-bold">Dirección de Destino</Label>
+                                    <Input className="h-9 text-xs font-semibold" placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-slate-500 text-[10px] font-bold">Google Maps Destino (URL)</Label>
+                                    <Input className="h-9 text-xs font-semibold" placeholder="https://maps.google.com/..." value={form.destination_maps_url || ""} onChange={e => setForm({ ...form, destination_maps_url: e.target.value })} />
+                                </div>
+
                                 {tripType === "clinico" && (
                                     <>
                                         <div className="space-y-1"><Label className={errors.patient_unit ? "text-red-500" : ""}>Servicio de Origen *</Label>
