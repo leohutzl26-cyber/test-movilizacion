@@ -2108,7 +2108,7 @@ function OriginsMantenedor() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editingOrigin, setEditingOrigin] = useState(null);
-  const [formData, setFormData] = useState({ name: "", is_active: true });
+  const [formData, setFormData] = useState({ name: "", address: "", is_active: true });
   const [loading, setLoading] = useState(true);
 
   const fetchOrigins = useCallback(async () => {
@@ -2116,8 +2116,8 @@ function OriginsMantenedor() {
   }, []);
   useEffect(() => { fetchOrigins(); }, [fetchOrigins]);
 
-  const openCreate = () => { setEditingOrigin(null); setFormData({ name: "", is_active: true }); setIsDialogOpen(true); };
-  const openEdit = (o) => { setEditingOrigin(o); setFormData({ name: o.name, is_active: o.is_active !== false }); setIsDialogOpen(true); };
+  const openCreate = () => { setEditingOrigin(null); setFormData({ name: "", address: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (o) => { setEditingOrigin(o); setFormData({ name: o.name, address: o.address || "", is_active: o.is_active !== false }); setIsDialogOpen(true); };
 
   const handleSave = async () => {
     if (!formData.name.trim()) { toast.error("Ingrese un nombre"); return; }
@@ -2145,15 +2145,22 @@ function OriginsMantenedor() {
       <Card className="shadow-sm">
         <CardContent className="p-0">
           <table className="w-full text-sm">
-            <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Origen</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Origen</th>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección</th>
+                <th className="p-4 text-center w-32">Acciones</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-slate-100">
               {origins.map(o => (
                 <tr key={o.id} className="hover:bg-slate-50">
                   <td className="p-4 font-bold text-slate-900">{o.name}</td>
+                  <td className="p-4 text-slate-600 font-medium">{o.address || "-"}</td>
                   <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(o)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(o.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
                 </tr>
               ))}
-              {origins.length === 0 && !loading && <tr><td colSpan={2} className="text-center py-12 text-slate-400">No hay orígenes registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+              {origins.length === 0 && !loading && <tr><td colSpan={3} className="text-center py-12 text-slate-400">No hay orígenes registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
             </tbody>
           </table>
         </CardContent>
@@ -2162,6 +2169,7 @@ function OriginsMantenedor() {
         <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingOrigin ? "Editar Origen" : "Nuevo Origen"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2"><Label>Nombre del Origen *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Hospital Central, Bodega Central" /></div>
+            <div className="space-y-2"><Label>Dirección del Origen</Label><Input value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Ej. Av. Principal 123" /></div>
           </div>
           <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingOrigin ? "Guardar Cambios" : "Crear Origen"}</Button></DialogFooter>
         </DialogContent>
@@ -2170,15 +2178,18 @@ function OriginsMantenedor() {
         open={bulkOpen}
         onOpenChange={setBulkOpen}
         title="Carga Masiva de Orígenes"
-        columns={[{ key: "nombre", label: "Nombre del Origen", required: true }]}
+        columns={[
+          { key: "nombre", label: "Nombre del Origen", required: true },
+          { key: "direccion", label: "Dirección del Origen" }
+        ]}
         onImport={async (rows) => {
           const promises = rows.map(r => 
-            api.post("/origins", { name: r.nombre })
+            api.post("/origins", { name: r.nombre, address: r.direccion || "" })
           );
           await Promise.all(promises);
           fetchOrigins();
         }}
-        exampleRows={[["Hospital Central"], ["Bodega Central"]]}
+        exampleRows={[["Hospital Central", "Av. Principal 123"], ["Bodega Central", "Sector Industrial 45"]]}
       />
     </div>
   );
@@ -2192,7 +2203,7 @@ function DestinationsMantenedor() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editingDest, setEditingDest] = useState(null);
-  const [formData, setFormData] = useState({ name: "", is_active: true });
+  const [formData, setFormData] = useState({ name: "", address: "", is_active: true });
   const [loading, setLoading] = useState(true);
 
   const fetchDestinations = useCallback(async () => {
@@ -2200,8 +2211,8 @@ function DestinationsMantenedor() {
   }, []);
   useEffect(() => { fetchDestinations(); }, [fetchDestinations]);
 
-  const openCreate = () => { setEditingDest(null); setFormData({ name: "", is_active: true }); setIsDialogOpen(true); };
-  const openEdit = (d) => { setEditingDest(d); setFormData({ name: d.name, is_active: d.is_active !== false }); setIsDialogOpen(true); };
+  const openCreate = () => { setEditingDest(null); setFormData({ name: "", address: "", is_active: true }); setIsDialogOpen(true); };
+  const openEdit = (d) => { setEditingDest(d); setFormData({ name: d.name, address: d.address || "", is_active: d.is_active !== false }); setIsDialogOpen(true); };
 
   const handleSave = async () => {
     if (!formData.name.trim()) { toast.error("Ingrese un nombre"); return; }
@@ -2229,15 +2240,22 @@ function DestinationsMantenedor() {
       <Card className="shadow-sm">
         <CardContent className="p-0">
           <table className="w-full text-sm">
-            <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Destino</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Destino</th>
+                <th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección</th>
+                <th className="p-4 text-center w-32">Acciones</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-slate-100">
               {destinations.map(d => (
                 <tr key={d.id} className="hover:bg-slate-50">
                   <td className="p-4 font-bold text-slate-900">{d.name}</td>
+                  <td className="p-4 text-slate-600 font-medium">{d.address || "-"}</td>
                   <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(d)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
                 </tr>
               ))}
-              {destinations.length === 0 && !loading && <tr><td colSpan={2} className="text-center py-12 text-slate-400">No hay destinos registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
+              {destinations.length === 0 && !loading && <tr><td colSpan={3} className="text-center py-12 text-slate-400">No hay destinos registrados. Haga clic en "Agregar" para crear el primero.</td></tr>}
             </tbody>
           </table>
         </CardContent>
@@ -2246,6 +2264,7 @@ function DestinationsMantenedor() {
         <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editingDest ? "Editar Destino" : "Nuevo Destino"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2"><Label>Nombre del Destino *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej. Clínica Las Condes, Laboratorio Central" /></div>
+            <div className="space-y-2"><Label>Dirección del Destino</Label><Input value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Ej. Av. Las Condes 763" /></div>
           </div>
           <DialogFooter className="mt-6"><Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">{editingDest ? "Guardar Cambios" : "Crear Destino"}</Button></DialogFooter>
         </DialogContent>
@@ -2254,15 +2273,18 @@ function DestinationsMantenedor() {
         open={bulkOpen}
         onOpenChange={setBulkOpen}
         title="Carga Masiva de Destinos"
-        columns={[{ key: "nombre", label: "Nombre del Destino", required: true }]}
+        columns={[
+          { key: "nombre", label: "Nombre del Destino", required: true },
+          { key: "direccion", label: "Dirección del Destino" }
+        ]}
         onImport={async (rows) => {
           const promises = rows.map(r => 
-            api.post("/destinations", { name: r.nombre })
+            api.post("/destinations", { name: r.nombre, address: r.direccion || "" })
           );
           await Promise.all(promises);
           fetchDestinations();
         }}
-        exampleRows={[["Clínica Las Condes"], ["Laboratorio Central"]]}
+        exampleRows={[["Clínica Las Condes", "Av. Las Condes 763"], ["Laboratorio Central", "Av. Providencia 1234"]]}
       />
     </div>
   );
