@@ -41,7 +41,8 @@ const functions = {
   'trips-assign': require('./supabase/functions/trips-assign'),
   'trips-create': require('./supabase/functions/trips-create'),
   'trips-update-status': require('./supabase/functions/trips-update-status'),
-  'users-approve': require('./supabase/functions/users-approve')
+  'users-approve': require('./supabase/functions/users-approve'),
+  'manage-catalogs': require('./supabase/functions/manage-catalogs')
 };
 
 // JWT Middleware to populate context.user

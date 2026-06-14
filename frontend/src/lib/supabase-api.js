@@ -294,63 +294,50 @@ export const vehiclesApi = {
 
   // Create vehicle
   createVehicle: async (vehicleData) => {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .insert([vehicleData])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'create',
+      table: 'vehicles',
+      data: vehicleData
+    });
   },
 
   // Update vehicle
   updateVehicle: async (vehicleId, updateData) => {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .update(updateData)
-      .eq('id', vehicleId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'vehicles',
+      id: vehicleId,
+      data: updateData
+    });
   },
 
   // Update vehicle mileage
   updateMileage: async (vehicleId, mileage) => {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .update({ mileage })
-      .eq('id', vehicleId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'vehicles',
+      id: vehicleId,
+      data: { mileage }
+    });
   },
 
   // Update vehicle status
   updateStatus: async (vehicleId, status) => {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .update({ status })
-      .eq('id', vehicleId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'vehicles',
+      id: vehicleId,
+      data: { status }
+    });
   },
 
   // Delete vehicle
   deleteVehicle: async (vehicleId) => {
-    const { error } = await supabase
-      .from('vehicles')
-      .delete()
-      .eq('id', vehicleId);
-    
-    if (error) throw error;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'delete',
+      table: 'vehicles',
+      id: vehicleId
+    });
   }
 };
 
@@ -397,30 +384,28 @@ export const destinationsApi = {
   },
 
   createDestination: async (destinationData) => {
-    const { data, error } = await supabase.from('destinations').insert([destinationData]).select().single();
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'create',
+      table: 'destinations',
+      data: destinationData
+    });
   },
 
   updateDestination: async (destinationId, updateData) => {
-    const { data, error } = await supabase
-      .from('destinations')
-      .update(updateData)
-      .eq('id', destinationId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'destinations',
+      id: destinationId,
+      data: updateData
+    });
   },
 
   deleteDestination: async (destinationId) => {
-    const { error } = await supabase
-      .from('destinations')
-      .delete()
-      .eq('id', destinationId);
-    
-    if (error) throw error;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'delete',
+      table: 'destinations',
+      id: destinationId
+    });
   }
 };
 
@@ -432,30 +417,28 @@ export const originsApi = {
   },
 
   createOrigin: async (originData) => {
-    const { data, error } = await supabase.from('origins').insert([originData]).select().single();
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'create',
+      table: 'origins',
+      data: originData
+    });
   },
 
   updateOrigin: async (originId, updateData) => {
-    const { data, error } = await supabase
-      .from('origins')
-      .update(updateData)
-      .eq('id', originId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'origins',
+      id: originId,
+      data: updateData
+    });
   },
 
   deleteOrigin: async (originId) => {
-    const { error } = await supabase
-      .from('origins')
-      .delete()
-      .eq('id', originId);
-    
-    if (error) throw error;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'delete',
+      table: 'origins',
+      id: originId
+    });
   }
 };
 
@@ -467,30 +450,28 @@ export const originServicesApi = {
   },
 
   createOriginService: async (serviceData) => {
-    const { data, error } = await supabase.from('origin_services').insert([serviceData]).select().single();
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'create',
+      table: 'origin_services',
+      data: serviceData
+    });
   },
 
   updateOriginService: async (serviceId, updateData) => {
-    const { data, error } = await supabase
-      .from('origin_services')
-      .update(updateData)
-      .eq('id', serviceId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'origin_services',
+      id: serviceId,
+      data: updateData
+    });
   },
 
   deleteOriginService: async (serviceId) => {
-    const { error } = await supabase
-      .from('origin_services')
-      .delete()
-      .eq('id', serviceId);
-    
-    if (error) throw error;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'delete',
+      table: 'origin_services',
+      id: serviceId
+    });
   }
 };
 
@@ -505,37 +486,30 @@ export const clinicalStaffApi = {
 
   // Create clinical staff
   createClinicalStaff: async (staffData) => {
-    const { data, error } = await supabase
-      .from('clinical_staff')
-      .insert([staffData])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'create',
+      table: 'clinical_staff',
+      data: staffData
+    });
   },
 
   // Update clinical staff
   updateClinicalStaff: async (staffId, updateData) => {
-    const { data, error } = await supabase
-      .from('clinical_staff')
-      .update(updateData)
-      .eq('id', staffId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'clinical_staff',
+      id: staffId,
+      data: updateData
+    });
   },
 
   // Delete clinical staff
   deleteClinicalStaff: async (staffId) => {
-    const { error } = await supabase
-      .from('clinical_staff')
-      .delete()
-      .eq('id', staffId);
-    
-    if (error) throw error;
+    return await callSupabaseFunction('manage-catalogs', {
+      action: 'delete',
+      table: 'clinical_staff',
+      id: staffId
+    });
   }
 };
 

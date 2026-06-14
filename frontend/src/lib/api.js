@@ -317,17 +317,17 @@ const api = {
         }
 
         case "/origins": {
-          const originData = { name: data.name };
+          const originData = { name: data.name, address: data.address };
           return { data: await supabaseApi.origins.createOrigin(originData) };
         }
 
         case "/destinations": {
-          const destData = { name: data.name };
+          const destData = { name: data.name, address: data.address };
           return { data: await supabaseApi.destinations.createDestination(destData) };
         }
 
         case "/origin-services": {
-          const serviceData = { name: data.name };
+          const serviceData = { name: data.name, address: data.address };
           return { data: await supabaseApi.originServicesApi.createOriginService(serviceData) };
         }
 
@@ -609,19 +609,19 @@ const api = {
 
       if (url.startsWith("/destinations/")) {
         const destId = parts[2];
-        const updateData = { name: data.name };
+        const updateData = { name: data.name, address: data.address };
         return { data: await supabaseApi.destinations.updateDestination(destId, updateData) };
       }
 
       if (url.startsWith("/origins/")) {
         const originId = parts[2];
-        const updateData = { name: data.name };
+        const updateData = { name: data.name, address: data.address };
         return { data: await supabaseApi.origins.updateOrigin(originId, updateData) };
       }
 
       if (url.startsWith("/origin-services/")) {
         const serviceId = parts[2];
-        const updateData = { name: data.name };
+        const updateData = { name: data.name, address: data.address };
         return { data: await supabaseApi.originServicesApi.updateOriginService(serviceId, updateData) };
       }
 
