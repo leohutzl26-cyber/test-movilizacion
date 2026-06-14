@@ -384,8 +384,8 @@ function DispatchSection() {
     // Carga de opciones al montar
     useEffect(() => {
         api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
-        api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
-        api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
+        api.get("/origins").then(r => setOrigins((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
+        api.get("/destinations").then(r => setDestinations((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
         api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
     }, []);
 
@@ -993,10 +993,6 @@ function DispatchSection() {
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Enlace Google Maps Origen</Label>
-                                    <Input value={editForm.origin_maps_url} onChange={e => handleEditFormChange("origin_maps_url", e.target.value)} className="h-9 text-xs font-semibold" />
-                                </div>
 
                                 <div className="space-y-1">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Destino</Label>
@@ -1012,10 +1008,6 @@ function DispatchSection() {
                                             <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
                                         </Button>
                                     </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Enlace Google Maps Destino</Label>
-                                    <Input value={editForm.destination_maps_url} onChange={e => handleEditFormChange("destination_maps_url", e.target.value)} className="h-9 text-xs font-semibold" />
                                 </div>
 
                                 <div className="space-y-1">
@@ -1990,10 +1982,10 @@ function NewTripSection({ onNavigate }) {
     const [showDestMap, setShowDestMap] = useState(false);
 
     useEffect(() => {
-        api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
-        api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
+        api.get("/origins").then(r => setOrigins((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
+        api.get("/destinations").then(r => setDestinations((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
         api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
-        api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
+        api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
     }, []);
 
     const handleCheckbox = (field, val) => {
@@ -2058,12 +2050,10 @@ function NewTripSection({ onNavigate }) {
         } else {
             const matched = origins.find(o => o.name === val);
             const address = matched ? (matched.address || "") : "";
-            const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
             setForm(prev => ({ 
                 ...prev, 
                 origin: val, 
-                origin_address: address,
-                origin_maps_url: mapsUrl
+                origin_address: address
             }));
         }
     };
@@ -2075,12 +2065,10 @@ function NewTripSection({ onNavigate }) {
         } else {
             const matched = destinations.find(d => d.name === val);
             const address = matched ? (matched.address || "") : "";
-            const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
             setForm(prev => ({ 
                 ...prev, 
                 destination: val, 
-                destination_address: address,
-                destination_maps_url: mapsUrl
+                destination_address: address
             }));
         }
     };
@@ -2255,10 +2243,6 @@ function NewTripSection({ onNavigate }) {
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-slate-500 text-[10px] font-bold">Google Maps Origen (URL)</Label>
-                                    <Input className="h-9 text-xs font-semibold" placeholder="https://maps.google.com/..." value={form.origin_maps_url || ""} onChange={e => setForm({ ...form, origin_maps_url: e.target.value })} />
-                                </div>
-                                <div className="space-y-1">
                                     <Label className="text-slate-500 text-[10px] font-bold">Dirección de Destino</Label>
                                     <div className="flex gap-2">
                                         <Input className="h-9 text-xs font-semibold flex-1" placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
@@ -2272,10 +2256,6 @@ function NewTripSection({ onNavigate }) {
                                             <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
                                         </Button>
                                     </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-slate-500 text-[10px] font-bold">Google Maps Destino (URL)</Label>
-                                    <Input className="h-9 text-xs font-semibold" placeholder="https://maps.google.com/..." value={form.destination_maps_url || ""} onChange={e => setForm({ ...form, destination_maps_url: e.target.value })} />
                                 </div>
 
                                 {tripType === "clinico" && (

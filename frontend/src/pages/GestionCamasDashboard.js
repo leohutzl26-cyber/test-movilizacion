@@ -118,8 +118,8 @@ function AssignPersonnelSection() {
       
       setTrips(revTrips.data || []);
       setClinicalStaffOptions((staffInfo.data || []).filter(s => s.is_active));
-      setOrigins(originsData.data || []);
-      setDestinations(dests.data || []);
+      setOrigins((originsData.data || []).sort((a, b) => a.name.localeCompare(b.name)));
+      setDestinations((dests.data || []).sort((a, b) => a.name.localeCompare(b.name)));
       setOriginServices((services.data || []).filter(s => s.is_active !== false));
       
       // Filtrar solo clínicos para las estadísticas y el listado extendido
@@ -596,10 +596,7 @@ function AssignPersonnelSection() {
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Google Maps Origen (URL)</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" placeholder="URL de Google Maps" value={editData.origin_maps_url || ""} onChange={e => setEditData({ ...editData, origin_maps_url: e.target.value })} />
-                  </div>
+
 
                    {/* Campos de Dirección y Maps Destino */}
                   <div className="space-y-1">
@@ -617,10 +614,7 @@ function AssignPersonnelSection() {
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Google Maps Destino (URL)</Label>
-                    <Input className="h-9 text-sm font-bold bg-white" placeholder="URL de Google Maps" value={editData.destination_maps_url || ""} onChange={e => setEditData({ ...editData, destination_maps_url: e.target.value })} />
-                  </div>
+
 
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Servicio / Unidad</Label>
@@ -1767,8 +1761,8 @@ function GestorNewTripSection() {
   };
 
   useEffect(() => {
-    api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
-    api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
+    api.get("/origins").then(r => setOrigins((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
+    api.get("/destinations").then(r => setDestinations((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
     api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
     api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
   }, []);
@@ -1909,10 +1903,7 @@ function GestorNewTripSection() {
                 </Button>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-slate-500 text-xs">Google Maps Origen (URL)</Label>
-              <Input placeholder="https://maps.google.com/..." value={form.origin_maps_url || ""} onChange={e => setForm({ ...form, origin_maps_url: e.target.value })} />
-            </div>
+
             <div className="space-y-1">
               <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
               <div className="flex gap-2">
@@ -1928,10 +1919,7 @@ function GestorNewTripSection() {
                 </Button>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-slate-500 text-xs">Google Maps Destino (URL)</Label>
-              <Input placeholder="https://maps.google.com/..." value={form.destination_maps_url || ""} onChange={e => setForm({ ...form, destination_maps_url: e.target.value })} />
-            </div>
+
 
             {tripType === "clinico" && <>
               <div className="space-y-1"><Label>Servicio de Origen</Label>{!useCustomService ? <Select value={form.patient_unit || undefined} onValueChange={v => v === "otro" ? setUseCustomService(true) : setForm({ ...form, patient_unit: v })}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.patient_unit || ""} onChange={e => setForm({ ...form, patient_unit: e.target.value })} onDoubleClick={() => setUseCustomService(false)} />}</div>

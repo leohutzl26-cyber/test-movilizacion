@@ -131,8 +131,8 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   }, [editingTrip, originServices]);
 
   useEffect(() => {
-    api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
-    api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
+    api.get("/origins").then(r => setOrigins((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
+    api.get("/destinations").then(r => setDestinations((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => { });
     api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
     api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
   }, []);
@@ -394,10 +394,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-500 text-xs">Enlace Google Maps Origen</Label>
-                  <Input placeholder="https://maps.google.com/?q=..." value={form.origin_maps_url || ""} onChange={e => setForm({ ...form, origin_maps_url: e.target.value })} />
-                </div>
+
 
                 {/* Campos de Dirección y Maps Destino */}
                 <div className="space-y-1">
@@ -415,10 +412,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-slate-500 text-xs">Enlace Google Maps Destino</Label>
-                  <Input placeholder="https://maps.google.com/?q=..." value={form.destination_maps_url || ""} onChange={e => setForm({ ...form, destination_maps_url: e.target.value })} />
-                </div>
+
 
                 {tripType === "clinico" && (
                   <>
