@@ -94,6 +94,11 @@ const VEHICLE_ICONS = {
     Van: <Bus className="w-6 h-6 text-indigo-600 drop-shadow-sm" />
 };
 
+const personnelTypes = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];
+const requirementOptions = ["Camilla", "Incubadora", "Silla de rueda", "Oxigeno", "Monitor", "Aislamiento Aéreo", "Aislamiento Contacto", "Aislamiento Protector", "Dependiente severo"];
+const reasonOptions = ["Examen", "Hospitalización", "Dialisis", "Rescate", "Alta", "Procedimiento"];
+const accompanimentOptions = ["Materno", "Tutor", "Otro"];
+
 function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
     if (!trip) return null;
 
@@ -336,6 +341,106 @@ function DispatchSection() {
     const [detailTrip, setDetailTrip] = useState(null);
     const [driverSearch, setDriverSearch] = useState("");
 
+    // Opciones para la edición
+    const [clinicalStaffOptions, setClinicalStaffOptions] = useState([]);
+    const [origins, setOrigins] = useState([]);
+    const [destinations, setDestinations] = useState([]);
+    const [originServices, setOriginServices] = useState([]);
+
+    // Estados para controlar el modal de edición
+    const [editForm, setEditForm] = useState(null);
+    const [editStaffRows, setEditStaffRows] = useState([]);
+    const [editRequirements, setEditRequirements] = useState([]);
+
+    // Carga de opciones al montar
+    useEffect(() => {
+        api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
+        api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
+        api.get("/destinations").then(r => setDestinations(r.data || [])).catch(() => { });
+        api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
+    }, []);
+
+    // Sincronizar estados locales de edición cuando se abre el modal
+    useEffect(() => {
+        if (editDialog) {
+            setEditForm({
+                origin: editDialog.origin || "",
+                origin_address: editDialog.origin_address || "",
+                origin_maps_url: editDialog.origin_maps_url || "",
+                destination: editDialog.destination || "",
+                destination_address: editDialog.destination_address || "",
+                destination_maps_url: editDialog.destination_maps_url || "",
+                patient_name: editDialog.patient_name || "",
+                task_details: editDialog.task_details || "",
+                scheduled_date: editDialog.scheduled_date ? editDialog.scheduled_date.split('T')[0] : "",
+                appointment_time: editDialog.appointment_time || "",
+                departure_time: editDialog.departure_time || "",
+                priority: editDialog.priority || "normal",
+                notes: editDialog.notes || "",
+                accompaniment: editDialog.accompaniment || "",
+                bed: editDialog.bed || "",
+                patient_unit: editDialog.patient_unit || "",
+                rut: editDialog.rut || "",
+                age: editDialog.age || "",
+                diagnosis: editDialog.diagnosis || "",
+                weight: editDialog.weight || "",
+                transfer_reason: editDialog.transfer_reason || ""
+            });
+            setEditStaffRows(editDialog.assigned_clinical_staff || []);
+            setEditRequirements(editDialog.patient_requirements || []);
+        } else {
+            setEditForm(null);
+            setEditStaffRows([]);
+            setEditRequirements([]);
+        }
+    }, [editDialog]);
+
+    // Manejadores para edición
+    const handleEditFormChange = (field, val) => {
+        setEditForm(prev => prev ? { ...prev, [field]: val } : null);
+    };
+
+    const addEditStaffRow = () => {
+        setEditStaffRows(prev => [...prev, { type: "", staff_id: "", staff_name: "" }]);
+    };
+
+    const removeEditStaffRow = (index) => {
+        setEditStaffRows(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const updateEditStaffRow = (index, field, value) => {
+        setEditStaffRows(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            if (field === "type") {
+                updated[index].staff_id = "";
+                updated[index].staff_name = "";
+            }
+            if (field === "staff_id") {
+                if (value && value !== "none") {
+                    const staff = clinicalStaffOptions.find(s => s.id === value);
+                    if (staff) updated[index].staff_name = staff.name;
+                } else {
+                    updated[index].staff_id = "";
+                    updated[index].staff_name = "";
+                }
+            }
+            return updated;
+        });
+    };
+
+    const handleEditCheckboxChange = (val) => {
+        setEditRequirements(prev => {
+            if (prev.includes(val)) return prev.filter(i => i !== val);
+            return [...prev, val];
+        });
+    };
+
+    const getEditStaffByType = (type) => {
+        if (!type) return [];
+        return clinicalStaffOptions.filter(s => s.role.toLowerCase() === type.toLowerCase());
+    };
+
     const fetchTrips = useCallback(async () => {
         try {
             const [activeRes, statsRes, driversRes] = await Promise.all([
@@ -413,13 +518,49 @@ function DispatchSection() {
 
     const handleEditSubmission = async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
+        if (!editForm) return;
+
+        // Validaciones básicas según tipo de viaje
+        if (editDialog.trip_type === "clinico") {
+            if (!editForm.patient_name) { toast.error("Nombre del paciente requerido"); return; }
+            if (!editForm.patient_unit) { toast.error("Servicio de origen requerido"); return; }
+            if (!editForm.transfer_reason) { toast.error("Motivo de traslado requerido"); return; }
+            if (!editForm.origin) { toast.error("Origen requerido"); return; }
+            if (!editForm.destination) { toast.error("Destino requerido"); return; }
+            
+            if (editStaffRows.length === 0 && editForm.transfer_reason !== "Alta") {
+                toast.error("Debe añadir al menos un personal clínico para traslados clínicos");
+                return;
+            }
+            if (editStaffRows.length > 0 && editStaffRows.some(r => !r.type)) {
+                toast.error("Seleccione el tipo de personal para todas las filas");
+                return;
+            }
+            if (editRequirements.length === 0) {
+                toast.error("Seleccione al menos un requerimiento de paciente");
+                return;
+            }
+        } else {
+            if (!editForm.origin) { toast.error("Origen requerido"); return; }
+            if (!editForm.destination) { toast.error("Destino requerido"); return; }
+            if (!editForm.task_details) { toast.error("Cometido requerido"); return; }
+        }
+
         try {
-            await api.put(`/trips/${editDialog.id}`, data);
-            toast.success("Traslado actualizado");
-            setEditDialog(null); fetchTrips();
-        } catch (e) { toast.error("Error al actualizar"); }
+            const submitData = {
+                ...editForm,
+                assigned_clinical_staff: editStaffRows,
+                required_personnel: editStaffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`),
+                patient_requirements: editRequirements
+            };
+
+            await api.put(`/trips/${editDialog.id}`, submitData);
+            toast.success("Traslado actualizado correctamente");
+            setEditDialog(null);
+            fetchTrips();
+        } catch (e) {
+            toast.error("Error al actualizar el traslado");
+        }
     };
 
     const filteredTrips = trips.filter(t => t.status === filterStatus);
@@ -744,20 +885,87 @@ function DispatchSection() {
 
             {/* DIALOGO EDICIÓN */}
             <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
-                <DialogContent className="max-w-xl">
-                    <DialogHeader><DialogTitle className="text-xl font-black uppercase">Editar Traslado #{editDialog?.tracking_number}</DialogTitle></DialogHeader>
-                    {editDialog && (
-                        <form onSubmit={handleEditSubmission} className="space-y-4 pt-2">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Origen</Label><Input name="origin" defaultValue={editDialog.origin} className="h-9 text-xs font-bold" /></div>
-                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Destino</Label><Input name="destination" defaultValue={editDialog.destination} className="h-9 text-xs font-bold" /></div>
-                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Paciente / Cometido</Label><Input name={editDialog.trip_type === "clinico" ? "patient_name" : "task_details"} defaultValue={editDialog.trip_type === "clinico" ? editDialog.patient_name : editDialog.task_details} className="h-9 text-xs font-bold" /></div>
-                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Fecha Programada</Label><Input name="scheduled_date" type="date" defaultValue={editDialog.scheduled_date ? editDialog.scheduled_date.split('T')[0] : ""} className="h-9 text-xs font-bold" /></div>
-                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Hora Cita</Label><Input name="appointment_time" type="time" defaultValue={editDialog.appointment_time} className="h-9 text-xs font-bold" /></div>
-                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Hora Salida</Label><Input name="departure_time" type="time" defaultValue={editDialog.departure_time} className="h-9 text-xs font-bold" /></div>
-                                <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-slate-500">Prioridad</Label>
-                                    <Select name="priority" defaultValue={editDialog.priority}>
-                                        <SelectTrigger className="h-9 text-xs font-bold"><SelectValue /></SelectTrigger>
+                <DialogContent className="max-w-3xl bg-slate-50 rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-slate-900 p-8 pb-10 relative">
+                        <div className="absolute top-6 right-6">
+                            <Badge className="bg-teal-500 border-none uppercase tracking-widest text-[10px] font-black shadow-lg">
+                                Editar traslado
+                            </Badge>
+                        </div>
+                        <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/10">
+                                {editDialog?.trip_type === "clinico" ? <Activity className="w-6 h-6 text-teal-400" /> : <Truck className="w-6 h-6 text-blue-400" />}
+                            </div>
+                            <div>
+                                <p className="text-teal-400 text-[10px] uppercase tracking-[0.2em] font-black mb-1">
+                                    Folio #{editDialog?.tracking_number}
+                                </p>
+                                <h2 className="text-2xl font-black text-white leading-tight uppercase tracking-tight">
+                                    {editDialog?.trip_type === "clinico" ? "Editar Traslado Clínico" : "Editar Cometido General"}
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    {editForm && (
+                        <form onSubmit={handleEditSubmission} className="p-8 -mt-6 bg-slate-50 rounded-t-[2rem] relative space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Origen *</Label>
+                                    <Input value={editForm.origin} onChange={e => handleEditFormChange("origin", e.target.value)} className="h-9 text-xs font-semibold" required />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Destino *</Label>
+                                    <Input value={editForm.destination} onChange={e => handleEditFormChange("destination", e.target.value)} className="h-9 text-xs font-semibold" required />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Origen</Label>
+                                    <Input value={editForm.origin_address} onChange={e => handleEditFormChange("origin_address", e.target.value)} className="h-9 text-xs font-semibold" />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Enlace Google Maps Origen</Label>
+                                    <Input value={editForm.origin_maps_url} onChange={e => handleEditFormChange("origin_maps_url", e.target.value)} className="h-9 text-xs font-semibold" />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Destino</Label>
+                                    <Input value={editForm.destination_address} onChange={e => handleEditFormChange("destination_address", e.target.value)} className="h-9 text-xs font-semibold" />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Enlace Google Maps Destino</Label>
+                                    <Input value={editForm.destination_maps_url} onChange={e => handleEditFormChange("destination_maps_url", e.target.value)} className="h-9 text-xs font-semibold" />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">
+                                        {editDialog.trip_type === "clinico" ? "Paciente *" : "Cometido *"}
+                                    </Label>
+                                    <Input 
+                                        value={editDialog.trip_type === "clinico" ? editForm.patient_name : editForm.task_details} 
+                                        onChange={e => handleEditFormChange(editDialog.trip_type === "clinico" ? "patient_name" : "task_details", e.target.value)} 
+                                        className="h-9 text-xs font-semibold" 
+                                        required 
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Fecha Programada</Label>
+                                    <Input type="date" value={editForm.scheduled_date} onChange={e => handleEditFormChange("scheduled_date", e.target.value)} className="h-9 text-xs font-semibold" />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Hora Cita</Label>
+                                    <Input type="time" value={editForm.appointment_time} onChange={e => handleEditFormChange("appointment_time", e.target.value)} className="h-9 text-xs font-semibold" />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Hora Salida</Label>
+                                    <Input type="time" value={editForm.departure_time} onChange={e => handleEditFormChange("departure_time", e.target.value)} className="h-9 text-xs font-semibold" />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Prioridad</Label>
+                                    <Select value={editForm.priority} onValueChange={v => handleEditFormChange("priority", v)}>
+                                        <SelectTrigger className="h-9 text-xs font-semibold"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="urgente">Urgente</SelectItem>
                                             <SelectItem value="alta">Alta</SelectItem>
@@ -765,10 +973,148 @@ function DispatchSection() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                {editDialog.trip_type === "clinico" && (
+                                    <>
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">RUT</Label>
+                                            <Input value={editForm.rut} onChange={e => handleEditFormChange("rut", e.target.value)} className="h-9 text-xs font-semibold" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Edad</Label>
+                                            <Input value={editForm.age} onChange={e => handleEditFormChange("age", e.target.value)} className="h-9 text-xs font-semibold" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Peso</Label>
+                                            <Input value={editForm.weight} onChange={e => handleEditFormChange("weight", e.target.value)} className="h-9 text-xs font-semibold" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Cama</Label>
+                                            <Input value={editForm.bed} onChange={e => handleEditFormChange("bed", e.target.value)} className="h-9 text-xs font-semibold" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Servicio de Origen</Label>
+                                            <Select value={editForm.patient_unit} onValueChange={v => handleEditFormChange("patient_unit", v)}>
+                                                <SelectTrigger className="h-9 text-xs font-semibold"><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Motivo Traslado</Label>
+                                            <Select value={editForm.transfer_reason} onValueChange={v => handleEditFormChange("transfer_reason", v)}>
+                                                <SelectTrigger className="h-9 text-xs font-semibold"><SelectValue placeholder="Seleccione motivo" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {["Examen", "Hospitalización", "Dialisis", "Rescate", "Alta", "Procedimiento"].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1 md:col-span-2">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Diagnóstico</Label>
+                                            <Input value={editForm.diagnosis} onChange={e => handleEditFormChange("diagnosis", e.target.value)} className="h-9 text-xs font-semibold" />
+                                        </div>
+                                        <div className="space-y-1 md:col-span-2">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Médico Tratante</Label>
+                                            <Input value={editForm.attending_physician} onChange={e => handleEditFormChange("attending_physician", e.target.value)} className="h-9 text-xs font-semibold" />
+                                        </div>
+                                    </>
+                                )}
                             </div>
-                            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                                <Button type="button" variant="outline" onClick={() => setEditDialog(null)} className="text-xs font-black uppercase h-9">Cerrar</Button>
-                                <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase h-9 px-8 shadow-md transition-all active:scale-95">Guardar Cambios</Button>
+
+                            {/* Campos clínicos adicionales: Personal clínico, Requerimientos y Acompañamiento */}
+                            {editDialog.trip_type === "clinico" && (
+                                <div className="space-y-6 pt-4 border-t border-slate-200">
+                                    {/* Personal Clínico Requerido */}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <Label className="text-xs font-bold text-teal-800 uppercase tracking-wider">Personal Clínico Requerido</Label>
+                                            <Button type="button" variant="outline" onClick={addEditStaffRow} className="border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-8 flex items-center gap-1.5 text-xs">
+                                                <Plus className="w-3.5 h-3.5" /> Añadir Fila
+                                            </Button>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {editStaffRows.map((row, i) => (
+                                                <div key={i} className="flex gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-3xs">
+                                                    <div className="flex-1 space-y-1">
+                                                        <Label className="text-[9px] font-bold uppercase text-slate-500">Tipo de Personal</Label>
+                                                        <Select value={row.type} onValueChange={v => updateEditStaffRow(i, "type", v)}>
+                                                            <SelectTrigger className="h-8 text-xs font-semibold"><SelectValue placeholder="Seleccione..." /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {personnelTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div className="flex-1 space-y-1">
+                                                        <Label className="text-[9px] font-bold uppercase text-slate-500">Nombre Funcionario (Opcional)</Label>
+                                                        <Select value={row.staff_id || "none"} onValueChange={v => updateEditStaffRow(i, "staff_id", v)} disabled={!row.type}>
+                                                            <SelectTrigger className="h-8 text-xs font-semibold"><SelectValue placeholder={row.type ? "Opcional: Identificar..." : "Seleccione tipo"} /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="none">Por identificar luego...</SelectItem>
+                                                                {getEditStaffByType(row.type).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div className="flex items-end">
+                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEditStaffRow(i)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {editStaffRows.length === 0 && (
+                                                <p className="text-xs text-slate-400 italic">No se ha asignado personal clínico para el traslado.</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Requerimientos Paciente */}
+                                    <div className="space-y-3 pt-2">
+                                        <Label className="text-xs font-bold text-teal-800 uppercase tracking-wider">Requerimientos Paciente *</Label>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 bg-white p-4 rounded-xl border border-slate-200">
+                                            {requirementOptions.map(o => (
+                                                <label key={o} className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={editRequirements.includes(o)} 
+                                                        onChange={() => handleEditCheckboxChange(o)} 
+                                                        className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500" 
+                                                    /> {o}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Acompañamiento */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Tipo de Acompañamiento Adicional</Label>
+                                            <Select value={editForm.accompaniment || "ninguno"} onValueChange={v => handleEditFormChange("accompaniment", v === "ninguno" ? "" : v)}>
+                                                <SelectTrigger className="h-9 text-xs font-semibold"><SelectValue placeholder="Ninguno" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="ninguno">Ninguno</SelectItem>
+                                                    {accompanimentOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-1 pt-2">
+                                <Label className="text-[10px] font-bold text-slate-500 uppercase">Notas Adicionales</Label>
+                                <textarea 
+                                    className="w-full min-h-[80px] p-3 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-teal-500 outline-none transition-all bg-white" 
+                                    value={editForm.notes} 
+                                    onChange={e => handleEditFormChange("notes", e.target.value)} 
+                                    placeholder="Notas adicionales..." 
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 mt-6">
+                                <Button type="button" variant="outline" onClick={() => setEditDialog(null)} className="text-xs font-black uppercase h-10 px-6 rounded-xl">Cerrar</Button>
+                                <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase h-10 px-8 shadow-md rounded-xl transition-all active:scale-95">Guardar Cambios</Button>
                             </div>
                         </form>
                     )}
@@ -1548,11 +1894,6 @@ function NewTripSection({ onNavigate }) {
         api.get("/clinical-staff").then(r => setClinicalStaffOptions((r.data || []).filter(s => s.is_active))).catch(() => { });
         api.get("/origin-services").then(r => setOriginServices((r.data || []).filter(s => s.is_active !== false))).catch(() => { });
     }, []);
-
-    const personnelTypes = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];
-    const requirementOptions = ["Camilla", "Incubadora", "Silla de rueda", "Oxigeno", "Monitor", "Aislamiento Aéreo", "Aislamiento Contacto", "Aislamiento Protector", "Dependiente severo"];
-    const reasonOptions = ["Examen", "Hospitalización", "Dialisis", "Rescate", "Alta", "Procedimiento"];
-    const accompanimentOptions = ["Materno", "Tutor", "Otro"];
 
     const handleCheckbox = (field, val) => {
         setForm(prev => {
