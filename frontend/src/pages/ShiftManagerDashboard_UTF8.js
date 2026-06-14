@@ -190,9 +190,9 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                                         {trip.origin_address && (
                                             <p className="text-xs font-bold text-slate-500 mt-0.5">{trip.origin_address}</p>
                                         )}
-                                        {trip.origin_maps_url && (
+                                        {(trip.origin_maps_url || trip.origin) && (
                                             <a 
-                                                href={trip.origin_maps_url} 
+                                                href={trip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.origin_address ? `${trip.origin}, ${trip.origin_address}` : trip.origin)}`} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
                                                 className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
@@ -207,9 +207,9 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                                         {trip.destination_address && (
                                             <p className="text-xs font-bold text-slate-500 mt-0.5">{trip.destination_address}</p>
                                         )}
-                                        {trip.destination_maps_url && (
+                                        {(trip.destination_maps_url || trip.destination) && (
                                             <a 
-                                                href={trip.destination_maps_url} 
+                                                href={trip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination_address ? `${trip.destination}, ${trip.destination_address}` : trip.destination)}`} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
                                                 className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"

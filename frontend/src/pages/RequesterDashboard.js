@@ -812,9 +812,9 @@ function MyRequestsSection({ onEdit }) {
                     {selectedReq.origin_address && (
                       <p className="text-[10px] text-slate-500 font-bold leading-tight mt-0.5 truncate uppercase">{selectedReq.origin_address}</p>
                     )}
-                    {selectedReq.origin_maps_url && (
+                    {(selectedReq.origin_maps_url || selectedReq.origin) && (
                       <a 
-                        href={selectedReq.origin_maps_url} 
+                        href={selectedReq.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedReq.origin_address ? `${selectedReq.origin}, ${selectedReq.origin_address}` : selectedReq.origin)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
@@ -832,9 +832,9 @@ function MyRequestsSection({ onEdit }) {
                     {selectedReq.destination_address && (
                       <p className="text-[10px] text-slate-500 font-bold leading-tight mt-0.5 truncate uppercase">{selectedReq.destination_address}</p>
                     )}
-                    {selectedReq.destination_maps_url && (
+                    {(selectedReq.destination_maps_url || selectedReq.destination) && (
                       <a 
-                        href={selectedReq.destination_maps_url} 
+                        href={selectedReq.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedReq.destination_address ? `${selectedReq.destination}, ${selectedReq.destination_address}` : selectedReq.destination)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"

@@ -1314,9 +1314,9 @@ function ClinicalCalendarSection() {
                     {detailTrip.origin_address && (
                       <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.origin_address}</p>
                     )}
-                    {detailTrip.origin_maps_url && (
+                    {(detailTrip.origin_maps_url || detailTrip.origin) && (
                       <a 
-                        href={detailTrip.origin_maps_url} 
+                        href={detailTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.origin_address ? `${detailTrip.origin}, ${detailTrip.origin_address}` : detailTrip.origin)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
@@ -1331,9 +1331,9 @@ function ClinicalCalendarSection() {
                     {detailTrip.destination_address && (
                       <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.destination_address}</p>
                     )}
-                    {detailTrip.destination_maps_url && (
+                    {(detailTrip.destination_maps_url || detailTrip.destination) && (
                       <a 
-                        href={detailTrip.destination_maps_url} 
+                        href={detailTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.destination_address ? `${detailTrip.destination}, ${detailTrip.destination_address}` : detailTrip.destination)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
