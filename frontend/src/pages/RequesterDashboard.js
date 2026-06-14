@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ClipboardList, Plus, MapPin, ArrowRight, User, Stethoscope, Clock, Truck, Activity, CheckCircle, XCircle, Trash2, Filter } from "lucide-react";
+import { ClipboardList, Plus, MapPin, Map, ArrowRight, User, Stethoscope, Clock, Truck, Activity, CheckCircle, XCircle, Trash2, Filter } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
+import MapAddressSelector from "@/components/MapAddressSelector";
 
 // ========== RUT VALIDATION (MÓDULO 11) ==========
 function validateRut(rut) {
@@ -90,6 +91,8 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
   const [useCustomDest, setUseCustomDest] = useState(false);
   const [useCustomService, setUseCustomService] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showOriginMap, setShowOriginMap] = useState(false);
+  const [showDestMap, setShowDestMap] = useState(false);
 
   useEffect(() => {
     if (editingTrip) {
@@ -378,7 +381,18 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                 {/* Campos de Dirección y Maps Origen */}
                 <div className="space-y-1">
                   <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
-                  <Input placeholder="Ej: Av. Principal 123 o Referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} />
+                  <div className="flex gap-2">
+                    <Input placeholder="Ej: Av. Principal 123 o Referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} className="flex-1" />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
+                      onClick={() => setShowOriginMap(true)}
+                    >
+                      <Map className="w-4 h-4 text-teal-600" />
+                      <span className="hidden sm:inline text-xs font-bold">Mapa</span>
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-slate-500 text-xs">Enlace Google Maps Origen</Label>
@@ -388,7 +402,18 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                 {/* Campos de Dirección y Maps Destino */}
                 <div className="space-y-1">
                   <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
-                  <Input placeholder="Ej: Lo Fontecilla 441 o Referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
+                  <div className="flex gap-2">
+                    <Input placeholder="Ej: Lo Fontecilla 441 o Referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} className="flex-1" />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
+                      onClick={() => setShowDestMap(true)}
+                    >
+                      <Map className="w-4 h-4 text-teal-600" />
+                      <span className="hidden sm:inline text-xs font-bold">Mapa</span>
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-slate-500 text-xs">Enlace Google Maps Destino</Label>
@@ -517,6 +542,30 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
           </form>
         </CardContent>
       </Card>
+      <MapAddressSelector 
+        open={showOriginMap}
+        onClose={() => setShowOriginMap(false)}
+        onSelect={({ address, mapsUrl }) => {
+          setForm(prev => ({
+            ...prev,
+            origin_address: address,
+            origin_maps_url: mapsUrl
+          }));
+        }}
+        title="Seleccionar Dirección de Origen"
+      />
+      <MapAddressSelector 
+        open={showDestMap}
+        onClose={() => setShowDestMap(false)}
+        onSelect={({ address, mapsUrl }) => {
+          setForm(prev => ({
+            ...prev,
+            destination_address: address,
+            destination_maps_url: mapsUrl
+          }));
+        }}
+        title="Seleccionar Dirección de Destino"
+      />
     </div>
   );
 }

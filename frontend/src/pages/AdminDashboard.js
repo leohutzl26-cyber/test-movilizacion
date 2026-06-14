@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award, Upload } from "lucide-react";
+import { MapPin, Map, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award, Upload } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import { supabase } from "@/lib/supabase";
 import LogbookReport from "@/components/LogbookReport";
 import BulkUploader from "@/components/BulkUploader";
+import MapAddressSelector from "@/components/MapAddressSelector";
 
 const COLORS_PIE = ["#0d9488", "#f59e0b", "#6366f1", "#ef4444", "#22c55e", "#8b5cf6"];
 const COLORS_STATUS = { "Pendiente": "#f59e0b", "Por Visar": "#a855f7", "Asignado": "#3b82f6", "En Curso": "#0d9488", "Completado": "#22c55e", "Cancelado": "#ef4444" };
@@ -213,6 +214,7 @@ function DestinationsManager() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const fetchDests = useCallback(async () => {
     const { data } = await supabase.from('destinations').select('*').order('name');
     if (data) setDests(data || []);
@@ -245,7 +247,21 @@ function DestinationsManager() {
       <Card className="mb-6 shadow-sm"><CardContent className="p-5">
         <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3 items-end">
           <div className="flex-1 space-y-2 w-full"><Label className="font-bold">Nombre del Destino</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Clínica Las Condes, Laboratorio Central..." className="h-11" /></div>
-          <div className="flex-1 space-y-2 w-full"><Label className="font-bold">Dirección del Destino</Label><Input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Ej: Av. Las Condes 763..." className="h-11" /></div>
+          <div className="flex-1 space-y-2 w-full">
+            <Label className="font-bold">Dirección del Destino</Label>
+            <div className="flex gap-2">
+              <Input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Ej: Av. Las Condes 763..." className="h-11 flex-1" />
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="h-11 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
+                onClick={() => setShowMap(true)}
+              >
+                <Map className="w-4 h-4 text-teal-600" />
+                <span className="hidden sm:inline text-xs font-bold">Mapa</span>
+              </Button>
+            </div>
+          </div>
           <Button type="submit" className="h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 shrink-0 w-full sm:w-auto">Agregar a Lista</Button>
           <Button type="button" variant="outline" onClick={() => setBulkOpen(true)} className="h-11 font-bold border-teal-200 text-teal-700 hover:bg-teal-50 px-6 shrink-0 w-full sm:w-auto"><Upload className="w-4 h-4 mr-2 inline" />Carga Masiva</Button>
         </form>
@@ -272,6 +288,12 @@ function DestinationsManager() {
         onImport={handleBulkImport}
         exampleRows={[["Clínica Las Condes", "Av. Las Condes 763"], ["Laboratorio Central", "Av. Providencia 1234"]]}
       />
+      <MapAddressSelector 
+        open={showMap}
+        onClose={() => setShowMap(false)}
+        onSelect={({ address }) => setAddress(address)}
+        title="Seleccionar Dirección de Destino"
+      />
     </div>
   );
 }
@@ -281,6 +303,7 @@ function OriginsManager() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const fetchOrigins = useCallback(async () => {
     const { data } = await supabase.from('origins').select('*').order('name');
     if (data) setOrigins(data || []);
@@ -313,7 +336,21 @@ function OriginsManager() {
       <Card className="mb-6 shadow-sm"><CardContent className="p-5">
         <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3 items-end">
           <div className="flex-1 space-y-2 w-full"><Label className="font-bold">Nombre del Origen</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Hospital Central, Bodega Central..." className="h-11" /></div>
-          <div className="flex-1 space-y-2 w-full"><Label className="font-bold">Dirección del Origen</Label><Input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Ej: Av. Principal 123..." className="h-11" /></div>
+          <div className="flex-1 space-y-2 w-full">
+            <Label className="font-bold">Dirección del Origen</Label>
+            <div className="flex gap-2">
+              <Input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Ej: Av. Principal 123..." className="h-11 flex-1" />
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="h-11 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
+                onClick={() => setShowMap(true)}
+              >
+                <Map className="w-4 h-4 text-teal-600" />
+                <span className="hidden sm:inline text-xs font-bold">Mapa</span>
+              </Button>
+            </div>
+          </div>
           <Button type="submit" className="h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 shrink-0 w-full sm:w-auto">Agregar a Lista</Button>
           <Button type="button" variant="outline" onClick={() => setBulkOpen(true)} className="h-11 font-bold border-teal-200 text-teal-700 hover:bg-teal-50 px-6 shrink-0 w-full sm:w-auto"><Upload className="w-4 h-4 mr-2 inline" />Carga Masiva</Button>
         </form>
@@ -339,6 +376,12 @@ function OriginsManager() {
         ]}
         onImport={handleBulkImport}
         exampleRows={[["Hospital Central", "Av. Principal 123"], ["Bodega Central", "Sector Industrial 45"]]}
+      />
+      <MapAddressSelector 
+        open={showMap}
+        onClose={() => setShowMap(false)}
+        onSelect={({ address }) => setAddress(address)}
+        title="Seleccionar Dirección de Origen"
       />
     </div>
   );

@@ -12,12 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, BadgeAlert, Droplets, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { MapPin, Map, ArrowRight, ShieldAlert, BadgeAlert, Droplets, CheckCircle, Activity, CalendarDays, Truck, User, Users, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, ChevronLeft, ChevronRight, Clock, RotateCcw, Edit, Search, Car, Bus, Siren, FileDown, Eye, History, Filter, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ByDriverSection from "./ByDriverSection";
 import LogbookReport from "@/components/LogbookReport";
+import MapAddressSelector from "@/components/MapAddressSelector";
 
 // ========== RUT VALIDATION (MÓDULO 11) ==========
 function validateRut(rut) {
@@ -351,6 +352,8 @@ function DispatchSection() {
     const [editForm, setEditForm] = useState(null);
     const [editStaffRows, setEditStaffRows] = useState([]);
     const [editRequirements, setEditRequirements] = useState([]);
+    const [showEditOriginMap, setShowEditOriginMap] = useState(false);
+    const [showEditDestMap, setShowEditDestMap] = useState(false);
 
     // Carga de opciones al montar
     useEffect(() => {
@@ -921,7 +924,18 @@ function DispatchSection() {
 
                                 <div className="space-y-1">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Origen</Label>
-                                    <Input value={editForm.origin_address} onChange={e => handleEditFormChange("origin_address", e.target.value)} className="h-9 text-xs font-semibold" />
+                                    <div className="flex gap-2">
+                                        <Input value={editForm.origin_address} onChange={e => handleEditFormChange("origin_address", e.target.value)} className="h-9 text-xs font-semibold flex-1" />
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
+                                            onClick={() => setShowEditOriginMap(true)}
+                                        >
+                                            <Map className="w-4 h-4 text-teal-600" />
+                                            <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="space-y-1">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Enlace Google Maps Origen</Label>
@@ -930,7 +944,18 @@ function DispatchSection() {
 
                                 <div className="space-y-1">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Destino</Label>
-                                    <Input value={editForm.destination_address} onChange={e => handleEditFormChange("destination_address", e.target.value)} className="h-9 text-xs font-semibold" />
+                                    <div className="flex gap-2">
+                                        <Input value={editForm.destination_address} onChange={e => handleEditFormChange("destination_address", e.target.value)} className="h-9 text-xs font-semibold flex-1" />
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
+                                            onClick={() => setShowEditDestMap(true)}
+                                        >
+                                            <Map className="w-4 h-4 text-teal-600" />
+                                            <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="space-y-1">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Enlace Google Maps Destino</Label>
@@ -1120,6 +1145,24 @@ function DispatchSection() {
                     )}
                 </DialogContent>
             </Dialog>
+            <MapAddressSelector 
+                open={showEditOriginMap}
+                onClose={() => setShowEditOriginMap(false)}
+                onSelect={({ address, mapsUrl }) => {
+                    handleEditFormChange("origin_address", address);
+                    handleEditFormChange("origin_maps_url", mapsUrl);
+                }}
+                title="Seleccionar Dirección de Origen (Edición)"
+            />
+            <MapAddressSelector 
+                open={showEditDestMap}
+                onClose={() => setShowEditDestMap(false)}
+                onSelect={({ address, mapsUrl }) => {
+                    handleEditFormChange("destination_address", address);
+                    handleEditFormChange("destination_maps_url", mapsUrl);
+                }}
+                title="Seleccionar Dirección de Destino (Edición)"
+            />
         </div>
     );
 }
@@ -1887,6 +1930,8 @@ function NewTripSection({ onNavigate }) {
     const [useCustomService, setUseCustomService] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const [showOriginMap, setShowOriginMap] = useState(false);
+    const [showDestMap, setShowDestMap] = useState(false);
 
     useEffect(() => {
         api.get("/origins").then(r => setOrigins(r.data || [])).catch(() => { });
@@ -2140,7 +2185,18 @@ function NewTripSection({ onNavigate }) {
                                 {/* Direcciones y Maps */}
                                 <div className="space-y-1">
                                     <Label className="text-slate-500 text-[10px] font-bold">Dirección de Origen</Label>
-                                    <Input className="h-9 text-xs font-semibold" placeholder="Dirección exacta o referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} />
+                                    <div className="flex gap-2">
+                                        <Input className="h-9 text-xs font-semibold flex-1" placeholder="Dirección exacta o referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} />
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
+                                            onClick={() => setShowOriginMap(true)}
+                                        >
+                                            <Map className="w-4 h-4 text-teal-600" />
+                                            <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="space-y-1">
                                     <Label className="text-slate-500 text-[10px] font-bold">Google Maps Origen (URL)</Label>
@@ -2148,7 +2204,18 @@ function NewTripSection({ onNavigate }) {
                                 </div>
                                 <div className="space-y-1">
                                     <Label className="text-slate-500 text-[10px] font-bold">Dirección de Destino</Label>
-                                    <Input className="h-9 text-xs font-semibold" placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
+                                    <div className="flex gap-2">
+                                        <Input className="h-9 text-xs font-semibold flex-1" placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
+                                            onClick={() => setShowDestMap(true)}
+                                        >
+                                            <Map className="w-4 h-4 text-teal-600" />
+                                            <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="space-y-1">
                                     <Label className="text-slate-500 text-[10px] font-bold">Google Maps Destino (URL)</Label>
@@ -2258,6 +2325,22 @@ function NewTripSection({ onNavigate }) {
                     </form>
                 </CardContent>
             </Card>
+            <MapAddressSelector 
+                open={showOriginMap}
+                onClose={() => setShowOriginMap(false)}
+                onSelect={({ address, mapsUrl }) => {
+                    setForm(prev => ({ ...prev, origin_address: address, origin_maps_url: mapsUrl }));
+                }}
+                title="Seleccionar Dirección de Origen"
+            />
+            <MapAddressSelector 
+                open={showDestMap}
+                onClose={() => setShowDestMap(false)}
+                onSelect={({ address, mapsUrl }) => {
+                    setForm(prev => ({ ...prev, destination_address: address, destination_maps_url: mapsUrl }));
+                }}
+                title="Seleccionar Dirección de Destino"
+            />
         </div>
     );
 }
