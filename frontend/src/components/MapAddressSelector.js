@@ -119,6 +119,7 @@ export default function MapAddressSelector({ open, onClose, onSelect, title = "S
     }, 300);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mapLoaded]);
 
   // Geocodificación inversa
