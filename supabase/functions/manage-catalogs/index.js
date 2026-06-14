@@ -11,10 +11,10 @@ exports.handler = async (event, context) => {
     const user = context.user;
 
     // 1. Validar autenticación y rol
-    if (!user || !['admin', 'gestion_camas'].includes(user.role)) {
+    if (!user || !['admin', 'gestion_camas', 'coordinador'].includes(user.role)) {
       return {
         statusCode: 403,
-        body: JSON.stringify({ error: 'No autorizado. Se requieren permisos de administrador o gestor de camas.' })
+        body: JSON.stringify({ error: 'No autorizado. Se requieren permisos de administrador, gestor de camas o coordinador.' })
       };
     }
 
