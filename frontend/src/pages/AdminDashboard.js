@@ -742,7 +742,7 @@ function TripsManager() {
                 {trips.map(t => (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4 font-bold text-teal-700">{t.tracking_number}</td>
-                    <td className="p-4 text-slate-500">{t.scheduled_date}</td>
+                     <td className="p-4 text-slate-500">{t.scheduled_date ? t.scheduled_date.split('T')[0] : "-"}</td>
                     <td className="p-4 font-medium text-slate-900">{t.patient_name || "Cometido Func."}</td>
                     <td className="p-4 text-slate-600">
                       <div className="flex items-center gap-1">

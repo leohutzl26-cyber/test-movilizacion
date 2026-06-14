@@ -686,7 +686,7 @@ function DriverHistorySection() {
                   )}
                   <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
                 </div>
-                <span className="text-xs font-medium text-slate-500">{t.scheduled_date}</span>
+                <span className="text-xs font-medium text-slate-500">{t.scheduled_date ? t.scheduled_date.split('T')[0] : ""}</span>
               </div>
               <p className="font-bold text-lg text-slate-900">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
               <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
