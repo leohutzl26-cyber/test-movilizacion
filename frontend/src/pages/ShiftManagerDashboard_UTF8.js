@@ -1879,6 +1879,30 @@ function NewTripSection({ onNavigate }) {
                                         </div>
                                     </div>
                                 ))}
+
+                                <div className="space-y-2 mt-4">
+                                    <Label className="text-xs font-bold text-slate-700">Requerimientos Paciente *</Label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                        {requirementOptions.map(o => (
+                                            <label key={o} className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                                                <input type="checkbox" checked={form.patient_requirements.includes(o)} onChange={() => handleCheckbox("patient_requirements", o)} className="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500" /> {o}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] font-bold text-slate-500">Tipo de Acompañamiento Adicional</Label>
+                                        <Select value={form.accompaniment || "ninguno"} onValueChange={v => setForm({ ...form, accompaniment: v === "ninguno" ? "" : v })}>
+                                            <SelectTrigger className="h-9 text-xs font-semibold"><SelectValue placeholder="Ninguno" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ninguno">Ninguno</SelectItem>
+                                                {accompanimentOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
