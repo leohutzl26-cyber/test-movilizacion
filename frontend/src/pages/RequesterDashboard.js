@@ -810,8 +810,46 @@ function MyRequestsSection({ onEdit }) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4"><MapPin className="w-6 h-6 text-teal-500" /><div><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Origen</p><p className="font-black text-slate-800 text-lg">{selectedReq.origin}</p></div></div>
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4"><ArrowRight className="w-6 h-6 text-blue-500" /><div><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Destino</p><p className="font-black text-slate-800 text-lg">{selectedReq.destination}</p></div></div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                  <MapPin className="w-6 h-6 text-teal-500 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Origen</p>
+                    <p className="font-black text-slate-800 text-base truncate uppercase">{selectedReq.origin}</p>
+                    {selectedReq.origin_address && (
+                      <p className="text-[10px] text-slate-500 font-bold leading-tight mt-0.5 truncate uppercase">{selectedReq.origin_address}</p>
+                    )}
+                    {selectedReq.origin_maps_url && (
+                      <a 
+                        href={selectedReq.origin_maps_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                      >
+                        <Map className="w-3 h-3" /> Ver en Google Maps
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                  <ArrowRight className="w-6 h-6 text-blue-500 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Destino</p>
+                    <p className="font-black text-slate-800 text-base truncate uppercase">{selectedReq.destination}</p>
+                    {selectedReq.destination_address && (
+                      <p className="text-[10px] text-slate-500 font-bold leading-tight mt-0.5 truncate uppercase">{selectedReq.destination_address}</p>
+                    )}
+                    {selectedReq.destination_maps_url && (
+                      <a 
+                        href={selectedReq.destination_maps_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                      >
+                        <Map className="w-3 h-3" /> Ver en Google Maps
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {selectedReq.trip_type === "clinico" && (

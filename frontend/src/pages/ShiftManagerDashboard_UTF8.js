@@ -187,10 +187,36 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                                     <div>
                                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Origen</p>
                                         <p className="text-sm font-black text-slate-900">{trip.origin}</p>
+                                        {trip.origin_address && (
+                                            <p className="text-xs font-bold text-slate-500 mt-0.5">{trip.origin_address}</p>
+                                        )}
+                                        {trip.origin_maps_url && (
+                                            <a 
+                                                href={trip.origin_maps_url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                                            >
+                                                <Map className="w-3 h-3" /> Ver en Google Maps
+                                            </a>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Destino</p>
                                         <p className="text-sm font-black text-slate-900">{trip.destination}</p>
+                                        {trip.destination_address && (
+                                            <p className="text-xs font-bold text-slate-500 mt-0.5">{trip.destination_address}</p>
+                                        )}
+                                        {trip.destination_maps_url && (
+                                            <a 
+                                                href={trip.destination_maps_url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                                            >
+                                                <Map className="w-3 h-3" /> Ver en Google Maps
+                                            </a>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Fecha Prog.</p>
@@ -615,13 +641,43 @@ function DispatchSection() {
 
                 {/* Ruta (Origen -> Destino) */}
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-[10px] font-bold text-slate-600">
-                    <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                        <span className="truncate uppercase text-slate-800">{t.origin}</span>
+                    <div>
+                        <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                            <span className="truncate uppercase text-slate-800">{t.origin}</span>
+                        </div>
+                        {t.origin_address && (
+                            <p className="text-[9px] text-slate-500 font-medium pl-5 truncate leading-tight mt-0.5">{t.origin_address}</p>
+                        )}
+                        {t.origin_maps_url && (
+                            <a 
+                                href={t.origin_maps_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="inline-flex items-center gap-0.5 text-[9px] font-bold text-teal-600 hover:underline pl-5 mt-0.5"
+                            >
+                                Ver en mapa
+                            </a>
+                        )}
                     </div>
-                    <div className="flex items-center gap-1.5 pl-5 border-l border-dashed border-slate-300">
-                        <ArrowRight className="w-3 h-3 text-blue-500 shrink-0" />
-                        <span className="truncate uppercase text-slate-800">{t.destination}</span>
+                    <div className="pl-5 border-l border-dashed border-slate-300 mt-1">
+                        <div className="flex items-center gap-1.5">
+                            <ArrowRight className="w-3 h-3 text-blue-500 shrink-0" />
+                            <span className="truncate uppercase text-slate-800">{t.destination}</span>
+                        </div>
+                        {t.destination_address && (
+                            <p className="text-[9px] text-slate-500 font-medium truncate leading-tight mt-0.5">{t.destination_address}</p>
+                        )}
+                        {t.destination_maps_url && (
+                            <a 
+                                href={t.destination_maps_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="inline-flex items-center gap-0.5 text-[9px] font-bold text-blue-600 hover:underline mt-0.5"
+                            >
+                                Ver en mapa
+                            </a>
+                        )}
                     </div>
                 </div>
 

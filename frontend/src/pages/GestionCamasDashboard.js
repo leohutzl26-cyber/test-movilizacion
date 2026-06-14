@@ -1317,10 +1317,36 @@ function ClinicalCalendarSection() {
                   <div>
                     <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Origen:</span>
                     <p className="font-black text-slate-800">{detailTrip.origin}</p>
+                    {detailTrip.origin_address && (
+                      <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.origin_address}</p>
+                    )}
+                    {detailTrip.origin_maps_url && (
+                      <a 
+                        href={detailTrip.origin_maps_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                      >
+                        <Map className="w-3 h-3" /> Ver en Google Maps
+                      </a>
+                    )}
                   </div>
                   <div>
                     <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Destino:</span>
                     <p className="font-black text-slate-800">{detailTrip.destination}</p>
+                    {detailTrip.destination_address && (
+                      <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.destination_address}</p>
+                    )}
+                    {detailTrip.destination_maps_url && (
+                      <a 
+                        href={detailTrip.destination_maps_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                      >
+                        <Map className="w-3 h-3" /> Ver en Google Maps
+                      </a>
+                    )}
                   </div>
                   <div>
                     <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
