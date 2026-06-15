@@ -60,8 +60,9 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       },
     ],
     conductor: [
-      { id: "pool", label: "Bolsa de Viajes", icon: Clock },
       { id: "trips", label: "Mis Viajes", icon: Truck },
+      { id: "pool", label: "Bolsa de Viajes", icon: Clock },
+      { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "logbook", label: "Bitácora Móvil", icon: BookOpen },
       { id: "history", label: "Historial", icon: History },
     ],
