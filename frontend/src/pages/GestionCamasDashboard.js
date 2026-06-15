@@ -19,6 +19,26 @@ import MapAddressSelector from "@/components/MapAddressSelector";
 const PERSONNEL_TYPES = ["TENS", "Matrón(a)", "Enfermero(a)", "Kinesiólogo(a)", "Fonoaudiólogo(a)", "Médico", "Terapeuta Ocupacional"];
 const REQUIREMENT_OPTIONS = ["Camilla", "Incubadora", "Silla de rueda", "Oxigeno", "Monitor", "Aislamiento Aéreo", "Aislamiento Contacto", "Aislamiento Protector", "Dependiente severo"];
 
+const statusColorsSolid = {
+  pendiente: "bg-amber-500 text-white shadow-amber-100",
+  revision_gestor: "bg-purple-600 text-white shadow-purple-100",
+  asignado: "bg-indigo-600 text-white shadow-indigo-100",
+  en_curso: "bg-blue-600 text-white shadow-blue-100",
+  completado: "bg-emerald-600 text-white shadow-emerald-100",
+  cancelado: "bg-rose-600 text-white shadow-rose-100",
+  devuelto: "bg-rose-600 text-white shadow-rose-100"
+};
+
+const statusHeaderStyles = {
+  pendiente: { bg: "bg-amber-600", text: "text-white", iconBg: "bg-amber-700/40", iconText: "text-amber-100", badge: "bg-amber-800 text-white" },
+  revision_gestor: { bg: "bg-purple-600", text: "text-white", iconBg: "bg-purple-700/40", iconText: "text-purple-100", badge: "bg-purple-800 text-white" },
+  asignado: { bg: "bg-indigo-600", text: "text-white", iconBg: "bg-indigo-700/40", iconText: "text-indigo-100", badge: "bg-indigo-800 text-white" },
+  en_curso: { bg: "bg-blue-600", text: "text-white", iconBg: "bg-blue-700/40", iconText: "text-blue-100", badge: "bg-blue-800 text-white" },
+  completado: { bg: "bg-emerald-600", text: "text-white", iconBg: "bg-emerald-700/40", iconText: "text-emerald-100", badge: "bg-emerald-800 text-white" },
+  cancelado: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" },
+  devuelto: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" }
+};
+
 const formatScheduledDate = (dateStr) => {
   if (!dateStr) return "";
   try {
@@ -244,7 +264,7 @@ function AssignPersonnelSection() {
     const statusMap = {
       revision_gestor: { label: "Por Visar", color: "bg-purple-100 text-purple-800 border border-purple-200", border: "border-l-purple-500" },
       pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-800 border border-amber-200", border: "border-l-amber-500" },
-      asignado: { label: "Asignado", color: "bg-teal-100 text-teal-800 border border-teal-200", border: "border-l-teal-500" },
+      asignado: { label: "Asignado", color: "bg-indigo-100 text-indigo-800 border border-indigo-200", border: "border-l-indigo-500" },
       en_curso: { label: "En Curso", color: "bg-blue-100 text-blue-800 border border-blue-200", border: "border-l-blue-500" }
     };
     const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
@@ -371,7 +391,7 @@ function AssignPersonnelSection() {
                 const statusMap = {
                   revision_gestor: { label: "Por Visar", color: "bg-purple-100 text-purple-800 border border-purple-200", border: "border-l-purple-500" },
                   pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-700 border border-amber-200", border: "border-l-amber-500" },
-                  asignado: { label: "Asignado", color: "bg-teal-100 text-teal-700 border border-teal-200", border: "border-l-teal-500" },
+                  asignado: { label: "Asignado", color: "bg-indigo-100 text-indigo-800 border border-indigo-200", border: "border-l-indigo-500" },
                   en_curso: { label: "En Curso", color: "bg-blue-100 text-blue-700 border border-blue-200", border: "border-l-blue-500" }
                 };
                 const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
@@ -464,21 +484,26 @@ function AssignPersonnelSection() {
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
-          <DialogHeader className="p-8 pb-0">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
-                <Pencil className="w-6 h-6 text-teal-600" />
+          <div className={`${statusHeaderStyles[assignDialog.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+            <div className="absolute top-6 right-6">
+              <Badge className={`${statusHeaderStyles[assignDialog.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                {(assignDialog.status || "").replace(/_/g, " ")}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-5">
+              <div className={`w-16 h-16 ${statusHeaderStyles[assignDialog.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                <Pencil className={`w-8 h-8 ${statusHeaderStyles[assignDialog.status]?.iconText || "text-teal-400"}`} />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">
-                  {assignDialog?.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}
-                </DialogTitle>
-                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                  Folio: <span className="text-teal-600 font-mono font-black">#{assignDialog?.tracking_number || assignDialog?.id?.substring(0, 6)?.toUpperCase()}</span> — Panel de Gestión
-                </DialogDescription>
+                <p className={`${statusHeaderStyles[assignDialog.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                  Folio #{assignDialog.tracking_number || assignDialog.id?.substring(0, 6)?.toUpperCase()} — Panel de Gestión
+                </p>
+                <h2 className={`text-3xl font-black ${statusHeaderStyles[assignDialog.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                  {assignDialog.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}
+                </h2>
               </div>
             </div>
-          </DialogHeader>
+          </div>
           {assignDialog && (
             <div className="p-8 pt-4 space-y-5">
               {/* SOLICITANTE E INGRESO */}
@@ -1253,19 +1278,26 @@ function ClinicalCalendarSection() {
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
         <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="p-8 pb-0">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
-                <Activity className="w-6 h-6 text-teal-600 animate-pulse" />
+          <div className={`${statusHeaderStyles[detailTrip?.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+            <div className="absolute top-6 right-6">
+              <Badge className={`${statusHeaderStyles[detailTrip?.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                {(detailTrip?.status || "").replace(/_/g, " ")}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-5">
+              <div className={`w-16 h-16 ${statusHeaderStyles[detailTrip?.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                <Activity className={`w-8 h-8 ${statusHeaderStyles[detailTrip?.status]?.iconText || "text-teal-400"}`} />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Detalle del Traslado</DialogTitle>
-                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                  Folio: <span className="text-teal-600 font-mono font-black">#{detailTrip?.tracking_number}</span> — Consulta Informativa
-                </DialogDescription>
+                <p className={`${statusHeaderStyles[detailTrip?.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                  Folio #{detailTrip?.tracking_number} — Consulta Informativa
+                </p>
+                <h2 className={`text-3xl font-black ${statusHeaderStyles[detailTrip?.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                  Detalle del Traslado
+                </h2>
               </div>
             </div>
-          </DialogHeader>
+          </div>
           {detailTrip && (
             <div className="p-8 pt-4 space-y-5">
               <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
@@ -1275,7 +1307,7 @@ function ClinicalCalendarSection() {
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Estado</p>
-                  <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColors[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
+                  <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColorsSolid[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
                     {(detailTrip.status || "").replace(/_/g, " ")}
                   </Badge>
                 </div>

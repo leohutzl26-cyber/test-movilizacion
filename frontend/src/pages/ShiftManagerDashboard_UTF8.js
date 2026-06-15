@@ -80,6 +80,8 @@ const formatScheduledDate = (dateStr) => {
 const COLORS = { pendiente: '#f59e0b', asignado: '#6366f1', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#f43f5e', revision_gestor: '#8b5cf6' };
 const pColors = { urgente: "bg-red-500 text-white font-bold", alta: "bg-orange-500 text-white font-bold", normal: "bg-slate-100 text-slate-700 font-bold border border-slate-200" };
 const sColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", asignado: "bg-indigo-100 text-indigo-800 border border-indigo-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-rose-100 text-rose-800 border border-rose-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200" };
+const statusColorsSolid = { pendiente: "bg-amber-500 text-white shadow-amber-100", asignado: "bg-indigo-600 text-white shadow-indigo-100", en_curso: "bg-blue-600 text-white shadow-blue-100", completado: "bg-emerald-600 text-white shadow-emerald-100", cancelado: "bg-rose-600 text-white shadow-rose-100", devuelto: "bg-rose-600 text-white shadow-rose-100", revision_gestor: "bg-purple-600 text-white shadow-purple-100" };
+const statusBorderColors = { pendiente: "border-l-amber-500", asignado: "border-l-indigo-500", en_curso: "border-l-blue-500", completado: "border-l-emerald-500", cancelado: "border-l-rose-500", devuelto: "border-l-rose-500", revision_gestor: "border-l-purple-500" };
 
 const VEHICLE_ICONS = {
     Ambulancia: <Siren className="w-6 h-6 text-red-600 drop-shadow-sm" />,
@@ -121,26 +123,70 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                 <DialogTitle className="sr-only">Detalle del Traslado</DialogTitle>
                 <DialogDescription className="sr-only">Detalles completos y evolución del traslado seleccionado</DialogDescription>
                 {/* Cabecera Estilizada */}
-                <div className="bg-slate-900 p-8 pb-10 relative">
-                    <div className="absolute top-6 right-6">
-                        <Badge className={`${trip.status === 'completado' ? 'bg-emerald-500' : 'bg-teal-500'} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
-                            {(trip.status || "").replace(/_/g, " ")}
-                        </Badge>
-                    </div>
-                    <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
-                            {trip.trip_type === "clinico" ? <Activity className="w-8 h-8 text-teal-400" /> : <Truck className="w-8 h-8 text-blue-400" />}
+                {(() => {
+                    const headerBgColors = {
+                        pendiente: "bg-amber-600",
+                        revision_gestor: "bg-purple-600",
+                        asignado: "bg-indigo-600",
+                        en_curso: "bg-blue-600",
+                        completado: "bg-emerald-600",
+                        cancelado: "bg-rose-600",
+                        devuelto: "bg-rose-600"
+                    };
+                    const headerBadgeColors = {
+                        pendiente: "bg-amber-800 text-white",
+                        revision_gestor: "bg-purple-800 text-white",
+                        asignado: "bg-indigo-800 text-white",
+                        en_curso: "bg-blue-800 text-white",
+                        completado: "bg-emerald-800 text-white",
+                        cancelado: "bg-rose-800 text-white",
+                        devuelto: "bg-rose-800 text-white"
+                    };
+                    const iconTextColors = {
+                        pendiente: "text-amber-100",
+                        revision_gestor: "text-purple-100",
+                        asignado: "text-indigo-100",
+                        en_curso: "text-blue-100",
+                        completado: "text-emerald-100",
+                        cancelado: "text-rose-100",
+                        devuelto: "text-rose-100"
+                    };
+                    const iconBgColors = {
+                        pendiente: "bg-amber-700/40",
+                        revision_gestor: "bg-purple-700/40",
+                        asignado: "bg-indigo-700/40",
+                        en_curso: "bg-blue-700/40",
+                        completado: "bg-emerald-700/40",
+                        cancelado: "bg-rose-700/40",
+                        devuelto: "bg-rose-700/40"
+                    };
+                    const headerBg = headerBgColors[trip.status] || "bg-slate-900";
+                    const badgeBg = headerBadgeColors[trip.status] || "bg-slate-800 text-white";
+                    const iconText = iconTextColors[trip.status] || "text-teal-400";
+                    const iconBg = iconBgColors[trip.status] || "bg-white/10";
+                    return (
+                        <div className={`${headerBg} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+                            <div className="absolute top-6 right-6">
+                                <Badge className={`${badgeBg} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                                    {(trip.status || "").replace(/_/g, " ")}
+                                </Badge>
+                            </div>
+                            <div className="flex items-center gap-5">
+                                <div className={`w-16 h-16 ${iconBg} rounded-2xl flex items-center justify-center border border-white/10`}>
+                                    {trip.trip_type === "clinico" ? <Activity className={`w-8 h-8 ${iconText}`} /> : <Truck className={`w-8 h-8 ${iconText}`} />}
+                                </div>
+                                <div>
+                                    <p className={`${iconText} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                                        Folio #{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}
+                                    </p>
+                                    <h2 className={`text-3xl font-black text-white leading-tight uppercase tracking-tight`}>
+                                        {trip.trip_type === "clinico" ? "Traslado Clínico" : "Cometido General"}
+                                    </h2>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-teal-400 text-[10px] uppercase tracking-[0.2em] font-black mb-1">
-                                Folio #{trip.tracking_number || trip.id.substring(0, 8).toUpperCase()}
-                            </p>
-                            <h2 className="text-3xl font-black text-white leading-tight uppercase tracking-tight">
-                                {trip.trip_type === "clinico" ? "Traslado Clínico" : "Cometido General"}
-                            </h2>
-                        </div>
-                    </div>
-                </div>
+                    );
+                })()}
 
                 {/* Contenido Principal */}
                 <div className="p-8 -mt-6 bg-slate-50 rounded-t-[2rem] relative space-y-6">
@@ -624,7 +670,7 @@ function DispatchSection() {
     );
 
     const renderTripCard = (t) => (
-        <Card key={t.id} className={`group overflow-hidden border-none shadow-md ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-lg transition-all duration-300 bg-white border-l-4 ${t.trip_type === "clinico" ? "border-l-teal-500" : "border-l-indigo-400"}`}>
+        <Card key={t.id} className={`group overflow-hidden border-none shadow-md ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-lg transition-all duration-300 bg-white border-l-4 ${statusBorderColors[t.status] || "border-l-slate-400"}`}>
             <CardContent className="p-4 space-y-3">
                 {/* Cabecera de la Tarjeta */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -636,6 +682,9 @@ function DispatchSection() {
                             #{t.tracking_number}
                         </span>
                         <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm ${t.priority === "urgente" ? "bg-red-500 text-white" : t.priority === "alta" ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>{t.priority}</Badge>
+                        <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm ${statusColorsSolid[t.status] || "bg-slate-500 text-white"}`}>
+                            {(t.status || "").replace(/_/g, " ")}
+                        </Badge>
                     </div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
                 </div>

@@ -45,6 +45,36 @@ const formatScheduledDate = (dateStr) => {
   return dateStr;
 };
 
+const statusColorsSolid = {
+  pendiente: "bg-amber-500 text-white shadow-amber-100",
+  revision_gestor: "bg-purple-600 text-white shadow-purple-100",
+  asignado: "bg-indigo-600 text-white shadow-indigo-100",
+  en_curso: "bg-blue-600 text-white shadow-blue-100",
+  completado: "bg-emerald-600 text-white shadow-emerald-100",
+  cancelado: "bg-rose-600 text-white shadow-rose-100",
+  devuelto: "bg-rose-600 text-white shadow-rose-100"
+};
+
+const statusBorders = {
+  pendiente: "border-l-amber-500",
+  revision_gestor: "border-l-purple-500",
+  asignado: "border-l-indigo-500",
+  en_curso: "border-l-blue-500",
+  completado: "border-l-emerald-500",
+  cancelado: "border-l-rose-500",
+  devuelto: "border-l-rose-500"
+};
+
+const statusHeaderStyles = {
+  pendiente: { bg: "bg-amber-600", text: "text-white", iconBg: "bg-amber-700/40", iconText: "text-amber-100", badge: "bg-amber-800 text-white" },
+  revision_gestor: { bg: "bg-purple-600", text: "text-white", iconBg: "bg-purple-700/40", iconText: "text-purple-100", badge: "bg-purple-800 text-white" },
+  asignado: { bg: "bg-indigo-600", text: "text-white", iconBg: "bg-indigo-700/40", iconText: "text-indigo-100", badge: "bg-indigo-800 text-white" },
+  en_curso: { bg: "bg-blue-600", text: "text-white", iconBg: "bg-blue-700/40", iconText: "text-blue-100", badge: "bg-blue-800 text-white" },
+  completado: { bg: "bg-emerald-600", text: "text-white", iconBg: "bg-emerald-700/40", iconText: "text-emerald-100", badge: "bg-emerald-800 text-white" },
+  cancelado: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" },
+  devuelto: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" }
+};
+
 export default function DriverDashboard() {
   const [section, setSection] = useState(() => {
     return localStorage.getItem("movilizacion.conductor.section") || "trips";
@@ -454,13 +484,13 @@ function MyTripsSection() {
         {displayTrips.map(t => {
           const isToday = cleanDateStr(t.scheduled_date) === today || t.status === "en_curso";
           return (
-          <Card key={t.id} className={`shadow-md border-slate-200 overflow-hidden rounded-xl ${!isToday ? "opacity-80" : ""}`}>
+          <Card key={t.id} className={`shadow-md border-l-4 ${statusBorders[t.status] || "border-l-slate-200"} overflow-hidden rounded-xl ${!isToday ? "opacity-80" : ""}`}>
             <CardContent className="p-0">
               <div className="p-5">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-100 pb-4 gap-3">
                   <div className="flex items-center gap-3">
                     <span className="bg-slate-800 text-white font-mono px-3 py-1 rounded-md text-sm font-black shadow-sm tracking-widest">{t.tracking_number || t.id.substring(0, 6).toUpperCase()}</span>
-                    <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider border ${statusColors[t.status]}`}>{sLabels[t.status] || t.status.replace(/_/g, " ")}</span>
+                    <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider border-none ${statusColorsSolid[t.status]}`}>{sLabels[t.status] || t.status.replace(/_/g, " ")}</span>
                   </div>
                   <div className="flex items-center gap-3 w-full md:w-auto">
                     <span className={`text-sm font-bold px-3 py-1.5 rounded-md border shadow-sm flex-1 text-center md:flex-none ${isToday ? "text-teal-700 bg-teal-100 border-teal-200" : "text-indigo-700 bg-indigo-100 border-indigo-200"}`}>{t.scheduled_date ? formatScheduledDate(t.scheduled_date) : new Date(t.created_at).toLocaleDateString()}</span>
@@ -599,9 +629,28 @@ function MyTripsSection() {
 
       {detailsDialog && (
         <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">Detalle Completo <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">{detailsDialog.tracking_number}</Badge></DialogTitle></DialogHeader>
-            <div className="space-y-5 text-sm pt-2">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
+            <div className={`${statusHeaderStyles[detailsDialog.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+              <div className="absolute top-6 right-6">
+                <Badge className={`${statusHeaderStyles[detailsDialog.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                  {(detailsDialog.status || "").replace(/_/g, " ")}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-5">
+                <div className={`w-16 h-16 ${statusHeaderStyles[detailsDialog.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                  {detailsDialog.trip_type === "clinico" ? <Activity className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-blue-400"}`} />}
+                </div>
+                <div>
+                  <p className={`${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                    Folio #{detailsDialog.tracking_number} — Detalle Completo
+                  </p>
+                  <h2 className={`text-3xl font-black ${statusHeaderStyles[detailsDialog.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                    {detailsDialog.trip_type === "clinico" ? "Traslado Clínico" : "Cometido No Clínico"}
+                  </h2>
+                </div>
+              </div>
+            </div>
+            <div className="p-8 pt-4 space-y-5 text-sm">
 
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
                 <p className="text-sm text-red-600 font-black mb-1 flex items-center gap-1.5 uppercase tracking-wider"><Clock className="w-5 h-5" /> Horarios de Traslado</p>
@@ -610,7 +659,7 @@ function MyTripsSection() {
               </div>
 
               <div className="flex gap-2 mb-2 mt-4">
-                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${statusColors[detailsDialog.status]}`}>{sLabels[detailsDialog.status] || detailsDialog.status}</span>
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${statusColorsSolid[detailsDialog.status] || "bg-slate-500 text-white"}`}>{sLabels[detailsDialog.status] || detailsDialog.status}</span>
                 <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">{detailsDialog.trip_type === "clinico" ? "Traslado Clínico" : "Traslado No Clínico"}</span>
                 <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${detailsDialog.priority === "urgente" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>{detailsDialog.priority}</span>
               </div>
@@ -1358,16 +1407,28 @@ function DriverCalendarSection() {
 
       {selectedTrip && (
         <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-slate-900 border-b pb-2 flex items-center justify-between">
-                Detalle Completo{" "}
-                <Badge className="bg-slate-800 text-white font-mono text-base px-3 py-1 tracking-widest">
-                  {selectedTrip.tracking_number}
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
+            <div className={`${statusHeaderStyles[selectedTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+              <div className="absolute top-6 right-6">
+                <Badge className={`${statusHeaderStyles[selectedTrip.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                  {(selectedTrip.status || "").replace(/_/g, " ")}
                 </Badge>
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-5 text-sm pt-2">
+              </div>
+              <div className="flex items-center gap-5">
+                <div className={`w-16 h-16 ${statusHeaderStyles[selectedTrip.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                  {selectedTrip.trip_type === "clinico" ? <Activity className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-blue-400"}`} />}
+                </div>
+                <div>
+                  <p className={`${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                    Folio #{selectedTrip.tracking_number} — Detalle Completo
+                  </p>
+                  <h2 className={`text-3xl font-black ${statusHeaderStyles[selectedTrip.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                    {selectedTrip.trip_type === "clinico" ? "Traslado Clínico" : "Cometido No Clínico"}
+                  </h2>
+                </div>
+              </div>
+            </div>
+            <div className="p-8 pt-4 space-y-5 text-sm">
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
                 <p className="text-sm text-red-600 font-black mb-1 flex items-center gap-1.5 uppercase tracking-wider">
                   <Clock className="w-5 h-5" /> Horarios de Traslado
@@ -1382,7 +1443,7 @@ function DriverCalendarSection() {
               </div>
 
               <div className="flex gap-2 mb-2 mt-4">
-                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase border ${statusColors[selectedTrip.status]}`}>
+                <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${statusColorsSolid[selectedTrip.status] || "bg-slate-500 text-white"}`}>
                   {sLabels[selectedTrip.status] || selectedTrip.status}
                 </span>
                 <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">

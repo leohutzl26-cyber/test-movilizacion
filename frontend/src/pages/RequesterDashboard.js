@@ -33,6 +33,36 @@ function validateRut(rut) {
   return { valid, formatted: `${formatted}-${dv}` };
 }
 
+const statusColorsSolid = {
+  pendiente: "bg-amber-500 text-white shadow-amber-100",
+  revision_gestor: "bg-purple-600 text-white shadow-purple-100",
+  asignado: "bg-indigo-600 text-white shadow-indigo-100",
+  en_curso: "bg-blue-600 text-white shadow-blue-100",
+  completado: "bg-emerald-600 text-white shadow-emerald-100",
+  cancelado: "bg-rose-600 text-white shadow-rose-100",
+  devuelto: "bg-rose-600 text-white shadow-rose-100"
+};
+
+const statusBorders = {
+  pendiente: "border-l-amber-500",
+  revision_gestor: "border-l-purple-500",
+  asignado: "border-l-indigo-500",
+  en_curso: "border-l-blue-500",
+  completado: "border-l-emerald-500",
+  cancelado: "border-l-rose-500",
+  devuelto: "border-l-rose-500"
+};
+
+const statusHeaderStyles = {
+  pendiente: { bg: "bg-amber-600", text: "text-white", iconBg: "bg-amber-700/40", iconText: "text-amber-100", badge: "bg-amber-800 text-white" },
+  revision_gestor: { bg: "bg-purple-600", text: "text-white", iconBg: "bg-purple-700/40", iconText: "text-purple-100", badge: "bg-purple-800 text-white" },
+  asignado: { bg: "bg-indigo-600", text: "text-white", iconBg: "bg-indigo-700/40", iconText: "text-indigo-100", badge: "bg-indigo-800 text-white" },
+  en_curso: { bg: "bg-blue-600", text: "text-white", iconBg: "bg-blue-700/40", iconText: "text-blue-100", badge: "bg-blue-800 text-white" },
+  completado: { bg: "bg-emerald-600", text: "text-white", iconBg: "bg-emerald-700/40", iconText: "text-emerald-100", badge: "bg-emerald-800 text-white" },
+  cancelado: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" },
+  devuelto: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" }
+};
+
 const defaultForm = {
   origin: "", origin_address: "", origin_maps_url: "",
   destination: "", destination_address: "", destination_maps_url: "",
@@ -718,12 +748,12 @@ function MyRequestsSection({ onEdit }) {
       {/* Mobile/Tablet View: Cards */}
       <div className="lg:hidden space-y-4 mb-8">
         {filteredRequests.map(req => (
-          <Card key={req.id} className={`card-hover cursor-pointer border-l-4 ${req.trip_type === "clinico" ? "border-l-rose-500" : "border-l-slate-400"}`} onClick={() => setSelectedReq(req)}>
+          <Card key={req.id} className={`card-hover cursor-pointer border-l-4 ${statusBorders[req.status] || "border-l-slate-400"}`} onClick={() => setSelectedReq(req)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">{req.tracking_number || req.id.substring(0, 6).toUpperCase()}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusColors[req.status] || "bg-slate-100 border-slate-200"}`}>{(req.status || "").replace(/_/g, " ")}</span>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border-none ${statusColorsSolid[req.status] || "bg-slate-100 border-slate-200"}`}>{(req.status || "").replace(/_/g, " ")}</span>
                 </div>
                 <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${req.trip_type === "clinico" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>
                   {req.trip_type === "clinico" ? <Stethoscope className="w-3 h-3" /> : <ClipboardList className="w-3 h-3" />}
@@ -779,12 +809,31 @@ function MyRequestsSection({ onEdit }) {
       )}
 
       <Dialog open={!!selectedReq} onOpenChange={() => setSelectedReq(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="text-xl border-b pb-3 flex justify-between items-center">Detalle de la Solicitud <Badge className="bg-slate-800 text-white font-mono">{selectedReq?.tracking_number}</Badge></DialogTitle></DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
+          <div className={`${statusHeaderStyles[selectedReq?.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+            <div className="absolute top-6 right-6">
+              <Badge className={`${statusHeaderStyles[selectedReq?.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                {(selectedReq?.status || "").replace(/_/g, " ")}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-5">
+              <div className={`w-16 h-16 ${statusHeaderStyles[selectedReq?.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                {selectedReq?.trip_type === "clinico" ? <Activity className={`w-8 h-8 ${statusHeaderStyles[selectedReq?.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[selectedReq?.status]?.iconText || "text-blue-400"}`} />}
+              </div>
+              <div>
+                <p className={`${statusHeaderStyles[selectedReq?.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                  Folio #{selectedReq?.tracking_number} — Consulta de Solicitud
+                </p>
+                <h2 className={`text-3xl font-black ${statusHeaderStyles[selectedReq?.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                  {selectedReq?.trip_type === "clinico" ? "Traslado Clínico" : "Cometido No Clínico"}
+                </h2>
+              </div>
+            </div>
+          </div>
           {selectedReq && (
-            <div className="space-y-5 text-sm pt-2">
+            <div className="p-8 pt-4 space-y-5 text-sm">
               <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusColors[selectedReq.status]}`}>{(selectedReq.status || "").replace(/_/g, " ")}</span>
+                <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border-none ${statusColorsSolid[selectedReq.status] || "bg-slate-500 text-white"}`}>{(selectedReq.status || "").replace(/_/g, " ")}</span>
                 <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${selectedReq.trip_type === "clinico" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>{(selectedReq.trip_type || "").replace(/_/g, " ")}</span>
                 <span className="text-xs font-bold text-slate-500 ml-auto">{formatDateTime(selectedReq.created_at)}</span>
               </div>
