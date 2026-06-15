@@ -1323,7 +1323,7 @@ function DriverCalendarSection() {
                           <div
                             key={t.id}
                             onClick={() => handleOpenDetails(t)}
-                            className={`p-2.5 rounded-xl border-l-4 mb-2 text-left cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01] ${colorClass} bg-white shadow-xs border`}
+                            className={`p-2.5 rounded-xl border-l-4 mb-2 text-left cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01] ${colorClass} shadow-sm`}
                           >
                             <div className="flex justify-between items-start gap-1 mb-1">
                               <span className="font-mono text-[9px] font-black bg-slate-900 text-white px-1.5 py-0.5 rounded leading-none">

@@ -1112,8 +1112,8 @@ function ClinicalCalendarSection() {
       onDragStart={() => setDraggedTripId(t.id)}
       onDragEnd={() => setDraggedTripId(null)}
       onClick={() => setDetailTrip(t)}
-      className={`p-2 rounded-lg border-l-2 mb-1 text-xs transition-all duration-200 cursor-pointer ${
-        t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"
+      className={`p-2 rounded-lg border-l-4 mb-1 text-xs transition-all duration-200 cursor-pointer ${
+        statusColors[t.status] || "bg-slate-100 text-slate-800 border border-slate-200"
       } ${
         draggedTripId === t.id 
           ? "opacity-40 scale-95 cursor-grabbing" 

@@ -1546,7 +1546,7 @@ function CalendarSection() {
     };
 
     const TripCardInternal = ({ t }) => (
-        <div className={`p-2 rounded-lg border-l-2 mb-1 text-[10px] ${t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"}`}>
+        <div className={`p-2 rounded-lg border-l-4 mb-1 text-[10px] ${sColors[t.status] || "bg-slate-50 text-slate-800 border-slate-200"}`}>
             <p className="font-bold text-slate-800 truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
             <p className="text-[9px] text-slate-500 font-mono">{t.appointment_time || "--:--"}</p>
         </div>
@@ -1649,8 +1649,8 @@ function CalendarSection() {
                                                     onDragStart={(e) => { e.stopPropagation(); setDraggedTripId(t.id); }}
                                                     onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); }}
                                                     onClick={(e) => { e.stopPropagation(); setDetailTrip(t); }} 
-                                                    className={`p-2 rounded-lg border-l-2 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${
-                                                        t.trip_type === "clinico" ? "border-l-teal-500 bg-teal-50/50" : "border-l-slate-400 bg-slate-50"
+                                                    className={`p-2 rounded-lg border-l-4 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${
+                                                        sColors[t.status] || "bg-slate-50 text-slate-800 border-slate-200"
                                                     } ${
                                                         draggedTripId === t.id 
                                                             ? "opacity-40 scale-95 cursor-grabbing" 
