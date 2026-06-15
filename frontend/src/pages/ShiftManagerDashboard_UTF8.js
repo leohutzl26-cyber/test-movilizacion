@@ -177,6 +177,12 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                                         <p className="text-xs font-bold text-amber-900 leading-relaxed">{trip.notes}</p>
                                     </div>
                                 )}
+                                {trip.driver_notes && (
+                                    <div className="bg-teal-50 p-3 rounded-xl border border-teal-100/50 mt-2">
+                                        <p className="text-[10px] uppercase font-black text-teal-600 tracking-wider mb-1">Observaciones del Conductor</p>
+                                        <p className="text-xs font-bold text-teal-900 leading-relaxed">{trip.driver_notes}</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Ruta y Tiempos */}
@@ -193,7 +199,7 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                                         )}
                                         {(trip.origin_maps_url || trip.origin) && (
                                             <a 
-                                                href={trip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.origin_address ? `${trip.origin}, ${trip.origin_address}` : trip.origin)}`} 
+                                                href={trip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.origin_address || trip.origin)}`} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
                                                 className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
@@ -210,7 +216,7 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                                         )}
                                         {(trip.destination_maps_url || trip.destination) && (
                                             <a 
-                                                href={trip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination_address ? `${trip.destination}, ${trip.destination_address}` : trip.destination)}`} 
+                                                href={trip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination_address || trip.destination)}`} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
                                                 className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"

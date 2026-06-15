@@ -213,7 +213,7 @@ function AssignPersonnelSection() {
   const handleEditOriginChange = (v) => {
     const matched = origins.find(o => o.name === v);
     const address = matched ? (matched.address || "") : "";
-    const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v + ", " + address)}` : "";
+    const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "";
     setEditData({
       ...editData,
       origin: v,
@@ -225,7 +225,7 @@ function AssignPersonnelSection() {
   const handleEditDestChange = (v) => {
     const matched = destinations.find(d => d.name === v);
     const address = matched ? (matched.address || "") : "";
-    const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v + ", " + address)}` : "";
+    const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "";
     setEditData({
       ...editData,
       destination: v,
@@ -646,6 +646,12 @@ function AssignPersonnelSection() {
                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Notas / Observaciones</Label>
                     <textarea className="w-full min-h-[60px] p-2 text-sm font-bold bg-white border rounded-md focus:ring-teal-500 outline-none" value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} />
                   </div>
+                  {editData.driver_notes && (
+                    <div className="md:col-span-2 space-y-1 bg-amber-50/60 p-3 rounded-xl border border-amber-200 mt-2">
+                      <Label className="text-[10px] font-black text-amber-800 uppercase tracking-widest">Observaciones del Conductor</Label>
+                      <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{editData.driver_notes}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1316,7 +1322,7 @@ function ClinicalCalendarSection() {
                     )}
                     {(detailTrip.origin_maps_url || detailTrip.origin) && (
                       <a 
-                        href={detailTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.origin_address ? `${detailTrip.origin}, ${detailTrip.origin_address}` : detailTrip.origin)}`} 
+                        href={detailTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.origin_address || detailTrip.origin)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
@@ -1333,7 +1339,7 @@ function ClinicalCalendarSection() {
                     )}
                     {(detailTrip.destination_maps_url || detailTrip.destination) && (
                       <a 
-                        href={detailTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.destination_address ? `${detailTrip.destination}, ${detailTrip.destination_address}` : detailTrip.destination)}`} 
+                        href={detailTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.destination_address || detailTrip.destination)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
@@ -1361,6 +1367,20 @@ function ClinicalCalendarSection() {
                 <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
                   <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
                   <p className="text-xs font-black text-teal-900">{detailTrip.clinical_team}</p>
+                </div>
+              )}
+
+              {detailTrip.notes && (
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Notas del Traslado</p>
+                  <p className="text-xs font-bold text-slate-800 whitespace-pre-line">{detailTrip.notes}</p>
+                </div>
+              )}
+
+              {detailTrip.driver_notes && (
+                <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-1">
+                  <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Observaciones del Conductor</p>
+                  <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{detailTrip.driver_notes}</p>
                 </div>
               )}
 
@@ -1798,7 +1818,7 @@ function GestorNewTripSection() {
     } else {
       const matched = origins.find(o => o.name === val);
       const address = matched ? (matched.address || "") : "";
-      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "";
       setForm(prev => ({ 
         ...prev, 
         origin: val, 
@@ -1815,7 +1835,7 @@ function GestorNewTripSection() {
     } else {
       const matched = destinations.find(d => d.name === val);
       const address = matched ? (matched.address || "") : "";
-      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "";
       setForm(prev => ({ 
         ...prev, 
         destination: val, 

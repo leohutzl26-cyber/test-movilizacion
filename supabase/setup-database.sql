@@ -104,6 +104,7 @@ CREATE TABLE trips (
     patient_unit TEXT,
     priority TEXT DEFAULT 'normal' CHECK (priority IN ('baja', 'normal', 'alta', 'urgente')),
     notes TEXT,
+    driver_notes TEXT,
     trip_type TEXT DEFAULT 'no_clinico' CHECK (trip_type IN ('clinico', 'no_clinico')),
     status TEXT DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'asignado', 'en_curso', 'completado', 'cancelado', 'revision_gestor')),
     

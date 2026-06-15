@@ -7,15 +7,15 @@ const supabase = createClient(
 
 exports.handler = async (event, context) => {
   try {
-    const { trip_id, status, mileage, cancel_reason, vehicle_id } = JSON.parse(event.body);
+    const { trip_id, status, mileage, cancel_reason, vehicle_id, driver_notes } = JSON.parse(event.body);
     const userId = context.user?.id;
     const userRole = context.user?.role;
 
     // Validate input
-    if (!trip_id || !status) {
+    if (!trip_id) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'trip_id and status are required' })
+        body: JSON.stringify({ error: 'trip_id is required' })
       };
     }
 
@@ -33,56 +33,63 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Check permissions based on status change
-    const statusTransitions = {
-      'pendiente': ['asignado', 'cancelado'],
-      'asignado': ['en_curso', 'cancelado', 'pendiente'],
-      'en_curso': ['completado', 'cancelado'],
-      'completado': [],
-      'cancelado': []
-    };
-
-    if (!statusTransitions[currentTrip.status].includes(status)) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: `Cannot change status from ${currentTrip.status} to ${status}` })
-      };
-    }
-
     // Prepare update data
-    const updateData = {
-      status
-    };
+    const updateData = {};
 
-    if (status === 'cancelado') {
-      updateData.cancel_reason = cancel_reason || null;
-    }
+    if (status) {
+      // Check permissions based on status change
+      const statusTransitions = {
+        'pendiente': ['asignado', 'cancelado'],
+        'asignado': ['en_curso', 'cancelado', 'pendiente'],
+        'en_curso': ['completado', 'cancelado'],
+        'completado': [],
+        'cancelado': []
+      };
 
-    // Handle vehicle assignment when starting/taking a trip
-    const activeVehicleId = vehicle_id || currentTrip.vehicle_id;
-    if (vehicle_id) {
-      updateData.vehicle_id = vehicle_id;
-      const { data: vehicle } = await supabase
-        .from('vehicles')
-        .select('plate')
-        .eq('id', vehicle_id)
-        .single();
-      
-      if (vehicle) {
-        updateData.vehicle_plate = vehicle.plate;
+      if (!statusTransitions[currentTrip.status].includes(status)) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Cannot change status from ${currentTrip.status} to ${status}` })
+        };
       }
-    }
 
-    // Handle mileage tracking
-    if (mileage !== undefined) {
-      if (status === 'en_curso') {
-        updateData.start_mileage = mileage;
-      } else if (status === 'completado') {
-        updateData.end_mileage = mileage;
-        if (currentTrip.start_mileage) {
-          updateData.total_mileage = mileage - currentTrip.start_mileage;
+      updateData.status = status;
+
+      if (status === 'cancelado') {
+        updateData.cancel_reason = cancel_reason || null;
+      }
+
+      // Handle vehicle assignment when starting/taking a trip
+      if (vehicle_id) {
+        updateData.vehicle_id = vehicle_id;
+        const { data: vehicle } = await supabase
+          .from('vehicles')
+          .select('plate')
+          .eq('id', vehicle_id)
+          .single();
+        
+        if (vehicle) {
+          updateData.vehicle_plate = vehicle.plate;
         }
       }
+
+      // Handle mileage tracking
+      if (mileage !== undefined) {
+        if (status === 'en_curso') {
+          updateData.start_mileage = mileage;
+        } else if (status === 'completado') {
+          updateData.end_mileage = mileage;
+          if (currentTrip.start_mileage) {
+            updateData.total_mileage = mileage - currentTrip.start_mileage;
+          }
+        }
+      }
+    }
+
+    const activeVehicleId = vehicle_id || currentTrip.vehicle_id;
+
+    if (driver_notes !== undefined) {
+      updateData.driver_notes = driver_notes;
     }
 
     // Update trip

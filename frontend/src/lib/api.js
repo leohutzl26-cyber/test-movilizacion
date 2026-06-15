@@ -420,7 +420,8 @@ const api = {
             data: await supabaseApi.trips.updateStatus(tripId, data.status, {
               mileage: data.mileage,
               cancel_reason: data.cancel_reason || null,
-              vehicle_id: data.vehicle_id || null
+              vehicle_id: data.vehicle_id || null,
+              driver_notes: data.driver_notes
             })
           };
         } else if (parts[3] === "approve-gestor") {

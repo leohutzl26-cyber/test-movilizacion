@@ -210,7 +210,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
     } else {
       const matched = origins.find(o => o.name === val);
       const address = matched ? (matched.address || "") : "";
-      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "";
       setForm(prev => ({ 
         ...prev, 
         origin: val, 
@@ -227,7 +227,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
     } else {
       const matched = destinations.find(d => d.name === val);
       const address = matched ? (matched.address || "") : "";
-      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ", " + address)}` : "";
+      const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "";
       setForm(prev => ({ 
         ...prev, 
         destination: val, 
@@ -814,7 +814,7 @@ function MyRequestsSection({ onEdit }) {
                     )}
                     {(selectedReq.origin_maps_url || selectedReq.origin) && (
                       <a 
-                        href={selectedReq.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedReq.origin_address ? `${selectedReq.origin}, ${selectedReq.origin_address}` : selectedReq.origin)}`} 
+                        href={selectedReq.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedReq.origin_address || selectedReq.origin)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
@@ -834,7 +834,7 @@ function MyRequestsSection({ onEdit }) {
                     )}
                     {(selectedReq.destination_maps_url || selectedReq.destination) && (
                       <a 
-                        href={selectedReq.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedReq.destination_address ? `${selectedReq.destination}, ${selectedReq.destination_address}` : selectedReq.destination)}`} 
+                        href={selectedReq.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedReq.destination_address || selectedReq.destination)}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
@@ -871,6 +871,13 @@ function MyRequestsSection({ onEdit }) {
 
               {selectedReq.notes && (
                 <div className="border-t border-slate-200 pt-4"><p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas Adicionales</p><p className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-slate-800">{selectedReq.notes}</p></div>
+              )}
+
+              {selectedReq.driver_notes && (
+                <div className="border-t border-slate-200 pt-4">
+                  <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-2">Observaciones del Conductor</p>
+                  <p className="bg-amber-50/60 p-3 rounded-xl border border-amber-200 text-amber-900 whitespace-pre-line">{selectedReq.driver_notes}</p>
+                </div>
               )}
 
               {(selectedReq.status === "revision_gestor" || selectedReq.status === "pendiente") && (
