@@ -484,28 +484,29 @@ function AssignPersonnelSection() {
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
-          <div className={`${statusHeaderStyles[assignDialog.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
-            <div className="absolute top-6 right-6">
-              <Badge className={`${statusHeaderStyles[assignDialog.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
-                {(assignDialog.status || "").replace(/_/g, " ")}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-5">
-              <div className={`w-16 h-16 ${statusHeaderStyles[assignDialog.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
-                <Pencil className={`w-8 h-8 ${statusHeaderStyles[assignDialog.status]?.iconText || "text-teal-400"}`} />
-              </div>
-              <div>
-                <p className={`${statusHeaderStyles[assignDialog.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
-                  Folio #{assignDialog.tracking_number || assignDialog.id?.substring(0, 6)?.toUpperCase()} — Panel de Gestión
-                </p>
-                <h2 className={`text-3xl font-black ${statusHeaderStyles[assignDialog.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
-                  {assignDialog.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}
-                </h2>
-              </div>
-            </div>
-          </div>
           {assignDialog && (
-            <div className="p-8 pt-4 space-y-5">
+            <>
+              <div className={`${statusHeaderStyles[assignDialog.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+                <div className="absolute top-6 right-6">
+                  <Badge className={`${statusHeaderStyles[assignDialog.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                    {(assignDialog.status || "").replace(/_/g, " ")}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-5">
+                  <div className={`w-16 h-16 ${statusHeaderStyles[assignDialog.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                    <Pencil className={`w-8 h-8 ${statusHeaderStyles[assignDialog.status]?.iconText || "text-teal-400"}`} />
+                  </div>
+                  <div>
+                    <p className={`${statusHeaderStyles[assignDialog.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                      Folio #{assignDialog.tracking_number || assignDialog.id?.substring(0, 6)?.toUpperCase()} — Panel de Gestión
+                    </p>
+                    <h2 className={`text-3xl font-black ${statusHeaderStyles[assignDialog.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                      {assignDialog.status === "revision_gestor" ? "Visar Traslado Clínico" : "Editar Traslado Clínico"}
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 pt-4 space-y-5">
               {/* SOLICITANTE E INGRESO */}
               <div className="bg-purple-50 p-3 rounded-xl border border-purple-200 flex justify-between items-center">
                 <div><p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Solicitado por</p><p className="font-bold text-purple-900">{assignDialog.requester_name || assignDialog.requester_person || "-"}</p></div>
@@ -773,6 +774,7 @@ function AssignPersonnelSection() {
 
               <TripEvolutionLog tripId={assignDialog.id} />
             </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -1278,151 +1280,153 @@ function ClinicalCalendarSection() {
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
         <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
-          <div className={`${statusHeaderStyles[detailTrip?.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
-            <div className="absolute top-6 right-6">
-              <Badge className={`${statusHeaderStyles[detailTrip?.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
-                {(detailTrip?.status || "").replace(/_/g, " ")}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-5">
-              <div className={`w-16 h-16 ${statusHeaderStyles[detailTrip?.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
-                <Activity className={`w-8 h-8 ${statusHeaderStyles[detailTrip?.status]?.iconText || "text-teal-400"}`} />
-              </div>
-              <div>
-                <p className={`${statusHeaderStyles[detailTrip?.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
-                  Folio #{detailTrip?.tracking_number} — Consulta Informativa
-                </p>
-                <h2 className={`text-3xl font-black ${statusHeaderStyles[detailTrip?.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
-                  Detalle del Traslado
-                </h2>
-              </div>
-            </div>
-          </div>
           {detailTrip && (
-            <div className="p-8 pt-4 space-y-5">
-              <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
-                  <p className="text-2xl font-mono font-black text-slate-950">#{detailTrip.tracking_number}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Estado</p>
-                  <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColorsSolid[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
+            <>
+              <div className={`${statusHeaderStyles[detailTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+                <div className="absolute top-6 right-6">
+                  <Badge className={`${statusHeaderStyles[detailTrip.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
                     {(detailTrip.status || "").replace(/_/g, " ")}
                   </Badge>
                 </div>
-              </div>
-
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                  <User className="w-4 h-4 text-teal-600" /> Información General
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Paciente:</span>
-                    <p className="font-black text-slate-900 text-sm">{detailTrip.patient_name || "-"}</p>
+                <div className="flex items-center gap-5">
+                  <div className={`w-16 h-16 ${statusHeaderStyles[detailTrip.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                    <Activity className={`w-8 h-8 ${statusHeaderStyles[detailTrip.status]?.iconText || "text-teal-400"}`} />
                   </div>
                   <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Motivo:</span>
-                    <p className="font-black text-slate-800">{detailTrip.transfer_reason || "-"}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">RUT:</span>
-                    <p className="font-black text-slate-800">{detailTrip.rut || "-"}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Cama / Unidad:</span>
-                    <p className="font-black text-slate-800">{detailTrip.bed || "-"} ({detailTrip.patient_unit || "-"})</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Diagnóstico:</span>
-                    <p className="font-black text-slate-800 leading-relaxed">{detailTrip.diagnosis || "-"}</p>
+                    <p className={`${statusHeaderStyles[detailTrip.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                      Folio #{detailTrip.tracking_number} — Consulta Informativa
+                    </p>
+                    <h2 className={`text-3xl font-black ${statusHeaderStyles[detailTrip.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                      Detalle del Traslado
+                    </h2>
                   </div>
                 </div>
               </div>
+              <div className="p-8 pt-4 space-y-5">
+                <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
+                    <p className="text-2xl font-mono font-black text-slate-950">#{detailTrip.tracking_number}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Estado</p>
+                    <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColorsSolid[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
+                      {(detailTrip.status || "").replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                </div>
 
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                  <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Origen:</span>
-                    <p className="font-black text-slate-800">{detailTrip.origin}</p>
-                    {detailTrip.origin_address && (
-                      <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.origin_address}</p>
-                    )}
-                    {(detailTrip.origin_maps_url || detailTrip.origin) && (
-                      <a 
-                        href={detailTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.origin_address || detailTrip.origin)}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
-                      >
-                        <Map className="w-3 h-3" /> Ver en Google Maps
-                      </a>
-                    )}
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                    <User className="w-4 h-4 text-teal-600" /> Información General
+                  </p>
+                  <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Paciente:</span>
+                      <p className="font-black text-slate-900 text-sm">{detailTrip.patient_name || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Motivo:</span>
+                      <p className="font-black text-slate-800">{detailTrip.transfer_reason || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">RUT:</span>
+                      <p className="font-black text-slate-800">{detailTrip.rut || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Cama / Unidad:</span>
+                      <p className="font-black text-slate-800">{detailTrip.bed || "-"} ({detailTrip.patient_unit || "-"})</p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Diagnóstico:</span>
+                      <p className="font-black text-slate-800 leading-relaxed">{detailTrip.diagnosis || "-"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Destino:</span>
-                    <p className="font-black text-slate-800">{detailTrip.destination}</p>
-                    {detailTrip.destination_address && (
-                      <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.destination_address}</p>
-                    )}
-                    {(detailTrip.destination_maps_url || detailTrip.destination) && (
-                      <a 
-                        href={detailTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.destination_address || detailTrip.destination)}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
-                      >
-                        <Map className="w-3 h-3" /> Ver en Google Maps
-                      </a>
-                    )}
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                    <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
+                  </p>
+                  <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Origen:</span>
+                      <p className="font-black text-slate-800">{detailTrip.origin}</p>
+                      {detailTrip.origin_address && (
+                        <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.origin_address}</p>
+                      )}
+                      {(detailTrip.origin_maps_url || detailTrip.origin) && (
+                        <a 
+                          href={detailTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.origin_address || detailTrip.origin)}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                        >
+                          <Map className="w-3 h-3" /> Ver en Google Maps
+                        </a>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Destino:</span>
+                      <p className="font-black text-slate-800">{detailTrip.destination}</p>
+                      {detailTrip.destination_address && (
+                        <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.destination_address}</p>
+                      )}
+                      {(detailTrip.destination_maps_url || detailTrip.destination) && (
+                        <a 
+                          href={detailTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.destination_address || detailTrip.destination)}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                        >
+                          <Map className="w-3 h-3" /> Ver en Google Maps
+                        </a>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
+                      <p className="font-black text-slate-800">{formatScheduledDate(detailTrip.scheduled_date)}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
+                      <p className="font-black text-slate-800">{detailTrip.appointment_time || "--:--"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Salida:</span>
+                      <p className="font-black text-slate-800">{detailTrip.departure_time || "--:--"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
-                    <p className="font-black text-slate-800">{formatScheduledDate(detailTrip.scheduled_date)}</p>
+                </div>
+
+                {detailTrip.clinical_team && (
+                  <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
+                    <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
+                    <p className="text-xs font-black text-teal-900">{detailTrip.clinical_team}</p>
                   </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
-                    <p className="font-black text-slate-800">{detailTrip.appointment_time || "--:--"}</p>
+                )}
+
+                {detailTrip.notes && (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Notas del Traslado</p>
+                    <p className="text-xs font-bold text-slate-800 whitespace-pre-line">{detailTrip.notes}</p>
                   </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Salida:</span>
-                    <p className="font-black text-slate-800">{detailTrip.departure_time || "--:--"}</p>
+                )}
+
+                {detailTrip.driver_notes && (
+                  <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-1">
+                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Observaciones del Conductor</p>
+                    <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{detailTrip.driver_notes}</p>
                   </div>
+                )}
+
+                {/* EVOLUCIÓN CRONOLÓGICA DEL TRASLADO */}
+                <TripEvolutionLog tripId={detailTrip.id} />
+
+                <div className="flex justify-end pt-2">
+                  <Button onClick={() => setDetailTrip(null)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
                 </div>
               </div>
-
-              {detailTrip.clinical_team && (
-                <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
-                  <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
-                  <p className="text-xs font-black text-teal-900">{detailTrip.clinical_team}</p>
-                </div>
-              )}
-
-              {detailTrip.notes && (
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Notas del Traslado</p>
-                  <p className="text-xs font-bold text-slate-800 whitespace-pre-line">{detailTrip.notes}</p>
-                </div>
-              )}
-
-              {detailTrip.driver_notes && (
-                <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-1">
-                  <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Observaciones del Conductor</p>
-                  <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{detailTrip.driver_notes}</p>
-                </div>
-              )}
-
-              {/* EVOLUCIÓN CRONOLÓGICA DEL TRASLADO */}
-              <TripEvolutionLog tripId={detailTrip.id} />
-
-              <div className="flex justify-end pt-2">
-                <Button onClick={() => setDetailTrip(null)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
-              </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -1676,144 +1680,146 @@ function ClinicalHistorySection() {
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
         <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="p-8 pb-0">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
-                <Activity className="w-6 h-6 text-teal-600 animate-pulse" />
-              </div>
-              <div>
-                <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Detalle del Traslado</DialogTitle>
-                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                  Folio: <span className="text-teal-600 font-mono font-black">#{detailTrip?.tracking_number}</span> — Consulta Informativa
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
           {detailTrip && (
-            <div className="p-8 pt-4 space-y-5">
-              <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
-                  <p className="text-2xl font-mono font-black text-slate-950">#{detailTrip.tracking_number}</p>
+            <>
+              <DialogHeader className="p-8 pb-0">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
+                    <Activity className="w-6 h-6 text-teal-600 animate-pulse" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">Detalle del Traslado</DialogTitle>
+                    <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                      Folio: <span className="text-teal-600 font-mono font-black">#{detailTrip.tracking_number}</span> — Consulta Informativa
+                    </DialogDescription>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Estado</p>
-                  <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColors[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
-                    {(detailTrip.status || "").replace(/_/g, " ")}
-                  </Badge>
+              </DialogHeader>
+              <div className="p-8 pt-4 space-y-5">
+                <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
+                    <p className="text-2xl font-mono font-black text-slate-950">#{detailTrip.tracking_number}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Estado</p>
+                    <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColors[detailTrip.status] || "bg-slate-100 text-slate-600"}`}>
+                      {(detailTrip.status || "").replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                    <User className="w-4 h-4 text-teal-600" /> Información General
+                  </p>
+                  <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Paciente:</span>
+                      <p className="font-black text-slate-900 text-sm">{detailTrip.patient_name || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Motivo:</span>
+                      <p className="font-black text-slate-800">{detailTrip.transfer_reason || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">RUT:</span>
+                      <p className="font-black text-slate-800">{detailTrip.rut || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Cama / Unidad:</span>
+                      <p className="font-black text-slate-800">{detailTrip.bed || "-"} ({detailTrip.patient_unit || "-"})</p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Diagnóstico:</span>
+                      <p className="font-black text-slate-800 leading-relaxed">{detailTrip.diagnosis || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                    <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
+                  </p>
+                  <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Origen:</span>
+                      <p className="font-black text-slate-800">{detailTrip.origin}</p>
+                      {detailTrip.origin_address && (
+                        <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.origin_address}</p>
+                      )}
+                      {(detailTrip.origin_maps_url || detailTrip.origin) && (
+                        <a 
+                          href={detailTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.origin_address || detailTrip.origin)}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                        >
+                          <Map className="w-3 h-3" /> Ver en Google Maps
+                        </a>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Destino:</span>
+                      <p className="font-black text-slate-800">{detailTrip.destination}</p>
+                      {detailTrip.destination_address && (
+                        <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.destination_address}</p>
+                      )}
+                      {(detailTrip.destination_maps_url || detailTrip.destination) && (
+                        <a 
+                          href={detailTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.destination_address || detailTrip.destination)}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                        >
+                          <Map className="w-3 h-3" /> Ver en Google Maps
+                        </a>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
+                      <p className="font-black text-slate-800">{formatScheduledDate(detailTrip.scheduled_date)}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
+                      <p className="font-black text-slate-800">{detailTrip.appointment_time || "--:--"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Salida:</span>
+                      <p className="font-black text-slate-800">{detailTrip.departure_time || "--:--"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {detailTrip.clinical_team && (
+                  <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
+                    <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
+                    <p className="text-xs font-black text-teal-900">{detailTrip.clinical_team}</p>
+                  </div>
+                )}
+
+                {detailTrip.notes && (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Notas del Traslado</p>
+                    <p className="text-xs font-bold text-slate-800 whitespace-pre-line">{detailTrip.notes}</p>
+                  </div>
+                )}
+
+                {detailTrip.driver_notes && (
+                  <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-1">
+                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Observaciones del Conductor</p>
+                    <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{detailTrip.driver_notes}</p>
+                  </div>
+                )}
+
+                {/* EVOLUCIÓN CRONOLÓGICA DEL TRASLADO */}
+                <TripEvolutionLog tripId={detailTrip.id} />
+
+                <div className="flex justify-end pt-2">
+                  <Button onClick={() => setDetailTrip(null)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
                 </div>
               </div>
-
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                  <User className="w-4 h-4 text-teal-600" /> Información General
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Paciente:</span>
-                    <p className="font-black text-slate-900 text-sm">{detailTrip.patient_name || "-"}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Motivo:</span>
-                    <p className="font-black text-slate-800">{detailTrip.transfer_reason || "-"}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">RUT:</span>
-                    <p className="font-black text-slate-800">{detailTrip.rut || "-"}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Cama / Unidad:</span>
-                    <p className="font-black text-slate-800">{detailTrip.bed || "-"} ({detailTrip.patient_unit || "-"})</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Diagnóstico:</span>
-                    <p className="font-black text-slate-800 leading-relaxed">{detailTrip.diagnosis || "-"}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                  <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Origen:</span>
-                    <p className="font-black text-slate-800">{detailTrip.origin}</p>
-                    {detailTrip.origin_address && (
-                      <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.origin_address}</p>
-                    )}
-                    {(detailTrip.origin_maps_url || detailTrip.origin) && (
-                      <a 
-                        href={detailTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.origin_address || detailTrip.origin)}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
-                      >
-                        <Map className="w-3 h-3" /> Ver en Google Maps
-                      </a>
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Destino:</span>
-                    <p className="font-black text-slate-800">{detailTrip.destination}</p>
-                    {detailTrip.destination_address && (
-                      <p className="text-[10px] text-slate-500 font-bold mt-0.5">{detailTrip.destination_address}</p>
-                    )}
-                    {(detailTrip.destination_maps_url || detailTrip.destination) && (
-                      <a 
-                        href={detailTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailTrip.destination_address || detailTrip.destination)}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
-                      >
-                        <Map className="w-3 h-3" /> Ver en Google Maps
-                      </a>
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
-                    <p className="font-black text-slate-800">{formatScheduledDate(detailTrip.scheduled_date)}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
-                    <p className="font-black text-slate-800">{detailTrip.appointment_time || "--:--"}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Salida:</span>
-                    <p className="font-black text-slate-800">{detailTrip.departure_time || "--:--"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {detailTrip.clinical_team && (
-                <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
-                  <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
-                  <p className="text-xs font-black text-teal-900">{detailTrip.clinical_team}</p>
-                </div>
-              )}
-
-              {detailTrip.notes && (
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Notas del Traslado</p>
-                  <p className="text-xs font-bold text-slate-800 whitespace-pre-line">{detailTrip.notes}</p>
-                </div>
-              )}
-
-              {detailTrip.driver_notes && (
-                <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-1">
-                  <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Observaciones del Conductor</p>
-                  <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{detailTrip.driver_notes}</p>
-                </div>
-              )}
-
-              {/* EVOLUCIÓN CRONOLÓGICA DEL TRASLADO */}
-              <TripEvolutionLog tripId={detailTrip.id} />
-
-              <div className="flex justify-end pt-2">
-                <Button onClick={() => setDetailTrip(null)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
-              </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
