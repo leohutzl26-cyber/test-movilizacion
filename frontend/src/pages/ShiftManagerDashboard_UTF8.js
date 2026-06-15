@@ -2426,11 +2426,26 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                     </div>
                 </DialogHeader>
 
-                <div className="p-8 pt-4">
+                <div className="p-8 pt-4 space-y-4">
+                    {/* Comentarios y Observaciones */}
+                    {trip.notes && (
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-3xs">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Notas del Traslado</p>
+                            <p className="text-sm font-bold text-slate-700 whitespace-pre-line">{trip.notes}</p>
+                        </div>
+                    )}
+
+                    {trip.driver_notes && (
+                        <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 shadow-3xs">
+                            <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none mb-1">Observaciones del Conductor</p>
+                            <p className="text-sm font-bold text-amber-900 whitespace-pre-line">{trip.driver_notes}</p>
+                        </div>
+                    )}
+
                     <div 
                         className="bg-slate-50 rounded-3xl border border-slate-100 p-6 custom-scrollbar"
                         style={{ 
-                            height: '400px', 
+                            height: '350px', 
                             overflowY: 'scroll', 
                             WebkitOverflowScrolling: 'touch',
                             display: 'block'
