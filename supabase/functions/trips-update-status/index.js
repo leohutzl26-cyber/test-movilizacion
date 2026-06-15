@@ -142,7 +142,7 @@ exports.handler = async (event, context) => {
         user_id: userId,
         user_name: context.user?.name || 'Unknown',
         user_role: userRole,
-        action: `cambiar_estado_${status}`,
+        action: status ? `cambiar_estado_${status}` : 'guardar_observaciones_conductor',
         entity_type: 'trips',
         entity_id: trip_id,
         old_values: currentTrip,

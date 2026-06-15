@@ -78,6 +78,8 @@ export default function TripEvolutionLog({ tripId }) {
     if (action === 'create_trip') return "Traslado creado";
     if (action === 'asignar_conductor') return "Conductor asignado";
     if (action === 'auto_asignar') return "Conductor auto-asignado";
+    if (action === 'desasignar_conductor') return "Conductor desasignado";
+    if (action === 'guardar_observaciones_conductor') return "Observaciones guardadas por el conductor";
     if (action === 'editar_traslado') return log.new_values?.detalle || "Traslado modificado";
     if (action.startsWith('cambiar_estado_')) {
       const status = action.replace('cambiar_estado_', '').replace(/_/g, " ");
@@ -89,6 +91,8 @@ export default function TripEvolutionLog({ tripId }) {
   const getActionIcon = (action) => {
     if (action === 'create_trip') return <FileText className="w-4 h-4 text-emerald-600" />;
     if (action.includes('asignar')) return <User className="w-4 h-4 text-blue-600" />;
+    if (action.includes('desasignar')) return <User className="w-4 h-4 text-rose-600" />;
+    if (action.includes('observaciones')) return <FileText className="w-4 h-4 text-amber-600" />;
     if (action.includes('estado')) return <CheckCircle className="w-4 h-4 text-teal-600" />;
     return <Activity className="w-4 h-4 text-slate-500" />;
   };
@@ -96,6 +100,8 @@ export default function TripEvolutionLog({ tripId }) {
   const getActionColor = (action) => {
     if (action === 'create_trip') return "bg-emerald-100 border-emerald-200 text-emerald-800";
     if (action.includes('asignar')) return "bg-blue-100 border-blue-200 text-blue-800";
+    if (action.includes('desasignar')) return "bg-rose-100 border-rose-200 text-rose-800";
+    if (action.includes('observaciones')) return "bg-amber-100 border-amber-200 text-amber-800";
     if (action.includes('estado')) return "bg-teal-100 border-teal-200 text-teal-800";
     return "bg-slate-100 border-slate-200 text-slate-800";
   };

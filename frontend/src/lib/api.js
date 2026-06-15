@@ -276,7 +276,7 @@ const api = {
 
         default: {
           // Rutas dinámicas como /trips/:id/logs
-          if (baseUrl.startsWith("/trips/") && baseUrl.endsWith("/logs")) {
+          if (baseUrl.startsWith("/trips/") && (baseUrl.endsWith("/logs") || baseUrl.endsWith("/audit"))) {
             const tripId = baseUrl.split("/")[2];
             return { data: await supabaseApi.auditLogs.getTripAuditLogs(tripId) };
           }
@@ -407,14 +407,41 @@ const api = {
           
           return { data: await supabaseApi.trips.assignDriver(tripId, driverId, vehicleId) };
         } else if (parts[3] === "unassign") {
-          return {
-            data: await supabaseApi.trips.updateTrip(tripId, {
-              driver_id: null,
-              driver_name: null,
-              vehicle_plate: null,
-              status: 'pendiente'
-            })
-          };
+          const updatedTrip = await supabaseApi.trips.updateTrip(tripId, {
+            driver_id: null,
+            driver_name: null,
+            vehicle_plate: null,
+            status: 'pendiente'
+          });
+
+          let userId = null;
+          let userName = "Coordinador";
+          let userRole = "coordinador";
+          try {
+            const token = localStorage.getItem('supabase.auth.token');
+            if (token) {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              userId = payload.userId || null;
+              userName = payload.name || "Coordinador";
+              userRole = payload.role || "coordinador";
+            }
+          } catch (e) {}
+
+          try {
+            await supabase.from('audit_logs').insert([{
+              user_id: userId,
+              user_name: userName,
+              user_role: userRole,
+              action: 'desasignar_conductor',
+              entity_type: 'trips',
+              entity_id: tripId,
+              new_values: updatedTrip
+            }]);
+          } catch (e) {
+            console.error("Error inserting unassign audit log", e);
+          }
+
+          return { data: updatedTrip };
         } else if (parts[3] === "status") {
           return {
             data: await supabaseApi.trips.updateStatus(tripId, data.status, {
