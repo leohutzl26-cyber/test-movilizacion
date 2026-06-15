@@ -112,7 +112,7 @@ function TripPoolSection({ onNavigate }) {
 
   const priorityColors = { urgente: "bg-red-500 text-white shadow-red-200", alta: "bg-orange-400 text-white shadow-orange-200", normal: "bg-slate-200 text-slate-700 shadow-slate-200" };
   const sLabels = { pendiente: "Pendiente", asignado: "Asignado", en_curso: "En Curso", completado: "Completado", cancelado: "Cancelado" };
-  const sColors = { pendiente: "bg-amber-100 text-amber-800", asignado: "bg-teal-100 text-teal-800", en_curso: "bg-blue-100 text-blue-800", completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800" };
+  const sColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200", asignado: "bg-indigo-100 text-indigo-800 border border-indigo-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-rose-100 text-rose-800 border border-rose-200" };
 
   if (loading) return <div className="flex flex-col items-center justify-center py-20 text-slate-400"><Clock className="w-10 h-10 animate-spin text-teal-600 mb-4" /><p>Buscando viajes disponibles...</p></div>;
 
@@ -431,7 +431,7 @@ function MyTripsSection() {
     }
   };
 
-  const statusColors = { asignado: "bg-indigo-100 text-indigo-800 border-indigo-200", en_curso: "bg-blue-100 text-blue-800 border-blue-200", completado: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+  const statusColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200", asignado: "bg-indigo-100 text-indigo-800 border border-indigo-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-rose-100 text-rose-800 border border-rose-200" };
   const sLabels = { asignado: "Asignado", en_curso: "En Curso", completado: "Completado" };
 
   if (loading) return <div className="flex justify-center py-20"><Clock className="w-10 h-10 animate-spin text-teal-600" /></div>;
@@ -747,7 +747,7 @@ function DriverHistorySection() {
   }, []);
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  const statusColors = { completado: "bg-emerald-100 text-emerald-800", cancelado: "bg-red-100 text-red-800", devuelto: "bg-amber-100 text-amber-800" };
+  const statusColors = { completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-rose-100 text-rose-800 border border-rose-200", devuelto: "bg-amber-100 text-amber-800 border border-amber-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200", asignado: "bg-indigo-100 text-indigo-800 border border-indigo-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200" };
 
   if (loading) return <div className="flex justify-center py-20"><Clock className="w-10 h-10 animate-spin text-teal-600" /></div>;
 
@@ -1168,13 +1168,13 @@ function DriverCalendarSection() {
   };
 
   const statusColors = {
-    pendiente: "bg-amber-100 text-amber-800 border-amber-300",
-    revision_gestor: "bg-amber-100 text-amber-800 border-amber-300",
-    asignado: "bg-indigo-100 text-indigo-800 border-indigo-300",
-    en_curso: "bg-blue-100 text-blue-800 border-blue-300",
-    completado: "bg-emerald-100 text-emerald-800 border-emerald-300",
-    cancelado: "bg-red-100 text-red-800 border-red-300",
-    devuelto: "bg-red-100 text-red-800 border-red-300",
+    pendiente: "bg-amber-100 text-amber-800 border border-amber-200",
+    revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200",
+    asignado: "bg-indigo-100 text-indigo-800 border border-indigo-200",
+    en_curso: "bg-blue-100 text-blue-800 border border-blue-200",
+    completado: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    cancelado: "bg-rose-100 text-rose-800 border border-rose-200",
+    devuelto: "bg-rose-100 text-rose-800 border border-rose-200",
   };
 
   const sLabels = {

@@ -77,9 +77,9 @@ const formatScheduledDate = (dateStr) => {
   return dateStr;
 };
 
-const COLORS = { pendiente: '#f59e0b', asignado: '#0d9488', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#ef4444', revision_gestor: '#8b5cf6' };
+const COLORS = { pendiente: '#f59e0b', asignado: '#6366f1', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#f43f5e', revision_gestor: '#8b5cf6' };
 const pColors = { urgente: "bg-red-500 text-white font-bold", alta: "bg-orange-500 text-white font-bold", normal: "bg-slate-100 text-slate-700 font-bold border border-slate-200" };
-const sColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", asignado: "bg-teal-100 text-teal-800 border border-teal-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-red-100 text-red-800 border border-red-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200" };
+const sColors = { pendiente: "bg-amber-100 text-amber-800 border border-amber-200", asignado: "bg-indigo-100 text-indigo-800 border border-indigo-200", en_curso: "bg-blue-100 text-blue-800 border border-blue-200", completado: "bg-emerald-100 text-emerald-800 border border-emerald-200", cancelado: "bg-rose-100 text-rose-800 border border-rose-200", revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200" };
 
 const VEHICLE_ICONS = {
     Ambulancia: <Siren className="w-6 h-6 text-red-600 drop-shadow-sm" />,
