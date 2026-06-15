@@ -118,6 +118,8 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl bg-slate-50 rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+                <DialogTitle className="sr-only">Detalle del Traslado</DialogTitle>
+                <DialogDescription className="sr-only">Detalles completos y evolución del traslado seleccionado</DialogDescription>
                 {/* Cabecera Estilizada */}
                 <div className="bg-slate-900 p-8 pb-10 relative">
                     <div className="absolute top-6 right-6">
