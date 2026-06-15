@@ -156,8 +156,8 @@ function TripPoolSection({ onNavigate }) {
                     <p className="text-base font-bold text-slate-900 leading-snug">{t.origin}</p>
                     {t.origin_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.origin_address}</p>}
                     <p className="text-xs text-slate-500 font-medium">{t.patient_unit || ""}</p>
-                    {t.origin_maps_url && (
-                      <a href={t.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                    {(t.origin_maps_url || t.origin) && (
+                      <a href={t.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.origin_address ? `${t.origin}, ${t.origin_address}` : t.origin)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                         <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
                       </a>
                     )}
@@ -170,8 +170,8 @@ function TripPoolSection({ onNavigate }) {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p>
                     <p className="text-base font-bold text-slate-900 leading-snug">{t.destination}</p>
                     {t.destination_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.destination_address}</p>}
-                    {t.destination_maps_url && (
-                      <a href={t.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    {(t.destination_maps_url || t.destination) && (
+                      <a href={t.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.destination_address ? `${t.destination}, ${t.destination_address}` : t.destination)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                         <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
                       </a>
                     )}
@@ -254,8 +254,8 @@ function TripPoolSection({ onNavigate }) {
                   <p className="font-black text-lg text-slate-900">{selectedTrip.origin}</p>
                   {selectedTrip.origin_address && <p className="text-sm font-bold text-slate-700 mt-1">{selectedTrip.origin_address}</p>}
                   <p className="text-sm font-medium text-slate-500 mt-1">{selectedTrip.patient_unit || ""} {selectedTrip.bed ? `(Cama ${selectedTrip.bed})` : ""}</p>
-                  {selectedTrip.origin_maps_url && (
-                    <a href={selectedTrip.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg border border-teal-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                  {(selectedTrip.origin_maps_url || selectedTrip.origin) && (
+                    <a href={selectedTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTrip.origin_address ? `${selectedTrip.origin}, ${selectedTrip.origin_address}` : selectedTrip.origin)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg border border-teal-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
                       <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
                     </a>
                   )}
@@ -264,8 +264,8 @@ function TripPoolSection({ onNavigate }) {
                   <p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><Navigation className="w-4 h-4 text-blue-600" /> Destino</p>
                   <p className="font-black text-lg text-slate-900">{selectedTrip.destination}</p>
                   {selectedTrip.destination_address && <p className="text-sm font-bold text-slate-700 mt-1">{selectedTrip.destination_address}</p>}
-                  {selectedTrip.destination_maps_url && (
-                    <a href={selectedTrip.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                  {(selectedTrip.destination_maps_url || selectedTrip.destination) && (
+                    <a href={selectedTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTrip.destination_address ? `${selectedTrip.destination}, ${selectedTrip.destination_address}` : selectedTrip.destination)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
                       <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
                     </a>
                   )}
@@ -446,8 +446,8 @@ function MyTripsSection() {
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p>
                       <p className="text-base font-bold text-slate-900 leading-tight">{t.origin}</p>
                       {t.origin_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.origin_address}</p>}
-                      {t.origin_maps_url && (
-                        <a href={t.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1.5 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                      {(t.origin_maps_url || t.origin) && (
+                        <a href={t.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.origin_address ? `${t.origin}, ${t.origin_address}` : t.origin)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1.5 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                           <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
                         </a>
                       )}
@@ -459,8 +459,8 @@ function MyTripsSection() {
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p>
                       <p className="text-base font-bold text-slate-900 leading-tight">{t.destination}</p>
                       {t.destination_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.destination_address}</p>}
-                      {t.destination_maps_url && (
-                        <a href={t.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1.5 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      {(t.destination_maps_url || t.destination) && (
+                        <a href={t.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.destination_address ? `${t.destination}, ${t.destination_address}` : t.destination)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1.5 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                           <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
                         </a>
                       )}
@@ -605,8 +605,8 @@ function MyTripsSection() {
                   <p className="font-black text-lg text-slate-900">{detailsDialog.origin}</p>
                   {detailsDialog.origin_address && <p className="text-sm font-bold text-slate-700 mt-1">{detailsDialog.origin_address}</p>}
                   <p className="text-sm font-medium text-slate-500 mt-1">{detailsDialog.patient_unit || ""} {detailsDialog.bed ? `(Cama ${detailsDialog.bed})` : ""}</p>
-                  {detailsDialog.origin_maps_url && (
-                    <a href={detailsDialog.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg border border-teal-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                  {(detailsDialog.origin_maps_url || detailsDialog.origin) && (
+                    <a href={detailsDialog.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailsDialog.origin_address ? `${detailsDialog.origin}, ${detailsDialog.origin_address}` : detailsDialog.origin)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg border border-teal-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
                       <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
                     </a>
                   )}
@@ -615,8 +615,8 @@ function MyTripsSection() {
                   <p className="text-xs text-slate-500 font-bold mb-1 flex items-center gap-1 uppercase tracking-widest"><Navigation className="w-4 h-4 text-blue-600" /> Destino</p>
                   <p className="font-black text-lg text-slate-900">{detailsDialog.destination}</p>
                   {detailsDialog.destination_address && <p className="text-sm font-bold text-slate-700 mt-1">{detailsDialog.destination_address}</p>}
-                  {detailsDialog.destination_maps_url && (
-                    <a href={detailsDialog.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
+                  {(detailsDialog.destination_maps_url || detailsDialog.destination) && (
+                    <a href={detailsDialog.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailsDialog.destination_address ? `${detailsDialog.destination}, ${detailsDialog.destination_address}` : detailsDialog.destination)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm mt-3 w-full sm:w-auto justify-center">
                       <Navigation className="w-3.5 h-3.5 rotate-45" /> Ver en Google Maps
                     </a>
                   )}
@@ -726,9 +726,37 @@ function DriverHistorySection() {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white p-3 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-slate-400 uppercase">Origen</p><p className="font-bold text-slate-800">{selectedTrip.origin}</p></div>
-                <div className="bg-white p-3 rounded-xl border shadow-sm"><p className="text-[10px] font-bold text-slate-400 uppercase">Destino</p><p className="font-bold text-slate-800">{selectedTrip.destination}</p></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-white p-3 rounded-xl border shadow-sm">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Origen</p>
+                  <p className="font-bold text-slate-800">{selectedTrip.origin}</p>
+                  {selectedTrip.origin_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{selectedTrip.origin_address}</p>}
+                  {(selectedTrip.origin_maps_url || selectedTrip.origin) && (
+                    <a 
+                      href={selectedTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTrip.origin_address ? `${selectedTrip.origin}, ${selectedTrip.origin_address}` : selectedTrip.origin)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                    >
+                      <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                    </a>
+                  )}
+                </div>
+                <div className="bg-white p-3 rounded-xl border shadow-sm">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Destino</p>
+                  <p className="font-bold text-slate-800">{selectedTrip.destination}</p>
+                  {selectedTrip.destination_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{selectedTrip.destination_address}</p>}
+                  {(selectedTrip.destination_maps_url || selectedTrip.destination) && (
+                    <a 
+                      href={selectedTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTrip.destination_address ? `${selectedTrip.destination}, ${selectedTrip.destination_address}` : selectedTrip.destination)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                    >
+                      <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                    </a>
+                  )}
+                </div>
               </div>
               {selectedTrip.start_mileage && <div className="bg-teal-50 p-3 rounded-xl border border-teal-200 flex justify-between"><div><p className="text-[10px] font-bold text-teal-600 uppercase">Km Inicio</p><p className="font-black text-teal-900">{selectedTrip.start_mileage}</p></div><div className="text-right"><p className="text-[10px] font-bold text-teal-600 uppercase">Km Final</p><p className="font-black text-teal-900">{selectedTrip.end_mileage || "-"}</p></div></div>}
               {selectedTrip.notes && <div className="bg-amber-50 p-3 rounded-xl border border-amber-200"><p className="text-[10px] font-bold text-amber-700 uppercase mb-1">Notas</p><p className="text-slate-800">{selectedTrip.notes}</p></div>}
