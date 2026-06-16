@@ -1028,7 +1028,7 @@ function DispatchSection() {
                         </div>
                     </div>
 
-                    {editForm && (
+                    {editDialog && editForm && (
                         <form onSubmit={handleEditSubmission} className="p-8 -mt-6 bg-slate-50 rounded-t-[2rem] relative space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
@@ -1074,11 +1074,11 @@ function DispatchSection() {
 
                                 <div className="space-y-1">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">
-                                        {editDialog.trip_type === "clinico" ? "Paciente *" : "Cometido *"}
+                                        {editDialog?.trip_type === "clinico" ? "Paciente *" : "Cometido *"}
                                     </Label>
                                     <Input 
-                                        value={editDialog.trip_type === "clinico" ? editForm.patient_name : editForm.task_details} 
-                                        onChange={e => handleEditFormChange(editDialog.trip_type === "clinico" ? "patient_name" : "task_details", e.target.value)} 
+                                        value={editDialog?.trip_type === "clinico" ? editForm.patient_name : editForm.task_details} 
+                                        onChange={e => handleEditFormChange(editDialog?.trip_type === "clinico" ? "patient_name" : "task_details", e.target.value)} 
                                         className="h-9 text-xs font-semibold" 
                                         required 
                                     />
@@ -1109,7 +1109,7 @@ function DispatchSection() {
                                     </Select>
                                 </div>
 
-                                {editDialog.trip_type === "clinico" && (
+                                {editDialog?.trip_type === "clinico" && (
                                     <>
                                         <div className="space-y-1">
                                             <Label className="text-[10px] font-bold text-slate-500 uppercase">RUT</Label>
@@ -1158,7 +1158,7 @@ function DispatchSection() {
                             </div>
 
                             {/* Campos clínicos adicionales: Personal clínico, Requerimientos y Acompañamiento */}
-                            {editDialog.trip_type === "clinico" && (
+                            {editDialog?.trip_type === "clinico" && (
                                 <div className="space-y-6 pt-4 border-t border-slate-200">
                                     {/* Personal Clínico Requerido */}
                                     <div className="space-y-4">
