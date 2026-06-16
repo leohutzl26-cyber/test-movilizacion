@@ -48,6 +48,41 @@ const getCurrentUserSession = async () => {
 
 const generateFolio = () => `TR-${Math.floor(Math.random() * 1000000)}`;
 
+const formatDateShort = (val) => {
+  if (!val) return '';
+  try {
+    const cleanDateStr = typeof val === 'string' && val.includes("T") ? val.split("T")[0] : String(val);
+    const parts = cleanDateStr.split("-");
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const shortMonths = [
+        "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
+        "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"
+      ];
+      
+      if (monthIndex >= 0 && monthIndex < 12 && !isNaN(day) && !isNaN(year)) {
+        return `${day}-${shortMonths[monthIndex]}-${year}`;
+      }
+    }
+    const date = new Date(val);
+    if (!isNaN(date.getTime())) {
+      const day = date.getDate();
+      const year = date.getFullYear();
+      const shortMonths = [
+        "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
+        "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"
+      ];
+      return `${day}-${shortMonths[date.getMonth()]}-${year}`;
+    }
+  } catch (e) {
+    console.error("Error formatting short date:", e);
+  }
+  return String(val);
+};
+
 const formatValue = (key, val) => {
   if (key === 'assigned_clinical_staff') {
     if (!val) return '';
@@ -65,6 +100,9 @@ const formatValue = (key, val) => {
       const name = obj?.staff_name || obj?.name || obj?.nombre || 'Por identificar';
       return type ? `${type}: ${name}` : name;
     }).join(', ');
+  }
+  if (key === 'scheduled_date') {
+    return formatDateShort(val);
   }
   return val === null || val === undefined ? '' : String(val).trim();
 };

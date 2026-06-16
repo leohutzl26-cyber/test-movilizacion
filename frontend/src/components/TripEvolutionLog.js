@@ -4,6 +4,23 @@ import { Clock, User, CheckCircle, Activity, ChevronDown, ChevronUp, FileText } 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+const replaceIsoDates = (text) => {
+  if (!text) return "";
+  const isoDateRegex = /(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})/g;
+  return text.replace(isoDateRegex, (match, year, monthStr, dayStr) => {
+    const day = parseInt(dayStr, 10);
+    const monthIndex = parseInt(monthStr, 10) - 1;
+    const shortMonths = [
+      "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
+      "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"
+    ];
+    if (monthIndex >= 0 && monthIndex < 12) {
+      return `${day}-${shortMonths[monthIndex]}-${year}`;
+    }
+    return match;
+  });
+};
+
 export default function TripEvolutionLog({ tripId }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,17 +92,20 @@ export default function TripEvolutionLog({ tripId }) {
   const formatAction = (log) => {
     if (!log) return "Acción desconocida";
     const { action } = log;
-    if (action === 'create_trip') return "Traslado creado";
-    if (action === 'asignar_conductor') return "Conductor asignado";
-    if (action === 'auto_asignar') return "Conductor auto-asignado";
-    if (action === 'desasignar_conductor') return "Conductor desasignado";
-    if (action === 'guardar_observaciones_conductor') return "Observaciones guardadas por el conductor";
-    if (action === 'editar_traslado') return log.new_values?.detalle || "Traslado modificado";
-    if (action.startsWith('cambiar_estado_')) {
+    let detail = "";
+    if (action === 'create_trip') detail = "Traslado creado";
+    else if (action === 'asignar_conductor') detail = "Conductor asignado";
+    else if (action === 'auto_asignar') detail = "Conductor auto-asignado";
+    else if (action === 'desasignar_conductor') detail = "Conductor desasignado";
+    else if (action === 'guardar_observaciones_conductor') detail = "Observaciones guardadas por el conductor";
+    else if (action === 'editar_traslado') detail = log.new_values?.detalle || "Traslado modificado";
+    else if (action.startsWith('cambiar_estado_')) {
       const status = action.replace('cambiar_estado_', '').replace(/_/g, " ");
-      return `Estado actualizado a: ${status.toUpperCase()}`;
+      detail = `Estado actualizado a: ${status.toUpperCase()}`;
+    } else {
+      detail = action.replace(/_/g, " ");
     }
-    return action.replace(/_/g, " ");
+    return replaceIsoDates(detail);
   };
 
   const getActionIcon = (action) => {

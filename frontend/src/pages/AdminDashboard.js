@@ -387,6 +387,23 @@ function OriginsManager() {
   );
 }
 
+const replaceIsoDates = (text) => {
+  if (!text) return "";
+  const isoDateRegex = /(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})/g;
+  return text.replace(isoDateRegex, (match, year, monthStr, dayStr) => {
+    const day = parseInt(dayStr, 10);
+    const monthIndex = parseInt(monthStr, 10) - 1;
+    const shortMonths = [
+      "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
+      "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"
+    ];
+    if (monthIndex >= 0 && monthIndex < 12) {
+      return `${day}-${shortMonths[monthIndex]}-${year}`;
+    }
+    return match;
+  });
+};
+
 function AuditLogs() {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState("");
@@ -421,7 +438,7 @@ function AuditLogs() {
                   <td className="p-4 text-slate-500 font-medium whitespace-nowrap">{new Date(l.timestamp).toLocaleString()}</td>
                   <td className="p-4"><p className="font-bold text-slate-900">{l.user_name || "Sistema"}</p><p className="text-[10px] uppercase font-bold text-teal-600">{(l.user_role || "").replace(/_/g, " ")}</p></td>
                   <td className="p-4"><Badge variant="outline" className="bg-white">{l.action}</Badge></td>
-                  <td className="p-4 text-slate-600 max-w-md truncate">{l.details}</td>
+                  <td className="p-4 text-slate-600 max-w-md truncate">{replaceIsoDates(l.details)}</td>
                 </tr>
               ))}
               {filtered.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-slate-400">No se encontraron registros de auditoría.</td></tr>}
