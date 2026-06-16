@@ -483,7 +483,7 @@ function AssignPersonnelSection() {
       )}
 
       <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0">
           {assignDialog && (
             <>
               <div className={`${statusHeaderStyles[assignDialog.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
@@ -781,7 +781,7 @@ function AssignPersonnelSection() {
 
       {/* DIÁLOGO DE JUSTIFICACIÓN DE RECHAZO O CANCELACIÓN */}
       <Dialog open={!!rejectDialog} onOpenChange={() => setRejectDialog(null)}>
-        <DialogContent className="max-w-md bg-white rounded-3xl border-none shadow-2xl p-6">
+        <DialogContent className="max-w-md bg-white rounded-3xl sm:rounded-3xl border-none shadow-2xl p-6">
           <DialogHeader>
             <DialogTitle className={`text-xl font-black flex items-center gap-2 uppercase tracking-tight ${
               rejectDialog?.status === "revision_gestor" ? "text-red-600" : "text-orange-600"
@@ -1279,7 +1279,7 @@ function ClinicalCalendarSection() {
 
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
-        <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
           {detailTrip && (
             <>
               <div className={`${statusHeaderStyles[detailTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
@@ -1679,7 +1679,7 @@ function ClinicalHistorySection() {
 
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
-        <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
           {detailTrip && (
             <>
               <DialogHeader className="p-8 pb-0">
@@ -2421,7 +2421,7 @@ function VehiclesSection() {
 
             {/* DIÁLOGO DE DETALLE DEL TRASLADO ACTIVO */}
             <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-                <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
                     {selectedTrip && (
                         <>
                             <div className={`${statusHeaderStyles[selectedTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>

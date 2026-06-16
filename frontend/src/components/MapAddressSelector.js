@@ -197,7 +197,7 @@ export default function MapAddressSelector({ open, onClose, onSelect, title = "S
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-6 overflow-hidden">
+      <DialogContent className="max-w-2xl bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-6 overflow-hidden">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-xl font-black uppercase text-slate-900 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-teal-600" />

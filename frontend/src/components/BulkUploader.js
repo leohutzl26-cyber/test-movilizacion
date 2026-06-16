@@ -113,7 +113,7 @@ export default function BulkUploader({ open, onOpenChange, title, columns, onImp
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border-none shadow-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl sm:rounded-3xl border-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black text-slate-900 flex items-center gap-3">
             <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">

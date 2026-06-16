@@ -635,7 +635,7 @@ function MyTripsSection() {
 
       {detailsDialog && (
         <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0">
             <div className={`${statusHeaderStyles[detailsDialog.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
               <div className="absolute top-6 right-14">
                 <Badge className={`${statusHeaderStyles[detailsDialog.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
@@ -1413,7 +1413,7 @@ function DriverCalendarSection() {
 
       {selectedTrip && (
         <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] border-none shadow-2xl p-0">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0">
             <div className={`${statusHeaderStyles[selectedTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
               <div className="absolute top-6 right-14">
                 <Badge className={`${statusHeaderStyles[selectedTrip.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>

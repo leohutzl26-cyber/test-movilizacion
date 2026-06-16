@@ -134,7 +134,7 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl bg-slate-50 rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl bg-slate-50 rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
                 <DialogTitle className="sr-only">Detalle del Traslado</DialogTitle>
                 <DialogDescription className="sr-only">Detalles completos y evolución del traslado seleccionado</DialogDescription>
                 {/* Cabecera Estilizada */}
@@ -1029,7 +1029,7 @@ function DispatchSection() {
 
             {/* DIALOGO EDICIÓN */}
             <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
-                <DialogContent className="max-w-3xl bg-slate-50 rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-3xl bg-slate-50 rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
                     <div className="bg-slate-900 p-8 pb-10 relative">
                         <div className="absolute top-6 right-14">
                             <Badge className="bg-teal-500 border-none uppercase tracking-widest text-[10px] font-black shadow-lg">
@@ -2498,7 +2498,7 @@ function TripAuditDetailDialog({ trip, open, onOpenChange }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[95vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl bg-white rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[95vh] overflow-y-auto">
                 <DialogHeader className="p-8 pb-0">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-teal-50 border border-teal-100/50 rounded-2xl flex items-center justify-center shadow-sm">
