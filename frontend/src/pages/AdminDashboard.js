@@ -454,15 +454,20 @@ function VehiclesManager() {
     e.preventDefault();
     try {
       if (editingId) {
-        await supabase.from('vehicles').update(formData).eq('id', editingId);
+        const { error } = await supabase.from('vehicles').update(formData).eq('id', editingId);
+        if (error) throw error;
         toast.success("Vehículo actualizado exitosamente");
       } else {
-        await supabase.from('vehicles').insert([formData]);
+        const { error } = await supabase.from('vehicles').insert([formData]);
+        if (error) throw error;
         toast.success("Vehículo creado exitosamente");
       }
       closeDialog();
       fetchVehicles();
-    } catch (e) { toast.error(editingId ? "Error al actualizar vehículo" : "Error al crear vehículo"); }
+    } catch (e) { 
+      console.error(e);
+      toast.error(e.message || (editingId ? "Error al actualizar vehículo" : "Error al crear vehículo")); 
+    }
   };
 
   const closeDialog = () => {
@@ -488,8 +493,15 @@ function VehiclesManager() {
 
   const handleDelete = async (id) => {
     if (window.confirm("¿Eliminar vehículo definitivamente?")) {
-      try { await supabase.from('vehicles').delete().eq('id', id); toast.success("Eliminado"); fetchVehicles(); }
-      catch (e) { toast.error("Error al eliminar"); }
+      try { 
+        const { error } = await supabase.from('vehicles').delete().eq('id', id);
+        if (error) throw error;
+        toast.success("Eliminado"); 
+        fetchVehicles(); 
+      } catch (e) { 
+        console.error(e);
+        toast.error(e.message || "Error al eliminar"); 
+      }
     }
   };
 
