@@ -882,6 +882,8 @@ function DispatchSection() {
             {/* DIALOGO ASIGNACIÓN REDISEÑADO PARA PC */}
             <Dialog open={!!assignDialog} onOpenChange={(open) => { if (!open) { setAssignDialog(null); setDriverSearch(""); } }}>
                 <DialogContent className="max-w-3xl bg-slate-50 border-none shadow-2xl p-0 overflow-hidden">
+                    <DialogTitle className="sr-only">Asignación de Conductor y Móvil</DialogTitle>
+                    <DialogDescription className="sr-only">Seleccione un conductor operativo para el traslado.</DialogDescription>
                     <div className="flex h-[500px]">
                         {/* Lateral Izquierdo: Resumen del viaje */}
                         <div className="w-1/3 bg-teal-50/70 border-r border-teal-100/50 p-6 text-slate-800 flex flex-col justify-between">
@@ -973,7 +975,10 @@ function DispatchSection() {
             {/* DIALOGO CANCELACIÓN */}
             <Dialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle className="text-lg font-black text-red-600 uppercase">Confirmar Cancelación</DialogTitle></DialogHeader>
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-black text-red-600 uppercase">Confirmar Cancelación</DialogTitle>
+                        <DialogDescription className="sr-only">Esta acción cancelará definitivamente el traslado.</DialogDescription>
+                    </DialogHeader>
                     <form onSubmit={handleCancel} className="space-y-4 pt-4">
                         <div className="p-3 bg-red-50 rounded-lg border border-red-100 text-red-800 text-xs font-bold">
                             Esta acción cancelará definitivamente el traslado #{cancelDialog?.tracking_number}.
@@ -993,7 +998,10 @@ function DispatchSection() {
             {/* DIALOGO DEVOLVER AL GESTOR */}
             <Dialog open={!!returnDialog} onOpenChange={() => setReturnDialog(null)}>
                 <DialogContent className="max-w-sm">
-                    <DialogHeader><DialogTitle className="text-lg font-black text-slate-900 uppercase">Devolver Traslado</DialogTitle></DialogHeader>
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-black text-slate-900 uppercase">Devolver Traslado</DialogTitle>
+                        <DialogDescription className="sr-only">Devolver el traslado al gestor de camas para su revisión.</DialogDescription>
+                    </DialogHeader>
                     <div className="space-y-4 pt-4">
                         <p className="text-sm text-slate-500 font-medium">¿Está seguro de devolver este traslado al Gestor de Camas para su revisión? El traslado saldrá de su bandeja activa hasta que sea aprobado nuevamente.</p>
                         <div className="flex justify-end gap-2">
@@ -1021,9 +1029,12 @@ function DispatchSection() {
                                 <p className="text-teal-400 text-[10px] uppercase tracking-[0.2em] font-black mb-1">
                                     Folio #{editDialog?.tracking_number}
                                 </p>
-                                <h2 className="text-2xl font-black text-white leading-tight uppercase tracking-tight">
+                                <DialogTitle className="text-2xl font-black text-white leading-tight uppercase tracking-tight">
                                     {editDialog?.trip_type === "clinico" ? "Editar Traslado Clínico" : "Editar Cometido General"}
-                                </h2>
+                                </DialogTitle>
+                                <DialogDescription className="sr-only">
+                                    Formulario para editar la información de un traslado.
+                                </DialogDescription>
                             </div>
                         </div>
                     </div>
