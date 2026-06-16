@@ -1757,6 +1757,7 @@ function VehiclesSection() {
     const { user } = useAuth();
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedTrip, setSelectedTrip] = useState(null);
     const fetchVehicles = useCallback(async () => { 
         try { 
             const [vRes, tRes] = await Promise.all([
@@ -1774,7 +1775,8 @@ function VehiclesSection() {
                         ...veh,
                         current_driver: matchingTrip.driver_name,
                         current_destination: matchingTrip.destination,
-                        current_clinical_team: matchingTrip.clinical_team
+                        current_clinical_team: matchingTrip.clinical_team,
+                        current_trip: matchingTrip
                     };
                 }
                 return veh;
@@ -1852,7 +1854,12 @@ function VehiclesSection() {
         return (
             <Card 
                 key={v.id} 
-                className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md ${isEnCurso ? "opacity-90 ring-1 ring-blue-300 shadow-blue-100/50" : ""}`}
+                onClick={() => {
+                    if (isEnCurso && v.current_trip) {
+                        setSelectedTrip(v.current_trip);
+                    }
+                }}
+                className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md ${isEnCurso ? "opacity-90 ring-1 ring-blue-300 shadow-blue-100/50 cursor-pointer hover:scale-[1.02]" : ""}`}
                 style={isEnCurso ? {
                     backgroundImage: 'repeating-linear-gradient(45deg, rgba(239, 246, 255, 0.9), rgba(239, 246, 255, 0.9) 10px, rgba(219, 234, 254, 0.4) 10px, rgba(219, 234, 254, 0.4) 20px)'
                 } : undefined}
@@ -1984,6 +1991,9 @@ function VehiclesSection() {
                     <p className="text-slate-400 font-bold uppercase tracking-widest">No se encontraron vehículos registrados</p>
                 </div>
             )}
+            
+            {/* Modal de Detalle de Traslado */}
+            <TripDetailDialog trip={selectedTrip} open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)} onRefresh={fetchVehicles} />
         </div>
     );
 }
