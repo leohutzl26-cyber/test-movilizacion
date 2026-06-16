@@ -2181,6 +2181,7 @@ function VehiclesSection() {
     const { user } = useAuth();
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedTrip, setSelectedTrip] = useState(null);
     const fetchVehicles = useCallback(async () => { 
         try { 
             const [vRes, tRes] = await Promise.all([
@@ -2198,7 +2199,8 @@ function VehiclesSection() {
                         ...veh,
                         current_driver: matchingTrip.driver_name,
                         current_destination: matchingTrip.destination,
-                        current_clinical_team: matchingTrip.clinical_team
+                        current_clinical_team: matchingTrip.clinical_team,
+                        current_trip: matchingTrip
                     };
                 }
                 return veh;
@@ -2280,7 +2282,12 @@ function VehiclesSection() {
         return (
             <Card 
                 key={v.id} 
-                className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md ${isEnCurso ? "opacity-90 ring-1 ring-blue-300 shadow-blue-100/50" : ""}`}
+                onClick={() => {
+                    if (isEnCurso && v.current_trip) {
+                        setSelectedTrip(v.current_trip);
+                    }
+                }}
+                className={`group overflow-hidden transition-all duration-300 border shadow-sm ${cfg.bg} ${cfg.border} hover:shadow-md ${isEnCurso ? "opacity-90 ring-1 ring-blue-300 shadow-blue-100/50 cursor-pointer hover:scale-[1.02]" : ""}`}
                 style={isEnCurso ? {
                     backgroundImage: 'repeating-linear-gradient(45deg, rgba(239, 246, 255, 0.9), rgba(239, 246, 255, 0.9) 10px, rgba(219, 234, 254, 0.4) 10px, rgba(219, 234, 254, 0.4) 20px)'
                 } : undefined}
@@ -2411,6 +2418,160 @@ function VehiclesSection() {
                     <p className="text-slate-400 font-bold uppercase tracking-widest">No se encontraron vehículos registrados</p>
                 </div>
             )}
+
+            {/* DIÁLOGO DE DETALLE DEL TRASLADO ACTIVO */}
+            <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
+                <DialogContent className="max-w-2xl bg-white rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+                    {selectedTrip && (
+                        <>
+                            <div className={`${statusHeaderStyles[selectedTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
+                                <div className="absolute top-6 right-6">
+                                    <Badge className={`${statusHeaderStyles[selectedTrip.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
+                                        {(selectedTrip.status || "").replace(/_/g, " ")}
+                                    </Badge>
+                                </div>
+                                <div className="flex items-center gap-5">
+                                    <div className={`w-16 h-16 ${statusHeaderStyles[selectedTrip.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
+                                        <Activity className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"}`} />
+                                    </div>
+                                    <div>
+                                        <p className={`${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
+                                            Folio #{selectedTrip.tracking_number} — Consulta Informativa
+                                        </p>
+                                        <h2 className={`text-3xl font-black ${statusHeaderStyles[selectedTrip.status]?.text || "text-white"} leading-tight uppercase tracking-tight`}>
+                                            Detalle del Traslado Activo
+                                        </h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-8 pt-4 space-y-5 text-sm">
+                                <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-6 rounded-[2rem] shadow-sm">
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Folio de Seguimiento</p>
+                                        <p className="text-2xl font-mono font-black text-slate-950">#{selectedTrip.tracking_number}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.15em] mb-1">Estado</p>
+                                        <Badge className={`font-black uppercase text-[10px] border-none tracking-widest px-3 py-1 rounded-full shadow-sm ${statusColorsSolid[selectedTrip.status] || "bg-slate-100 text-slate-600"}`}>
+                                            {(selectedTrip.status || "").replace(/_/g, " ")}
+                                        </Badge>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                                        <User className="w-4 h-4 text-teal-600" /> Información General
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                                        <div className="col-span-2 md:col-span-1">
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Paciente:</span>
+                                            <p className="font-black text-slate-900 text-sm">{selectedTrip.patient_name || "-"}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Motivo:</span>
+                                            <p className="font-black text-slate-800">{selectedTrip.transfer_reason || "-"}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">RUT:</span>
+                                            <p className="font-black text-slate-800">{selectedTrip.rut || "-"}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Cama / Unidad:</span>
+                                            <p className="font-black text-slate-800">{selectedTrip.bed || "-"} ({selectedTrip.patient_unit || "-"})</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Diagnóstico:</span>
+                                            <p className="font-black text-slate-800 leading-relaxed">{selectedTrip.diagnosis || "-"}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                                        <MapPin className="w-4 h-4 text-teal-600" /> Ruta y Tiempos
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Origen:</span>
+                                            <p className="font-black text-slate-800">{selectedTrip.origin}</p>
+                                            {selectedTrip.origin_address && (
+                                                <p className="text-[10px] text-slate-500 font-bold mt-0.5">{selectedTrip.origin_address}</p>
+                                            )}
+                                            {(selectedTrip.origin_maps_url || selectedTrip.origin) && (
+                                                <a 
+                                                    href={selectedTrip.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTrip.origin_address || selectedTrip.origin)}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                                                >
+                                                    <Map className="w-3 h-3" /> Ver en Google Maps
+                                                </a>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Destino:</span>
+                                            <p className="font-black text-slate-800">{selectedTrip.destination}</p>
+                                            {selectedTrip.destination_address && (
+                                                <p className="text-[10px] text-slate-500 font-bold mt-0.5">{selectedTrip.destination_address}</p>
+                                            )}
+                                            {(selectedTrip.destination_maps_url || selectedTrip.destination) && (
+                                                <a 
+                                                    href={selectedTrip.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTrip.destination_address || selectedTrip.destination)}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                                                >
+                                                    <Map className="w-3 h-3" /> Ver en Google Maps
+                                                </a>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Fecha Programada:</span>
+                                            <p className="font-black text-slate-800">{formatScheduledDate(selectedTrip.scheduled_date)}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Citación:</span>
+                                            <p className="font-black text-slate-800">{selectedTrip.appointment_time || "--:--"}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px] font-black block mb-0.5">Hora Salida:</span>
+                                            <p className="font-black text-slate-800">{selectedTrip.departure_time || "--:--"}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedTrip.clinical_team && (
+                                    <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
+                                        <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
+                                        <p className="text-xs font-black text-teal-900">{selectedTrip.clinical_team}</p>
+                                    </div>
+                                )}
+
+                                {selectedTrip.notes && (
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Notas del Traslado</p>
+                                        <p className="text-xs font-bold text-slate-800 whitespace-pre-line">{selectedTrip.notes}</p>
+                                    </div>
+                                )}
+
+                                {selectedTrip.driver_notes && (
+                                    <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-1">
+                                        <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Observaciones del Conductor</p>
+                                        <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{selectedTrip.driver_notes}</p>
+                                    </div>
+                                )}
+
+                                {/* EVOLUCIÓN CRONOLÓGICA DEL TRASLADO */}
+                                <TripEvolutionLog tripId={selectedTrip.id} />
+
+                                <div className="flex justify-end pt-2">
+                                    <Button onClick={() => setSelectedTrip(null)} className="bg-teal-600 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-md hover:bg-teal-700 transition-all">Volver</Button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
