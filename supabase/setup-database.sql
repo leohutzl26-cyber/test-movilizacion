@@ -40,6 +40,7 @@ CREATE TABLE profiles (
 CREATE TABLE vehicles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     plate TEXT UNIQUE NOT NULL,
+    zonal_number TEXT,
     brand TEXT NOT NULL,
     model TEXT NOT NULL,
     type TEXT DEFAULT 'Auto/SUV' CHECK (type IN ('Auto/SUV', 'Van', 'Ambulancia', 'Camioneta')),
