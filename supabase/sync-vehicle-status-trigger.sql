@@ -1,5 +1,6 @@
 -- Función Trigger para sincronizar automáticamente el estado de los vehículos en la tabla vehicles
 -- basado en la inserción, actualización y eliminación de traslados en la tabla trips.
+-- Se remueve el campo updated_at de la actualización de vehicles ya que no existe en el esquema de producción.
 CREATE OR REPLACE FUNCTION sync_vehicle_status_on_trip_change()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -8,7 +9,7 @@ BEGIN
     IF TG_OP = 'DELETE' THEN
         IF OLD.vehicle_id IS NOT NULL AND OLD.status IN ('en_curso', 'asignado') THEN
             UPDATE vehicles
-            SET status = 'disponible', updated_at = now()
+            SET status = 'disponible'
             WHERE id = OLD.vehicle_id AND status = 'en_curso';
         END IF;
         RETURN OLD;
@@ -19,7 +20,7 @@ BEGIN
     IF TG_OP = 'INSERT' THEN
         IF NEW.vehicle_id IS NOT NULL AND NEW.status = 'en_curso' THEN
             UPDATE vehicles
-            SET status = 'en_curso', mileage = COALESCE(NEW.start_mileage, mileage), updated_at = now()
+            SET status = 'en_curso', mileage = COALESCE(NEW.start_mileage, mileage)
             WHERE id = NEW.vehicle_id AND status != 'en_curso';
         END IF;
         RETURN NEW;
@@ -33,14 +34,13 @@ BEGIN
             IF NEW.vehicle_id IS NOT NULL THEN
                 UPDATE vehicles
                 SET status = 'disponible', 
-                    mileage = CASE WHEN NEW.status = 'completado' AND NEW.end_mileage IS NOT NULL THEN NEW.end_mileage ELSE mileage END,
-                    updated_at = now()
+                    mileage = CASE WHEN NEW.status = 'completado' AND NEW.end_mileage IS NOT NULL THEN NEW.end_mileage ELSE mileage END
                 WHERE id = NEW.vehicle_id;
             END IF;
             -- Si además se cambió el vehículo asignado, liberamos también el viejo por seguridad
             IF OLD.vehicle_id IS NOT NULL AND OLD.vehicle_id != COALESCE(NEW.vehicle_id, '00000000-0000-0000-0000-000000000000'::uuid) THEN
                 UPDATE vehicles
-                SET status = 'disponible', updated_at = now()
+                SET status = 'disponible'
                 WHERE id = OLD.vehicle_id;
             END IF;
             
@@ -49,8 +49,7 @@ BEGIN
             IF NEW.vehicle_id IS NOT NULL THEN
                 UPDATE vehicles
                 SET status = 'en_curso', 
-                    mileage = COALESCE(NEW.start_mileage, mileage),
-                    updated_at = now()
+                    mileage = COALESCE(NEW.start_mileage, mileage)
                 WHERE id = NEW.vehicle_id;
             END IF;
 
@@ -59,15 +58,14 @@ BEGIN
             -- Liberamos el vehículo viejo
             IF OLD.vehicle_id IS NOT NULL THEN
                 UPDATE vehicles
-                SET status = 'disponible', updated_at = now()
+                SET status = 'disponible'
                 WHERE id = OLD.vehicle_id;
             END IF;
             -- Si el viaje está en curso, marcamos el nuevo vehículo como en curso
             IF NEW.vehicle_id IS NOT NULL AND NEW.status = 'en_curso' THEN
                 UPDATE vehicles
                 SET status = 'en_curso', 
-                    mileage = COALESCE(NEW.start_mileage, mileage),
-                    updated_at = now()
+                    mileage = COALESCE(NEW.start_mileage, mileage)
                 WHERE id = NEW.vehicle_id;
             END IF;
         END IF;
