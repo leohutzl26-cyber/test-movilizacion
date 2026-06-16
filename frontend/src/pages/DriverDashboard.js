@@ -376,8 +376,14 @@ function MyTripsSection() {
     return dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
   };
 
-  const tripsHoy = trips.filter(t => cleanDateStr(t.scheduled_date) === today || t.status === "en_curso");
-  const tripsProgramados = trips.filter(t => cleanDateStr(t.scheduled_date) !== today && t.status !== "en_curso");
+  const tripsHoy = trips.filter(t => 
+    t.status === "en_curso" || 
+    cleanDateStr(t.scheduled_date) <= today
+  );
+  const tripsProgramados = trips.filter(t => 
+    t.status !== "en_curso" && 
+    cleanDateStr(t.scheduled_date) > today
+  );
   const displayTrips = activeTab === "hoy" ? tripsHoy : tripsProgramados;
 
   // FUNCIÓN PARA ABRIR VENTANAS Y LIMPIAR LA MEMORIA SUCIA
