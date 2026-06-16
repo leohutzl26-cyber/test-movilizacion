@@ -181,7 +181,7 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                     const iconBg = iconBgColors[trip.status] || "bg-white/10";
                     return (
                         <div className={`${headerBg} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
-                            <div className="absolute top-6 right-6">
+                            <div className="absolute top-6 right-14">
                                 <Badge className={`${badgeBg} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
                                     {(trip.status || "").replace(/_/g, " ")}
                                 </Badge>
@@ -1031,7 +1031,7 @@ function DispatchSection() {
             <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
                 <DialogContent className="max-w-3xl bg-slate-50 rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
                     <div className="bg-slate-900 p-8 pb-10 relative">
-                        <div className="absolute top-6 right-6">
+                        <div className="absolute top-6 right-14">
                             <Badge className="bg-teal-500 border-none uppercase tracking-widest text-[10px] font-black shadow-lg">
                                 Editar traslado
                             </Badge>

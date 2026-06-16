@@ -487,7 +487,7 @@ function AssignPersonnelSection() {
           {assignDialog && (
             <>
               <div className={`${statusHeaderStyles[assignDialog.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
-                <div className="absolute top-6 right-6">
+                <div className="absolute top-6 right-14">
                   <Badge className={`${statusHeaderStyles[assignDialog.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
                     {(assignDialog.status || "").replace(/_/g, " ")}
                   </Badge>
@@ -1283,7 +1283,7 @@ function ClinicalCalendarSection() {
           {detailTrip && (
             <>
               <div className={`${statusHeaderStyles[detailTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
-                <div className="absolute top-6 right-6">
+                <div className="absolute top-6 right-14">
                   <Badge className={`${statusHeaderStyles[detailTrip.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
                     {(detailTrip.status || "").replace(/_/g, " ")}
                   </Badge>
@@ -2425,7 +2425,7 @@ function VehiclesSection() {
                     {selectedTrip && (
                         <>
                             <div className={`${statusHeaderStyles[selectedTrip.status]?.bg || "bg-slate-900"} p-8 pb-10 relative transition-colors duration-300 rounded-t-[2rem]`}>
-                                <div className="absolute top-6 right-6">
+                                <div className="absolute top-6 right-14">
                                     <Badge className={`${statusHeaderStyles[selectedTrip.status]?.badge || "bg-slate-800 text-white"} border-none uppercase tracking-widest text-[10px] font-black shadow-lg`}>
                                         {(selectedTrip.status || "").replace(/_/g, " ")}
                                     </Badge>
