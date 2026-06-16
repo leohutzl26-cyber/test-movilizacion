@@ -433,6 +433,21 @@ function AuditLogs() {
   );
 }
 
+const formatZonalNumber = (zonal) => {
+  if (!zonal) return "";
+  let str = zonal.toString().trim();
+  if (/^[Zz]-/.test(str)) {
+    return "7-" + str.substring(2);
+  }
+  if (/^[Zz]/.test(str)) {
+    return "7-" + str.substring(1);
+  }
+  if (/^7-/.test(str)) {
+    return str;
+  }
+  return "7-" + str;
+};
+
 function VehiclesManager() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -453,12 +468,15 @@ function VehiclesManager() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
+      const formattedZonal = formData.zonal_number ? formatZonalNumber(formData.zonal_number) : "";
+      const dataToSave = { ...formData, zonal_number: formattedZonal };
+
       if (editingId) {
-        const { error } = await supabase.from('vehicles').update(formData).eq('id', editingId);
+        const { error } = await supabase.from('vehicles').update(dataToSave).eq('id', editingId);
         if (error) throw error;
         toast.success("Vehículo actualizado exitosamente");
       } else {
-        const { error } = await supabase.from('vehicles').insert([formData]);
+        const { error } = await supabase.from('vehicles').insert([dataToSave]);
         if (error) throw error;
         toast.success("Vehículo creado exitosamente");
       }
@@ -543,7 +561,7 @@ function VehiclesManager() {
                 {vehicles.map(v => (
                   <tr key={v.id} className="hover:bg-slate-50">
                     <td className="p-4">{vehicleIcons[v.type] || <Car className="w-4 h-4" />}</td>
-                    <td className="p-4 font-bold text-teal-700">{v.zonal_number ? `Z-${v.zonal_number}` : "-"}</td>
+                    <td className="p-4 font-bold text-teal-700">{v.zonal_number ? formatZonalNumber(v.zonal_number) : "-"}</td>
                     <td className="p-4 font-bold text-slate-900">{v.plate}</td>
                     <td className="p-4 text-slate-600">{v.brand} {v.model}</td>
                     <td className="p-4 text-slate-600">{v.year}</td>
@@ -616,7 +634,7 @@ function VehiclesManager() {
         onImport={async (rows) => {
           const inserts = rows.map(r => ({
             plate: r.patente.toUpperCase(),
-            zonal_number: r.numero_zonal || "",
+            zonal_number: r.numero_zonal ? formatZonalNumber(r.numero_zonal) : "",
             brand: r.marca || "",
             model: r.modelo || "",
             type: r.tipo || "Auto/SUV",
