@@ -43,7 +43,8 @@ export const customFetch = (url, options) => {
         }
       }
 
-      resolve(new Response(bodyText, {
+      const hasNoBody = [204, 205, 304].includes(xhr.status);
+      resolve(new Response(hasNoBody ? null : bodyText, {
         status: xhr.status,
         statusText: xhr.statusText,
         headers: {
