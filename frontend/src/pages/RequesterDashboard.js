@@ -446,7 +446,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
 
                 {tripType === "clinico" && (
                   <>
-                    <div className="space-y-1"><Label>Servicio de Origen *</Label>
+                    <div className="space-y-1"><Label>Servicio Solicitante *</Label>
                       {!useCustomService ? (
                         <Select value={form.patient_unit || undefined} onValueChange={v => {
                           if (v === "otro") { setUseCustomService(true); if (!form.patient_unit) setForm({ ...form, patient_unit: "" }); }

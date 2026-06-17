@@ -626,7 +626,7 @@ function DispatchSection() {
         // Validaciones básicas según tipo de viaje
         if (editDialog.trip_type === "clinico") {
             if (!editForm.patient_name) { toast.error("Nombre del paciente requerido"); return; }
-            if (!editForm.patient_unit) { toast.error("Servicio de origen requerido"); return; }
+            if (!editForm.patient_unit) { toast.error("Servicio solicitante requerido"); return; }
             if (!editForm.transfer_reason) { toast.error("Motivo de traslado requerido"); return; }
             if (!editForm.origin) { toast.error("Origen requerido"); return; }
             if (!editForm.destination) { toast.error("Destino requerido"); return; }
@@ -1155,7 +1155,7 @@ function DispatchSection() {
                                             <Input value={editForm.bed} onChange={e => handleEditFormChange("bed", e.target.value)} className="h-9 text-xs font-semibold" />
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Servicio de Origen</Label>
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Servicio Solicitante</Label>
                                             <Select value={editForm.patient_unit} onValueChange={v => handleEditFormChange("patient_unit", v)}>
                                                 <SelectTrigger className="h-9 text-xs font-semibold"><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
                                                 <SelectContent>
@@ -2361,7 +2361,7 @@ function NewTripSection({ onNavigate }) {
 
                                 {tripType === "clinico" && (
                                     <>
-                                        <div className="space-y-1"><Label className={errors.patient_unit ? "text-red-500" : ""}>Servicio de Origen *</Label>
+                                        <div className="space-y-1"><Label className={errors.patient_unit ? "text-red-500" : ""}>Servicio Solicitante *</Label>
                                             {!useCustomService ? (
                                                 <Select onValueChange={v => {
                                                     if (v === "otro") { setUseCustomService(true); }
@@ -2688,7 +2688,7 @@ function HistorySection() {
             "RUT": t.rut || "N/A",
             "Origen": t.origin,
             "Destino": t.destination,
-            "Servicio Origen": t.patient_unit || "N/A",
+            "Servicio Solicitante": t.patient_unit || "N/A",
             "Estado": (t.status || "").replace(/_/g, " ").toUpperCase(),
             "Conductor": t.driver_name || "No asignado",
             "Móvil": t.vehicle_plate || "N/A",
