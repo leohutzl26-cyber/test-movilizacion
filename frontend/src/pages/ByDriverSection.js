@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle, Car, Bus, Siren, ChevronLeft, ChevronRight, Ambulance } from "lucide-react";
+import { Users, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock, Activity, Truck, AlertCircle, Car, Bus, Siren, ChevronLeft, ChevronRight, Ambulance, ClipboardList } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -164,7 +164,7 @@ export default function ByDriverSection() {
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            {t.trip_type === "clinico" ? <Ambulance className="w-3 h-3 text-rose-500" /> : (t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <Truck className="w-3 h-3 text-blue-500" />)}
+                                                            {t.trip_type === "clinico" ? <Ambulance className="w-3 h-3 text-rose-500" /> : (t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <ClipboardList className="w-3 h-3 text-blue-500" />)}
                                                         </div>
 
                                                         <p className="font-black text-[11px] text-slate-800 leading-tight mb-2 uppercase line-clamp-2" title={t.trip_type === "clinico" ? t.patient_name : t.task_details}>

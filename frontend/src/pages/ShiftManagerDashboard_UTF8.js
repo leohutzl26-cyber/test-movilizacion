@@ -188,7 +188,7 @@ function TripDetailDialog({ trip, open, onOpenChange, onRefresh }) {
                             </div>
                             <div className="flex items-center gap-5">
                                 <div className={`w-16 h-16 ${iconBg} rounded-2xl flex items-center justify-center border border-white/10`}>
-                                    {trip.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${iconText}`} /> : <Truck className={`w-8 h-8 ${iconText}`} />}
+                                    {trip.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${iconText}`} /> : <ClipboardList className={`w-8 h-8 ${iconText}`} />}
                                 </div>
                                 <div>
                                     <p className={`${iconText} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
@@ -709,7 +709,7 @@ function DispatchSection() {
                     <h3 className="text-sm font-black text-slate-900 leading-tight uppercase group-hover:text-teal-700 transition-colors truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
                     <div className="flex items-center gap-2 mt-1">
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                            {t.trip_type === "clinico" ? <Ambulance className="w-2.5 h-2.5 text-teal-600" /> : <Truck className="w-2.5 h-2.5 text-indigo-600" />}
+                            {t.trip_type === "clinico" ? <Ambulance className="w-2.5 h-2.5 text-teal-600" /> : <ClipboardList className="w-2.5 h-2.5 text-indigo-600" />}
                             {t.transfer_reason || "Gral."}
                         </p>
                         <p className={`text-[9px] font-bold px-1.5 rounded uppercase ${t.trip_type === "clinico" ? "text-teal-600 bg-teal-50" : "text-indigo-600 bg-indigo-50"}`}>{t.trip_type}</p>
@@ -874,7 +874,7 @@ function DispatchSection() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-2.5">
                             <h2 className="text-sm font-black text-indigo-900 flex items-center gap-2 uppercase tracking-widest">
-                                <Truck className="w-5 h-5 text-indigo-600" /> No Clínicos
+                                <ClipboardList className="w-5 h-5 text-indigo-600" /> No Clínicos
                             </h2>
                             <Badge className="bg-indigo-100 text-indigo-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
                                 {nonClinicalTrips.length} activos
@@ -1038,7 +1038,7 @@ function DispatchSection() {
                         </div>
                         <div className="flex items-center gap-5">
                             <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/10">
-                                {editDialog?.trip_type === "clinico" ? <Ambulance className="w-6 h-6 text-teal-400" /> : <Truck className="w-6 h-6 text-blue-400" />}
+                                {editDialog?.trip_type === "clinico" ? <Ambulance className="w-6 h-6 text-teal-400" /> : <ClipboardList className="w-6 h-6 text-blue-400" />}
                             </div>
                             <div>
                                 <p className="text-teal-400 text-[10px] uppercase tracking-[0.2em] font-black mb-1">
@@ -1422,7 +1422,7 @@ function AssignSection() {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-2.5">
                                 <h2 className="text-sm font-black text-indigo-900 flex items-center gap-2 uppercase tracking-widest">
-                                    <Truck className="w-5 h-5 text-indigo-600" /> No Clínicos
+                                    <ClipboardList className="w-5 h-5 text-indigo-600" /> No Clínicos
                                 </h2>
                                 <Badge className="bg-indigo-100 text-indigo-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
                                     {nonClinicalTrips.length} activos
@@ -2242,7 +2242,7 @@ function NewTripSection({ onNavigate }) {
                     <Ambulance className="w-5 h-5" /><span className="text-xs font-black uppercase tracking-widest">Traslado Clínico</span>
                 </button>
                 <button type="button" onClick={() => setTripType("no_clinico")} className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${tripType === "no_clinico" ? "border-teal-600 bg-teal-50 text-teal-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-teal-200"}`}>
-                    <Truck className="w-5 h-5" /><span className="text-xs font-black uppercase tracking-widest">Traslado No Clínico</span>
+                    <ClipboardList className="w-5 h-5" /><span className="text-xs font-black uppercase tracking-widest">Traslado No Clínico</span>
                 </button>
             </div>
 
@@ -2838,7 +2838,7 @@ function HistorySection() {
                                         <td className="px-6 py-5">
                                             <p className="font-bold text-slate-900 text-sm leading-tight uppercase line-clamp-1">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
                                             <p className="text-xs text-slate-500 font-semibold mt-1 uppercase tracking-wide flex items-center gap-1.5">
-                                                {t.trip_type === "clinico" ? <Ambulance className="w-3 h-3 text-teal-600" /> : <Truck className="w-3 h-3 text-teal-600" />}
+                                                {t.trip_type === "clinico" ? <Ambulance className="w-3 h-3 text-teal-600" /> : <ClipboardList className="w-3 h-3 text-teal-600" />}
                                                 {t.transfer_reason || "Gral."} 
                                                 <span className="opacity-40 px-1.5">|</span> 
                                                 RUT: {t.rut || "S/R"}

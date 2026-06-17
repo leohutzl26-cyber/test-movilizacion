@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MapPin, Map, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, Ambulance, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload, Car, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { MapPin, Map, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, Home, BedDouble, Clock, Search, Download, Filter, Users, Pencil, Trash2, Plus, Stethoscope, Ambulance, XCircle, ChevronLeft, ChevronRight, Eye, Siren, Upload, Car, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList } from "lucide-react";
 import api from "@/lib/api";
 import BulkUploader from "@/components/BulkUploader";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
@@ -2091,7 +2091,7 @@ function GestorNewTripSection() {
       <h1 className="text-2xl font-black text-slate-900 mb-6">Nueva Solicitud de Traslado (Gestión Camas)</h1>
       <div className="grid grid-cols-2 gap-4 mb-6">
         <button onClick={() => setTripType("clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${tripType === "clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500"}`}><Ambulance className="w-8 h-8" /><span className="font-bold">Clínico</span></button>
-        <button onClick={() => setTripType("no_clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${tripType === "no_clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500"}`}><Truck className="w-8 h-8" /><span className="font-bold">No Clínico</span></button>
+        <button onClick={() => setTripType("no_clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${tripType === "no_clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500"}`}><ClipboardList className="w-8 h-8" /><span className="font-bold">No Clínico</span></button>
       </div>
       <Card className="shadow-lg border-t-4 border-t-teal-500"><CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw, Siren, ChevronLeft, ChevronRight, Ambulance } from "lucide-react";
+import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw, Siren, ChevronLeft, ChevronRight, Ambulance, ClipboardList } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 
@@ -158,7 +158,7 @@ function TripPoolSection({ onNavigate }) {
           <Siren className="w-4 h-4" /> Ambulancias ({ambulanceTrips.length})
         </button>
         <button onClick={() => setActiveTab("others")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-black uppercase tracking-widest ${activeTab === "others" ? "border-teal-600 bg-teal-50 text-teal-800 shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-teal-200"}`}>
-          <Truck className="w-4 h-4" /> Otros ({otherTrips.length})
+          <ClipboardList className="w-4 h-4" /> Otros ({otherTrips.length})
         </button>
       </div>
 
@@ -231,7 +231,7 @@ function TripPoolSection({ onNavigate }) {
         {displayTrips.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm">
             <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-slate-50">
-                {activeTab === "ambulance" ? <Siren className="w-10 h-10 text-slate-200" /> : <Truck className="w-10 h-10 text-slate-200" />}
+                {activeTab === "ambulance" ? <Siren className="w-10 h-10 text-slate-200" /> : <ClipboardList className="w-10 h-10 text-slate-200" />}
             </div>
             <p className="text-xl font-bold text-slate-500">No hay {activeTab === "ambulance" ? "ambulancias" : "otros viajes"} disponibles</p>
             <p className="text-sm font-medium mt-1">La bolsa de {activeTab === "ambulance" ? "ambulancias" : "otros traslados"} está vacía.</p>
@@ -644,7 +644,7 @@ function MyTripsSection() {
               </div>
               <div className="flex items-center gap-5">
                 <div className={`w-16 h-16 ${statusHeaderStyles[detailsDialog.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
-                  {detailsDialog.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-blue-400"}`} />}
+                  {detailsDialog.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"}`} /> : <ClipboardList className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-blue-400"}`} />}
                 </div>
                 <div>
                   <p className={`${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
@@ -1442,7 +1442,7 @@ function DriverCalendarSection() {
               </div>
               <div className="flex items-center gap-5">
                 <div className={`w-16 h-16 ${statusHeaderStyles[selectedTrip.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
-                  {selectedTrip.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-blue-400"}`} />}
+                  {selectedTrip.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"}`} /> : <ClipboardList className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-blue-400"}`} />}
                 </div>
                 <div>
                   <p className={`${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
