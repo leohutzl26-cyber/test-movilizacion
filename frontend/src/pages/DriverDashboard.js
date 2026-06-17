@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw, Siren, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Truck, MapPin, ArrowRight, CheckCircle, Navigation, Play, FileText, ShieldAlert, AlertTriangle, Activity, User, CalendarDays, RotateCcw, Siren, ChevronLeft, ChevronRight, Ambulance } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 
@@ -644,7 +644,7 @@ function MyTripsSection() {
               </div>
               <div className="flex items-center gap-5">
                 <div className={`w-16 h-16 ${statusHeaderStyles[detailsDialog.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
-                  {detailsDialog.trip_type === "clinico" ? <Activity className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-blue-400"}`} />}
+                  {detailsDialog.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[detailsDialog.status]?.iconText || "text-blue-400"}`} />}
                 </div>
                 <div>
                   <p className={`${statusHeaderStyles[detailsDialog.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
@@ -1442,7 +1442,7 @@ function DriverCalendarSection() {
               </div>
               <div className="flex items-center gap-5">
                 <div className={`w-16 h-16 ${statusHeaderStyles[selectedTrip.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
-                  {selectedTrip.trip_type === "clinico" ? <Activity className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-blue-400"}`} />}
+                  {selectedTrip.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[selectedTrip.status]?.iconText || "text-blue-400"}`} />}
                 </div>
                 <div>
                   <p className={`${statusHeaderStyles[selectedTrip.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>

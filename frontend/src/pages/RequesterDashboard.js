@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ClipboardList, Plus, MapPin, Map, ArrowRight, User, Stethoscope, Clock, Truck, Activity, CheckCircle, XCircle, Trash2, Filter } from "lucide-react";
+import { ClipboardList, Plus, MapPin, Map, ArrowRight, User, Stethoscope, Ambulance, Clock, Truck, Activity, CheckCircle, XCircle, Trash2, Filter } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import MapAddressSelector from "@/components/MapAddressSelector";
@@ -323,7 +323,7 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <button onClick={() => setTripType("clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${tripType === "clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500 hover:border-teal-200"}`}>
-          <Stethoscope className="w-8 h-8" /><span className="font-bold">Traslado Clínico</span>
+          <Ambulance className="w-8 h-8" /><span className="font-bold">Traslado Clínico</span>
         </button>
         <button onClick={() => setTripType("no_clinico")} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${tripType === "no_clinico" ? "border-teal-500 bg-teal-50 text-teal-800 shadow-md" : "border-slate-200 bg-white text-slate-500 hover:border-teal-200"}`}>
           <Truck className="w-8 h-8" /><span className="font-bold">Traslado No Clínico</span>
@@ -713,7 +713,7 @@ function MyRequestsSection({ onEdit }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider w-fit border ${req.trip_type === "clinico" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>
-                      {req.trip_type === "clinico" ? <Stethoscope className="w-3 h-3" /> : <ClipboardList className="w-3 h-3" />}
+                      {req.trip_type === "clinico" ? <Ambulance className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
                       {req.trip_type === "clinico" ? "Clínico" : "No Clínico"}
                     </div>
                   </td>
@@ -756,7 +756,7 @@ function MyRequestsSection({ onEdit }) {
                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border-none ${statusColorsSolid[req.status] || "bg-slate-100 border-slate-200"}`}>{(req.status || "").replace(/_/g, " ")}</span>
                 </div>
                 <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${req.trip_type === "clinico" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>
-                  {req.trip_type === "clinico" ? <Stethoscope className="w-3 h-3" /> : <ClipboardList className="w-3 h-3" />}
+                  {req.trip_type === "clinico" ? <Ambulance className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
                   {req.trip_type === "clinico" ? "Clínico" : "No Clínico"}
                 </div>
               </div>
@@ -820,7 +820,7 @@ function MyRequestsSection({ onEdit }) {
                 </div>
                 <div className="flex items-center gap-5">
                   <div className={`w-16 h-16 ${statusHeaderStyles[selectedReq.status]?.iconBg || "bg-white/10"} rounded-2xl flex items-center justify-center border border-white/10`}>
-                    {selectedReq.trip_type === "clinico" ? <Activity className={`w-8 h-8 ${statusHeaderStyles[selectedReq.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[selectedReq.status]?.iconText || "text-blue-400"}`} />}
+                    {selectedReq.trip_type === "clinico" ? <Ambulance className={`w-8 h-8 ${statusHeaderStyles[selectedReq.status]?.iconText || "text-teal-400"}`} /> : <Truck className={`w-8 h-8 ${statusHeaderStyles[selectedReq.status]?.iconText || "text-blue-400"}`} />}
                   </div>
                   <div>
                     <p className={`${statusHeaderStyles[selectedReq.status]?.iconText || "text-teal-400"} text-[10px] uppercase tracking-[0.2em] font-black mb-1`}>
