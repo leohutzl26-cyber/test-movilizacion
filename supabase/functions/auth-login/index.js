@@ -18,11 +18,11 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get user profile by username
+    // Get user profile by username or email for backward compatibility and resilience
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('username', loginIdentifier)
+      .or(`username.eq."${loginIdentifier}",email.eq."${loginIdentifier}"`)
       .maybeSingle();
 
     if (profileError || !profile) {
