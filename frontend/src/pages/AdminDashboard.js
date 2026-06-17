@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { MapPin, Map, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award, Upload } from "lucide-react";
@@ -289,6 +289,9 @@ function UsersManager() {
         <DialogContent className="sm:max-w-md sm:rounded-[2rem]">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Usuario" : "Nuevo Usuario"}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Formulario para la creación y edición de usuarios en el sistema de movilización.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 pt-4">
             <div className="space-y-2">
