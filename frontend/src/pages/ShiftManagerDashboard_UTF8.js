@@ -1061,10 +1061,6 @@ function DispatchSection() {
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Origen *</Label>
                                     <Input value={editForm.origin} onChange={e => handleEditFormChange("origin", e.target.value)} className="h-9 text-xs font-semibold" required />
                                 </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Destino *</Label>
-                                    <Input value={editForm.destination} onChange={e => handleEditFormChange("destination", e.target.value)} className="h-9 text-xs font-semibold" required />
-                                </div>
 
                                 <div className="space-y-1">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Origen</Label>
@@ -1080,6 +1076,11 @@ function DispatchSection() {
                                             <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
                                         </Button>
                                     </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Destino *</Label>
+                                    <Input value={editForm.destination} onChange={e => handleEditFormChange("destination", e.target.value)} className="h-9 text-xs font-semibold" required />
                                 </div>
 
                                 <div className="space-y-1">
@@ -2315,14 +2316,6 @@ function NewTripSection({ onNavigate }) {
                                         </Select>
                                     ) : <Input className={`h-9 text-xs font-semibold ${errors.origin ? "border-red-500 bg-red-50" : ""}`} placeholder="Escriba origen" value={form.origin} onChange={e => { setForm({ ...form, origin: e.target.value }); if (errors.origin) setErrors(p => ({ ...p, origin: false })); }} onDoubleClick={() => setUseCustomOrigin(false)} />}
                                 </div>
-                                <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.destination ? "text-red-500" : "text-slate-500"}`}>Destino *</Label>
-                                    {!useCustomDest ? (
-                                        <Select onValueChange={handleDestChange}>
-                                            <SelectTrigger className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                                            <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
-                                        </Select>
-                                    ) : <Input className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`} placeholder="Escriba destino" value={form.destination} onChange={e => { setForm({ ...form, destination: e.target.value }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }} onDoubleClick={() => setUseCustomDest(false)} />}
-                                </div>
 
                                 {/* Direcciones y Maps */}
                                 <div className="space-y-1">
@@ -2340,6 +2333,16 @@ function NewTripSection({ onNavigate }) {
                                         </Button>
                                     </div>
                                 </div>
+
+                                <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.destination ? "text-red-500" : "text-slate-500"}`}>Destino *</Label>
+                                    {!useCustomDest ? (
+                                        <Select onValueChange={handleDestChange}>
+                                            <SelectTrigger className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                                            <SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent>
+                                        </Select>
+                                    ) : <Input className={`h-9 text-xs font-semibold ${errors.destination ? "border-red-500 bg-red-50" : ""}`} placeholder="Escriba destino" value={form.destination} onChange={e => { setForm({ ...form, destination: e.target.value }); if (errors.destination) setErrors(p => ({ ...p, destination: false })); }} onDoubleClick={() => setUseCustomDest(false)} />}
+                                </div>
+
                                 <div className="space-y-1">
                                     <Label className="text-slate-500 text-[10px] font-bold">Dirección de Destino</Label>
                                     <div className="flex gap-2">

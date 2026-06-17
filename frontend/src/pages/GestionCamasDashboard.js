@@ -591,20 +591,6 @@ function AssignPersonnelSection() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Destino</Label>
-                    <Select value={editData.destination || "none"} onValueChange={handleEditDestChange}>
-                      <SelectTrigger className="h-9 text-sm font-bold bg-white">
-                        <SelectValue placeholder="Seleccione destino" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {destinations.map(d => (
-                          <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
-                        ))}
-                        {editData.destination && editData.destination !== "none" && !destinations.find(d => d.name === editData.destination) && <SelectItem value={editData.destination}>{editData.destination} (Personalizado)</SelectItem>}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
                    {/* Campos de Dirección y Maps Origen */}
                   <div className="space-y-1">
@@ -623,6 +609,20 @@ function AssignPersonnelSection() {
                     </div>
                   </div>
 
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Destino</Label>
+                    <Select value={editData.destination || "none"} onValueChange={handleEditDestChange}>
+                      <SelectTrigger className="h-9 text-sm font-bold bg-white">
+                        <SelectValue placeholder="Seleccione destino" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {destinations.map(d => (
+                          <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                        ))}
+                        {editData.destination && editData.destination !== "none" && !destinations.find(d => d.name === editData.destination) && <SelectItem value={editData.destination}>{editData.destination} (Personalizado)</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                    {/* Campos de Dirección y Maps Destino */}
                   <div className="space-y-1">
@@ -2119,7 +2119,6 @@ function GestorNewTripSection() {
           {/* Ubicación */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1"><Label>Origen *</Label>{!useCustomOrigin ? <Select value={form.origin || undefined} onValueChange={handleOriginChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}</div>
-            <div className="space-y-1"><Label>Destino *</Label>{!useCustomDest ? <Select value={form.destination || undefined} onValueChange={handleDestChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}</div>
             
             <div className="space-y-1">
               <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
@@ -2136,6 +2135,8 @@ function GestorNewTripSection() {
                 </Button>
               </div>
             </div>
+
+            <div className="space-y-1"><Label>Destino *</Label>{!useCustomDest ? <Select value={form.destination || undefined} onValueChange={handleDestChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select> : <Input value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}</div>
 
             <div className="space-y-1">
               <Label className="text-slate-500 text-xs">Dirección de Destino</Label>

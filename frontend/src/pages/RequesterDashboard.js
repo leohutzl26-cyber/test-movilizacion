@@ -402,11 +402,6 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                     <Select value={form.origin || undefined} onValueChange={handleOriginChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{origins.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}{form.origin && !origins.find(o => o.name === form.origin) && <SelectItem value={form.origin}>{form.origin} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
                   ) : <Input placeholder="Escriba origen" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} onDoubleClick={() => setUseCustomOrigin(false)} />}
                 </div>
-                <div className="space-y-1"><Label>Destino *</Label>
-                  {!useCustomDest ? (
-                    <Select value={form.destination || undefined} onValueChange={handleDestChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}{form.destination && !destinations.find(d => d.name === form.destination) && <SelectItem value={form.destination}>{form.destination} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
-                  ) : <Input placeholder="Escriba destino" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}
-                </div>
 
                 {/* Campos de Dirección y Maps Origen */}
                 <div className="space-y-1">
@@ -425,6 +420,11 @@ function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
                   </div>
                 </div>
 
+                <div className="space-y-1"><Label>Destino *</Label>
+                  {!useCustomDest ? (
+                    <Select value={form.destination || undefined} onValueChange={handleDestChange}><SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger><SelectContent>{destinations.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}{form.destination && !destinations.find(d => d.name === form.destination) && <SelectItem value={form.destination}>{form.destination} (Personalizado)</SelectItem>}<SelectItem value="otro">Otro</SelectItem></SelectContent></Select>
+                  ) : <Input placeholder="Escriba destino" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} onDoubleClick={() => setUseCustomDest(false)} />}
+                </div>
 
                 {/* Campos de Dirección y Maps Destino */}
                 <div className="space-y-1">
