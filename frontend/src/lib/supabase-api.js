@@ -84,6 +84,14 @@ export const authApi = {
     localStorage.removeItem('supabase.auth.token');
   },
 
+  changePassword: async (currentPassword, newPassword) => {
+    return await callSupabaseFunction('auth-change-password', { currentPassword, newPassword });
+  },
+
+  adminUsers: async (payload) => {
+    return await callSupabaseFunction('admin-users', payload);
+  },
+
   getCurrentUser: async () => {
     try {
       const token = localStorage.getItem('supabase.auth.token');
@@ -106,8 +114,10 @@ export const authApi = {
       return {
         id: payload.userId,
         email: payload.email,
+        username: payload.username,
         name: payload.name,
         role: payload.role,
+        must_change_password: payload.must_change_password,
         status: 'approved'
       };
     } catch (error) {

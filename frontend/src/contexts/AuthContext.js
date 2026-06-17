@@ -48,7 +48,15 @@ export function AuthProvider({ children }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           const profile = await fetchProfile(session.user.id);
-          setUser(profile ? { ...session.user, ...profile } : session.user);
+          setUser(profile ? {
+            id: profile.id,
+            email: profile.email,
+            username: profile.username,
+            name: profile.name,
+            role: profile.role,
+            status: profile.status,
+            must_change_password: profile.must_change_password
+          } : session.user);
         } else {
           setUser(null);
         }
@@ -65,7 +73,15 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         const profile = await fetchProfile(session.user.id);
-        setUser(profile ? { session: { ...session }, profile } : session.user);
+        setUser(profile ? {
+          id: profile.id,
+          email: profile.email,
+          username: profile.username,
+          name: profile.name,
+          role: profile.role,
+          status: profile.status,
+          must_change_password: profile.must_change_password
+        } : session.user);
       } else {
         // Solo deslogueamos si no hay un token de la API personalizada guardado en localStorage
         const hasCustomToken = localStorage.getItem('supabase.auth.token');
@@ -79,10 +95,10 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (username, password) => {
     try {
-      // Use our custom auth function
-      const response = await authApi.login({ email, password });
+      // Use our custom auth function (works with username or email)
+      const response = await authApi.login({ username, password });
 
       if (response.token) {
         // Store the token for Supabase Function calls
@@ -93,10 +109,26 @@ export function AuthProvider({ children }) {
 
         return response.user;
       } else {
-        throw new Error('Login failed: No token received');
+        throw new Error('Inicio de sesión fallido: No se recibió token');
       }
     } catch (error) {
       console.error("Login error:", error);
+      throw error;
+    }
+  }, []);
+
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    try {
+      const response = await authApi.changePassword(currentPassword, newPassword);
+      if (response.user) {
+        setUser(prev => ({
+          ...prev,
+          must_change_password: false
+        }));
+      }
+      return response;
+    } catch (error) {
+      console.error("Change password error:", error);
       throw error;
     }
   }, []);
@@ -111,6 +143,7 @@ export function AuthProvider({ children }) {
         const profileData = {
           id: response.user_id,
           email: userData.email,
+          username: userData.username || userData.email,
           name: userData.name,
           role: userData.role,
           status: 'pending'
@@ -222,6 +255,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     register,
+    changePassword,
     logout,
     updateUser,
     approveUser,

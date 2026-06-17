@@ -16,11 +16,13 @@ DROP TABLE IF EXISTS profiles CASCADE;
 -- Create profiles table
 CREATE TABLE profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE,
+    email TEXT UNIQUE,
     encrypted_password TEXT,
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'solicitante', 'conductor', 'coordinador', 'gestion_camas')),
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    must_change_password BOOLEAN DEFAULT false,
     avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),

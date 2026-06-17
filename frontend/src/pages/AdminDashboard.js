@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { MapPin, Map, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDays, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Stethoscope, Plus, Trash2, XCircle, Search, Car, Bus, Users, Edit, Clock, Shield, Siren, TrendingUp, Gauge, Ban, Zap, Navigation, Award, Upload } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import { supabase } from "@/lib/supabase";
+import { authApi } from "@/lib/supabase-api";
 import LogbookReport from "@/components/LogbookReport";
 import BulkUploader from "@/components/BulkUploader";
 import MapAddressSelector from "@/components/MapAddressSelector";
@@ -126,77 +127,155 @@ function KPICard({ label, value, sub, icon, color, onClick }) {
 function UsersManager() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({ name: "", rut: "", username: "", role: "solicitante", is_active: true });
+  const [saving, setSaving] = useState(false);
 
   const fetchUsers = useCallback(async () => {
-    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    if (!error) setUsers(data || []);
-    setLoading(false);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (!error) setUsers(data || []);
+    } catch (e) {
+      toast.error("Error al cargar usuarios");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const handleAction = async (id, action) => {
-    try {
-      if (action === "delete") {
-        if (window.confirm("¿Eliminar perfil de usuario?")) {
-          await supabase.from('profiles').delete().eq('id', id);
-          toast.success("Eliminado");
-          fetchUsers();
-        }
-      } else {
-        const status = action === "approve" ? "aprobado" : "rechazado";
-        await supabase.from('profiles').update({ status }).eq('id', id);
-        toast.success("Estado actualizado");
-        fetchUsers();
-      }
-    } catch (e) { toast.error("Error en la operación"); }
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingId(null);
+    setFormData({ name: "", rut: "", username: "", role: "solicitante", is_active: true });
   };
 
-  const handleRoleChange = async (id, role) => {
-    const { error } = await supabase.from('profiles').update({ role }).eq('id', id);
-    if (!error) {
-      toast.success("Rol actualizado");
+  const handleEdit = (u) => {
+    setEditingId(u.id);
+    setFormData({
+      name: u.name || "",
+      rut: u.rut || "",
+      username: u.username || "",
+      role: u.role || "solicitante",
+      is_active: u.is_active !== undefined ? u.is_active : true
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.username.trim() || !formData.role) {
+      toast.error("Nombre, nombre de usuario y rol son obligatorios");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingId) {
+        const response = await authApi.adminUsers({
+          action: 'update',
+          id: editingId,
+          name: formData.name,
+          rut: formData.rut,
+          username: formData.username,
+          role: formData.role,
+          is_active: formData.is_active
+        });
+        toast.success(response.message || "Usuario actualizado exitosamente");
+      } else {
+        const response = await authApi.adminUsers({
+          action: 'create',
+          name: formData.name,
+          rut: formData.rut,
+          username: formData.username,
+          role: formData.role
+        });
+        toast.success(response.message || "Usuario creado exitosamente");
+      }
+      closeDialog();
       fetchUsers();
-    } else {
-      toast.error("Error al cambiar rol");
+    } catch (e) {
+      toast.error(e.message || "Error al guardar usuario");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetPassword = async (u) => {
+    if (window.confirm(`¿Seguro que deseas restablecer la contraseña de ${u.name}? Su nueva contraseña será '123456' y se le obligará a cambiarla en su próximo ingreso.`)) {
+      try {
+        const response = await authApi.adminUsers({
+          action: 'reset_password',
+          id: u.id
+        });
+        toast.success(response.message || "Contraseña restablecida exitosamente a 123456");
+      } catch (e) {
+        toast.error(e.message || "Error al restablecer contraseña");
+      }
+    }
+  };
+
+  const handleDelete = async (u) => {
+    if (window.confirm(`¿Eliminar definitivamente al usuario ${u.name}? Esta acción es irreversible y removerá el perfil asociado.`)) {
+      try {
+        const { error } = await supabase.from('profiles').delete().eq('id', u.id);
+        if (error) throw error;
+        toast.success("Usuario eliminado exitosamente");
+        fetchUsers();
+      } catch (e) {
+        toast.error("Error al eliminar usuario");
+      }
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Gestión de Usuarios</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Gestión de Usuarios</h1>
+        <Button onClick={() => { setEditingId(null); setFormData({ name: "", rut: "", username: "", role: "solicitante", is_active: true }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
+          <Plus className="w-4 h-4 mr-2" /> Crear Usuario
+        </Button>
+      </div>
+
       {loading ? <p className="text-slate-500 text-center py-10">Cargando usuarios...</p> : (
         <Card className="shadow-sm">
           <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
-                <tr><th className="p-4">Nombre / Email</th><th className="p-4">Rol</th><th className="p-4 text-center">Estado</th><th className="p-4 text-right">Acciones</th></tr>
+                <tr>
+                  <th className="p-4">Nombre / RUT</th>
+                  <th className="p-4">Usuario (Login)</th>
+                  <th className="p-4">Rol</th>
+                  <th className="p-4 text-center">Estado</th>
+                  <th className="p-4 text-right">Acciones</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map(u => (
                   <tr key={u.id} className="hover:bg-slate-50">
-                    <td className="p-4"><p className="font-bold text-slate-900">{u.name}</p><p className="text-slate-500">{u.email}</p></td>
                     <td className="p-4">
-                      <Select value={u.role || ""} onValueChange={(val) => handleRoleChange(u.id, val)}>
-                        <SelectTrigger className="w-40 h-8 text-xs font-bold"><SelectValue placeholder="Seleccione Rol"/></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="solicitante">Solicitante</SelectItem>
-                          <SelectItem value="conductor">Conductor</SelectItem>
-                          <SelectItem value="coordinador">Coordinador</SelectItem>
-                          <SelectItem value="gestion_camas">Gestión de Camas</SelectItem>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <p className="font-bold text-slate-900">{u.name}</p>
+                      <p className="text-xs text-slate-500">{u.rut || "Sin RUT"}</p>
+                    </td>
+                    <td className="p-4 font-mono text-xs text-slate-600">{u.username || u.email}</td>
+                    <td className="p-4">
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {(u.role || "solicitante").replace(/_/g, " ")}
+                      </Badge>
                     </td>
                     <td className="p-4 text-center">
-                      <Badge className={u.status === "aprobado" ? "bg-emerald-100 text-emerald-800 border-emerald-200" : u.status === "pendiente" ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200"}>{u.status}</Badge>
+                      {u.is_active === false ? (
+                        <Badge className="bg-red-100 text-red-800 border-red-200">Inactivo</Badge>
+                      ) : (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Activo</Badge>
+                      )}
                     </td>
                     <td className="p-4 text-right space-x-2">
-                      {u.status === "pendiente" && (
-                        <><Button size="sm" onClick={() => handleAction(u.id, "approve")} className="bg-teal-600 hover:bg-teal-700 text-white h-8"><CheckCircle className="w-4 h-4 mr-1"/>Aprobar</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleAction(u.id, "reject")} className="text-red-600 border-red-200 hover:bg-red-50 h-8"><XCircle className="w-4 h-4 mr-1"/>Rechazar</Button></>
-                      )}
-                      <Button size="icon" variant="ghost" onClick={() => handleAction(u.id, "delete")} className="text-slate-400 hover:text-red-600 h-8 w-8"><Trash2 className="w-4 h-4"/></Button>
+                      <Button size="icon" variant="ghost" onClick={() => handleEdit(u)} className="text-slate-400 hover:text-teal-600 h-8 w-8" title="Editar"><Edit className="w-4 h-4"/></Button>
+                      <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u)} className="text-slate-400 hover:text-amber-600 h-8 w-8" title="Restablecer Clave"><RefreshCw className="w-4 h-4"/></Button>
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(u)} className="text-slate-400 hover:text-red-600 h-8 w-8" title="Eliminar"><Trash2 className="w-4 h-4"/></Button>
                     </td>
                   </tr>
                 ))}
@@ -205,6 +284,74 @@ function UsersManager() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeDialog()}>
+        <DialogContent className="sm:max-w-md sm:rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar Usuario" : "Nuevo Usuario"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-name">Nombre Completo *</Label>
+              <Input id="user-name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ej: Juan Perez" required />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-username">Nombre de Usuario *</Label>
+                <Input id="user-username" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value.toLowerCase()})} placeholder="ej: jperez" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-rut">RUT (Opcional)</Label>
+                <Input id="user-rut" value={formData.rut} onChange={e => setFormData({...formData, rut: e.target.value})} placeholder="12.345.678-9" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-role">Rol / Perfil *</Label>
+                <Select value={formData.role} onValueChange={v => setFormData({...formData, role: v})}>
+                  <SelectTrigger id="user-role"><SelectValue placeholder="Seleccione Rol" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solicitante">Solicitante</SelectItem>
+                    <SelectItem value="conductor">Conductor</SelectItem>
+                    <SelectItem value="coordinador">Coordinador</SelectItem>
+                    <SelectItem value="gestion_camas">Gestión de Camas</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {editingId && (
+                <div className="space-y-2">
+                  <Label htmlFor="user-status">Estado *</Label>
+                  <Select value={formData.is_active ? "active" : "inactive"} onValueChange={v => setFormData({...formData, is_active: v === "active"})}>
+                    <SelectTrigger id="user-status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Activo</SelectItem>
+                      <SelectItem value="inactive">Inactivo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {!editingId && (
+              <p className="text-xs text-slate-400 mt-2">
+                * La contraseña por defecto para el nuevo usuario será <span className="font-bold text-slate-600">123456</span>. 
+                Se le solicitará cambiarla obligatoriamente al ingresar por primera vez.
+              </p>
+            )}
+
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button>
+              <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white font-bold" disabled={saving}>
+                {saving ? "Guardando..." : "Guardar Usuario"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import ShiftManagerDashboard from "@/pages/ShiftManagerDashboard_UTF8";
 import DriverDashboard from "@/pages/DriverDashboard";
 import RequesterDashboard from "@/pages/RequesterDashboard";
 import GestionCamasDashboard from "@/pages/GestionCamasDashboard"; // NUEVA IMPORTACIÓN
+import ChangePasswordForceScreen from "@/components/ChangePasswordForceScreen";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
@@ -23,6 +24,12 @@ const ProtectedRoute = ({ children, roles }) => {
   }
 
   if (!user) return <Navigate to="/" />;
+
+  // Si el usuario requiere cambiar su contraseña, forzar el renderizado de la pantalla de cambio
+  if (user.must_change_password) {
+    return <ChangePasswordForceScreen />;
+  }
+
   if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
   return children;
 };

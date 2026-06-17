@@ -7,27 +7,36 @@ const supabase = createClient(
 
 exports.handler = async (event, context) => {
   try {
-    const { email, password } = JSON.parse(event.body);
+    const { username, email, password } = JSON.parse(event.body);
+    const loginIdentifier = username || email;
 
     // Validate input
-    if (!email || !password) {
+    if (!loginIdentifier || !password) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Email and password are required' })
+        body: JSON.stringify({ error: 'El nombre de usuario/correo y la contraseña son obligatorios' })
       };
     }
 
-    // Get user profile
+    // Get user profile by username
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('email', email)
-      .single();
+      .eq('username', loginIdentifier)
+      .maybeSingle();
 
     if (profileError || !profile) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Invalid email or password' })
+        body: JSON.stringify({ error: 'Nombre de usuario o contraseña incorrectos' })
+      };
+    }
+
+    // Check if user is active
+    if (profile.is_active === false) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'El usuario se encuentra inactivo' })
       };
     }
 
@@ -35,18 +44,18 @@ exports.handler = async (event, context) => {
     if (profile.status !== 'approved') {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'User not approved by admin' })
+        body: JSON.stringify({ error: 'Usuario no aprobado por el administrador' })
       };
     }
 
     // Verify password (in production, use Supabase Auth instead)
-    const bcrypt = require('bcrypt');
+    const bcrypt = require('bcryptjs');
     const passwordMatch = await bcrypt.compare(password, profile.encrypted_password);
 
     if (!passwordMatch) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Invalid email or password' })
+        body: JSON.stringify({ error: 'Nombre de usuario o contraseña incorrectos' })
       };
     }
 
@@ -56,8 +65,10 @@ exports.handler = async (event, context) => {
       {
         userId: profile.id,
         email: profile.email,
+        username: profile.username,
         name: profile.name,
-        role: profile.role
+        role: profile.role,
+        must_change_password: profile.must_change_password
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
@@ -82,9 +93,11 @@ exports.handler = async (event, context) => {
         user: {
           id: profile.id,
           email: profile.email,
+          username: profile.username,
           name: profile.name,
           role: profile.role,
-          status: profile.status
+          status: profile.status,
+          must_change_password: profile.must_change_password
         }
       })
     };
@@ -92,7 +105,7 @@ exports.handler = async (event, context) => {
     console.error('Auth login error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error' })
+      body: JSON.stringify({ error: 'Error interno del servidor' })
     };
   }
 };

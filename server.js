@@ -42,7 +42,9 @@ const functions = {
   'trips-create': require('./supabase/functions/trips-create'),
   'trips-update-status': require('./supabase/functions/trips-update-status'),
   'users-approve': require('./supabase/functions/users-approve'),
-  'manage-catalogs': require('./supabase/functions/manage-catalogs')
+  'manage-catalogs': require('./supabase/functions/manage-catalogs'),
+  'admin-users': require('./supabase/functions/admin-users'),
+  'auth-change-password': require('./supabase/functions/auth-change-password')
 };
 
 // JWT Middleware to populate context.user
@@ -58,8 +60,10 @@ const authenticateToken = (req, res, next) => {
       req.context.user = {
         id: decoded.userId,
         email: decoded.email,
+        username: decoded.username,
         name: decoded.name,
-        role: decoded.role
+        role: decoded.role,
+        must_change_password: decoded.must_change_password
       };
     } catch (err) {
       console.error('JWT verification failed:', err.message);
