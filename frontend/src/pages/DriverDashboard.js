@@ -664,6 +664,26 @@ function MyTripsSection() {
                 <p className="text-base font-bold text-red-800 mt-2 bg-red-100 inline-block px-3 py-1 rounded-lg">Fecha: {formatScheduledDate(detailsDialog.scheduled_date)}</p>
               </div>
 
+              {detailsDialog.vehicle_plate && (
+                <div className="bg-gradient-to-r from-teal-50 to-emerald-50 p-4 rounded-xl border border-teal-100 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20">
+                      <Truck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-black text-teal-600 tracking-wider">Vehículo Asignado</p>
+                      <p className="font-black text-slate-900 text-lg leading-tight mt-0.5">{detailsDialog.vehicle_plate}</p>
+                    </div>
+                  </div>
+                  {detailsDialog.status === 'en_curso' && (
+                    <Badge className="bg-emerald-600 text-white text-[10px] font-black uppercase px-2.5 py-1 border-none shadow-sm animate-pulse">
+                      En Traslado
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+
               <div className="flex gap-2 mb-2 mt-4">
                 <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase ${statusColorsSolid[detailsDialog.status] || "bg-slate-500 text-white"}`}>{sLabels[detailsDialog.status] || detailsDialog.status}</span>
                 <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase border border-slate-200">{detailsDialog.trip_type === "clinico" ? "Traslado Clínico" : "Traslado No Clínico"}</span>

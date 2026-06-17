@@ -896,6 +896,31 @@ function MyRequestsSection({ onEdit }) {
                   </div>
                 </div>
 
+                {(selectedReq.driver_name || selectedReq.vehicle_plate) && (
+                  <div className="bg-gradient-to-r from-teal-50/50 to-emerald-50/50 p-5 rounded-2xl border border-teal-100/60 space-y-3 shadow-sm">
+                    <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest flex items-center gap-1.5 border-b border-teal-100/50 pb-1.5">
+                      <Truck className="w-4 h-4 text-teal-600" /> Asignación de Transporte
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                      {selectedReq.driver_name && (
+                        <div>
+                          <span className="text-teal-600/70 uppercase tracking-wider text-[9px] font-black block mb-0.5">Conductor:</span>
+                          <p className="font-black text-slate-900 text-sm">{selectedReq.driver_name}</p>
+                        </div>
+                      )}
+                      {selectedReq.vehicle_plate && (
+                        <div>
+                          <span className="text-teal-600/70 uppercase tracking-wider text-[9px] font-black block mb-0.5">Vehículo / Patente:</span>
+                          <p className="font-black text-teal-900 text-sm flex items-center gap-1">
+                            <span className="bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-800 font-mono text-xs">{selectedReq.vehicle_plate}</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+
                 {selectedReq.trip_type === "clinico" && (
                   <div className="bg-teal-50 p-5 rounded-2xl border border-teal-100">
                     {selectedReq.assigned_clinical_staff?.length > 0 ? (

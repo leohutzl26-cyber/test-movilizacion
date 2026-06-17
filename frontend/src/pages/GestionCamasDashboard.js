@@ -1398,6 +1398,31 @@ function ClinicalCalendarSection() {
                   </div>
                 </div>
 
+                {(detailTrip.driver_name || detailTrip.vehicle_plate) && (
+                  <div className="bg-gradient-to-r from-teal-50/50 to-emerald-50/50 p-5 rounded-2xl border border-teal-100/60 space-y-3 shadow-sm">
+                    <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest flex items-center gap-1.5 border-b border-teal-100/50 pb-1.5">
+                      <Truck className="w-4 h-4 text-teal-600" /> Asignación de Transporte
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                      {detailTrip.driver_name && (
+                        <div>
+                          <span className="text-teal-600/70 uppercase tracking-wider text-[9px] font-black block mb-0.5">Conductor:</span>
+                          <p className="font-black text-slate-900 text-sm">{detailTrip.driver_name}</p>
+                        </div>
+                      )}
+                      {detailTrip.vehicle_plate && (
+                        <div>
+                          <span className="text-teal-600/70 uppercase tracking-wider text-[9px] font-black block mb-0.5">Vehículo / Patente:</span>
+                          <p className="font-black text-teal-900 text-sm flex items-center gap-1">
+                            <span className="bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-800 font-mono text-xs">{detailTrip.vehicle_plate}</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+
                 {detailTrip.clinical_team && (
                   <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
                     <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none">Equipo Clínico Asignado</p>
@@ -2539,6 +2564,31 @@ function VehiclesSection() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {(selectedTrip.driver_name || selectedTrip.vehicle_plate) && (
+                                    <div className="bg-gradient-to-r from-teal-50/50 to-emerald-50/50 p-5 rounded-2xl border border-teal-100/60 space-y-3 shadow-sm">
+                                        <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest flex items-center gap-1.5 border-b border-teal-100/50 pb-1.5">
+                                            <Truck className="w-4 h-4 text-teal-600" /> Asignación de Transporte
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                                            {selectedTrip.driver_name && (
+                                                <div>
+                                                    <span className="text-teal-600/70 uppercase tracking-wider text-[9px] font-black block mb-0.5">Conductor:</span>
+                                                    <p className="font-black text-slate-900 text-sm">{selectedTrip.driver_name}</p>
+                                                </div>
+                                            )}
+                                            {selectedTrip.vehicle_plate && (
+                                                <div>
+                                                    <span className="text-teal-600/70 uppercase tracking-wider text-[9px] font-black block mb-0.5">Vehículo / Patente:</span>
+                                                    <p className="font-black text-teal-900 text-sm flex items-center gap-1">
+                                                        <span className="bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-800 font-mono text-xs">{selectedTrip.vehicle_plate}</span>
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
 
                                 {selectedTrip.clinical_team && (
                                     <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-2">
