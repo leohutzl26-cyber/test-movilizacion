@@ -25,10 +25,17 @@ exports.handler = async (event, context) => {
       .or(`username.eq."${loginIdentifier}",email.eq."${loginIdentifier}"`)
       .maybeSingle();
 
-    if (profileError || !profile) {
+    if (profileError) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: `Error de base de datos al buscar perfil: ${profileError.message}` })
+      };
+    }
+
+    if (!profile) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Nombre de usuario o contraseña incorrectos' })
+        body: JSON.stringify({ error: `El usuario '${loginIdentifier}' no existe en la tabla profiles` })
       };
     }
 
@@ -41,7 +48,7 @@ exports.handler = async (event, context) => {
     }
 
     // Check if user is approved
-    if (profile.status !== 'approved') {
+    if (profile.status !== 'approved' && profile.status !== 'aprobado') {
       return {
         statusCode: 401,
         body: JSON.stringify({ error: 'Usuario no aprobado por el administrador' })
@@ -55,7 +62,7 @@ exports.handler = async (event, context) => {
     if (!passwordMatch) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Nombre de usuario o contraseña incorrectos' })
+        body: JSON.stringify({ error: `Contraseña incorrecta para el usuario '${loginIdentifier}'` })
       };
     }
 
