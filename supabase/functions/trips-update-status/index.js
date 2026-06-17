@@ -110,9 +110,12 @@ exports.handler = async (event, context) => {
       .single();
 
     if (updateError) {
+      const debugText = `v2.0.3 | tripId: ${trip_id} | vehicleId: ${activeVehicleId} | hasVehicle: ${hasActiveVehicle} | data: ${JSON.stringify(updateData)}`;
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: updateError.message })
+        body: JSON.stringify({ 
+          error: `${updateError.message} [Debug: ${debugText}]`
+        })
       };
     }
 
