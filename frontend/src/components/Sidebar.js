@@ -45,6 +45,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         ]
       },
       { id: "history", label: "Historial", icon: History },
+      { id: "vehicles", label: "Vehículos / Flota", icon: Truck },
       { 
         id: "mantenedores", 
         label: "Mantenedores", 
@@ -54,10 +55,10 @@ export default function Sidebar({ activeSection, onSectionChange }) {
           { id: "origins", label: "Orígenes", icon: MapPin },
           { id: "destinations", label: "Destinos", icon: MapPin },
           { id: "services", label: "Servicios / Unidades", icon: MapPin },
-          { id: "vehicles", label: "Vehículos / Flota", icon: Truck },
           { id: "drivers", label: "Conductores", icon: ClipboardList },
         ]
       },
+
     ],
     conductor: [
       { id: "trips", label: "Mis Viajes", icon: Truck },
