@@ -86,7 +86,16 @@ exports.handler = async (event, context) => {
       }
     }
 
+    const isValidUUID = (id) => {
+      if (!id) return false;
+      if (typeof id !== 'string') return false;
+      const cleanId = id.trim().toLowerCase();
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+      return uuidRegex.test(cleanId);
+    };
+
     const activeVehicleId = vehicle_id || currentTrip.vehicle_id;
+    const hasActiveVehicle = isValidUUID(activeVehicleId);
 
     if (driver_notes !== undefined) {
       updateData.driver_notes = driver_notes;
@@ -108,7 +117,7 @@ exports.handler = async (event, context) => {
     }
 
     // Update vehicle status in vehicles table
-    if (activeVehicleId) {
+    if (hasActiveVehicle) {
       if (status === 'en_curso') {
         await supabase
           .from('vehicles')
