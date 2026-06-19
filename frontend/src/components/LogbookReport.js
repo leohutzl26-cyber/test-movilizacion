@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { BookOpen, FileSpreadsheet, FileText, Truck, Download, Calendar } from "lucide-react";
 import api from "@/lib/api";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 export default function LogbookReport() {
   const [vehicles, setVehicles] = useState([]);
@@ -48,26 +51,124 @@ export default function LogbookReport() {
 
   const handleDownload = async (format) => {
     if (!validate()) return;
+    if (!preview || !preview.trips) {
+      toast.error("No hay datos disponibles para descargar");
+      return;
+    }
     const setLoading = format === "pdf" ? setLoadingPdf : setLoadingExcel;
     setLoading(true);
     try {
-      const url = format === "pdf" ? "/reports/logbook-pdf" : "/reports/logbook-excel";
-      const res = await api.get(url, {
-        params: { vehicle_id: vehicleId, start_date: startDate, end_date: endDate },
-        responseType: "blob"
-      });
-      const blob = new Blob([res.data]);
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      const vehicle = vehicles.find(v => v.id === vehicleId);
-      const plate = vehicle?.plate || "VEH";
-      link.download = `Libro_Recorrido_${plate}_${startDate}_${endDate}.${format === "pdf" ? "pdf" : "xlsx"}`;
-      link.click();
-      URL.revokeObjectURL(link.href);
-      toast.success(`Libro de Recorrido descargado en ${format.toUpperCase()}`);
+      if (format === "excel") {
+        const data = preview.trips.map(t => {
+          const startKm = t.start_mileage || 0;
+          const endKm = t.end_mileage || 0;
+          const kmRec = endKm > startKm ? Math.round((endKm - startKm) * 10) / 10 : 0;
+          const motivo = t.transfer_reason || t.task_details || t.notes || t.diagnosis || "—";
+          const pasajeros = t.clinical_team || t.patient_name || "";
+          const horaSalida = t.departure_time || (t.created_at?.split("T")[1]?.slice(0, 5) || "—");
+          const horaLlegada = t.completed_at ? t.completed_at.split("T")[1]?.slice(0, 5) : "—";
+
+          return {
+            "Fecha": t.scheduled_date || "",
+            "H.Salida": horaSalida,
+            "H.Llegada": horaLlegada,
+            "Km Ini": startKm,
+            "Km Fin": endKm,
+            "Km Rec.": kmRec,
+            "Origen": t.origin || "",
+            "Destino": t.destination || "",
+            "Motivo": motivo,
+            "Conductor": t.driver_name || "—",
+            "Pasajeros": pasajeros || "—",
+            "Autorizado": t.authorized_by || "—",
+            "Folio": t.tracking_number || ""
+          };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Libro Recorrido");
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        const plate = vehicle?.plate || "VEH";
+        XLSX.writeFile(wb, `Libro_Recorrido_${plate}_${startDate}_${endDate}.xlsx`);
+        toast.success("Libro de Recorrido descargado en EXCEL");
+      } else if (format === "pdf") {
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        const plate = vehicle?.plate || "VEH";
+        const vehicleStr = `${plate} — ${vehicle?.brand || ""} ${vehicle?.model || ""} (${vehicle?.year || ""})`;
+
+        const doc = new jsPDF({ orientation: "landscape" });
+        
+        // Encabezado del reporte
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.text("LIBRO DE CONTROL DE RECORRIDO", 14, 15);
+        
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Vehículo: ${vehicleStr}`, 14, 22);
+        doc.text(`Período: ${startDate} al ${endDate}`, 14, 27);
+        doc.text(`Total viajes: ${preview.trips.length}`, 14, 32);
+
+        const tableData = preview.trips.map(t => {
+          const startKm = t.start_mileage || 0;
+          const endKm = t.end_mileage || 0;
+          const kmRec = endKm > startKm ? Math.round((endKm - startKm) * 10) / 10 : 0;
+          const motivo = t.transfer_reason || t.task_details || t.notes || t.diagnosis || "—";
+          const pasajeros = t.clinical_team || t.patient_name || "";
+          const horaSalida = t.departure_time || (t.created_at?.split("T")[1]?.slice(0, 5) || "—");
+          const horaLlegada = t.completed_at ? t.completed_at.split("T")[1]?.slice(0, 5) : "—";
+
+          return [
+            t.scheduled_date || "",
+            horaSalida,
+            horaLlegada,
+            String(startKm),
+            String(endKm),
+            String(kmRec),
+            t.origin || "",
+            t.destination || "",
+            motivo,
+            t.driver_name || "—",
+            pasajeros || "—",
+            t.authorized_by || "—",
+            t.tracking_number || ""
+          ];
+        });
+
+        doc.autoTable({
+          startY: 38,
+          head: [["Fecha", "H.Salida", "H.Llegada", "Km Ini", "Km Fin", "Km Rec.", "Origen", "Destino", "Motivo", "Conductor", "Pasajeros", "Autorizado", "Folio"]],
+          body: tableData,
+          theme: "striped",
+          headStyles: { fillColor: [30, 41, 59], fontSize: 8 }, // matching slate-800
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          columnStyles: {
+            0: { cellWidth: 16 }, // Fecha
+            1: { cellWidth: 12 }, // H.Salida
+            2: { cellWidth: 12 }, // H.Llegada
+            3: { cellWidth: 12, halign: "right" }, // Km Ini
+            4: { cellWidth: 12, halign: "right" }, // Km Fin
+            5: { cellWidth: 12, halign: "right" }, // Km Rec
+            6: { cellWidth: 25 }, // Origen
+            7: { cellWidth: 25 }, // Destino
+            8: { cellWidth: 40 }, // Motivo
+            9: { cellWidth: 25 }, // Conductor
+            10: { cellWidth: 30 }, // Pasajeros
+            11: { cellWidth: 20 }, // Autorizado
+            12: { cellWidth: 18 } // Folio
+          }
+        });
+
+        doc.save(`Libro_Recorrido_${plate}_${startDate}_${endDate}.pdf`);
+        toast.success("Libro de Recorrido descargado en PDF");
+      }
     } catch (e) {
+      console.error(e);
       toast.error(`Error al generar ${format.toUpperCase()}`);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
