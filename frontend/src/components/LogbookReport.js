@@ -9,7 +9,7 @@ import { BookOpen, FileSpreadsheet, FileText, Truck, Download, Calendar } from "
 import api from "@/lib/api";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 export default function LogbookReport() {
   const [vehicles, setVehicles] = useState([]);
@@ -136,7 +136,7 @@ export default function LogbookReport() {
           ];
         });
 
-        doc.autoTable({
+        autoTable(doc, {
           startY: 38,
           head: [["Fecha", "H.Salida", "H.Llegada", "Km Ini", "Km Fin", "Km Rec.", "Origen", "Destino", "Motivo", "Conductor", "Pasajeros", "Autorizado", "Folio"]],
           body: tableData,
