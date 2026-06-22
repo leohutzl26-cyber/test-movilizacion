@@ -12,6 +12,8 @@ import { MapPin, Map, ArrowRight, ShieldAlert, CheckCircle, Activity, CalendarDa
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { authApi } from "@/lib/supabase-api";
+import api from "@/lib/api";
+
 import LogbookReport from "@/components/LogbookReport";
 import BulkUploader from "@/components/BulkUploader";
 import MapAddressSelector from "@/components/MapAddressSelector";
@@ -366,29 +368,43 @@ function DestinationsManager() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const fetchDests = useCallback(async () => {
-    const { data } = await supabase.from('destinations').select('*').order('name');
-    if (data) setDests(data || []);
+    try {
+      const r = await api.get('/destinations');
+      setDests(r.data || []);
+    } catch (e) {
+      toast.error("Error al cargar destinos");
+    }
   }, []);
   useEffect(() => { fetchDests(); }, [fetchDests]);
 
   const handleAdd = async (e) => {
     e.preventDefault(); if(!name.trim()) return;
     try { 
-      await supabase.from('destinations').insert([{ name, address }]);
+      await api.post('/destinations', { name, address });
       setName(""); setAddress(""); fetchDests(); toast.success("Destino agregado"); 
     } catch (e) { toast.error("Error al agregar"); }
   };
   
   const handleDelete = async (id) => {
-    try { await supabase.from('destinations').delete().eq('id', id); fetchDests(); toast.success("Eliminado"); } 
-    catch (e) { toast.error("Error al eliminar"); }
+    try { 
+      await api.delete(`/destinations/${id}`); 
+      fetchDests(); 
+      toast.success("Eliminado"); 
+    } catch (e) { 
+      toast.error("Error al eliminar"); 
+    }
   };
 
   const handleBulkImport = async (rows) => {
-    const inserts = rows.map(r => ({ name: r.nombre, address: r.direccion || "" }));
-    const { error } = await supabase.from('destinations').insert(inserts);
-    if (error) throw error;
-    fetchDests();
+    try {
+      for (const r of rows) {
+        await api.post('/destinations', { name: r.nombre, address: r.direccion || "" });
+      }
+      fetchDests();
+      toast.success("Carga masiva finalizada");
+    } catch (e) {
+      toast.error("Error en la carga masiva");
+    }
   };
 
   return (
@@ -455,29 +471,43 @@ function OriginsManager() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const fetchOrigins = useCallback(async () => {
-    const { data } = await supabase.from('origins').select('*').order('name');
-    if (data) setOrigins(data || []);
+    try {
+      const r = await api.get('/origins');
+      setOrigins(r.data || []);
+    } catch (e) {
+      toast.error("Error al cargar orígenes");
+    }
   }, []);
   useEffect(() => { fetchOrigins(); }, [fetchOrigins]);
 
   const handleAdd = async (e) => {
     e.preventDefault(); if(!name.trim()) return;
     try { 
-      await supabase.from('origins').insert([{ name, address }]);
+      await api.post('/origins', { name, address });
       setName(""); setAddress(""); fetchOrigins(); toast.success("Origen agregado"); 
     } catch (e) { toast.error("Error al agregar"); }
   };
   
   const handleDelete = async (id) => {
-    try { await supabase.from('origins').delete().eq('id', id); fetchOrigins(); toast.success("Eliminado"); } 
-    catch (e) { toast.error("Error al eliminar"); }
+    try { 
+      await api.delete(`/origins/${id}`); 
+      fetchOrigins(); 
+      toast.success("Eliminado"); 
+    } catch (e) { 
+      toast.error("Error al eliminar"); 
+    }
   };
 
   const handleBulkImport = async (rows) => {
-    const inserts = rows.map(r => ({ name: r.nombre, address: r.direccion || "" }));
-    const { error } = await supabase.from('origins').insert(inserts);
-    if (error) throw error;
-    fetchOrigins();
+    try {
+      for (const r of rows) {
+        await api.post('/origins', { name: r.nombre, address: r.direccion || "" });
+      }
+      fetchOrigins();
+      toast.success("Carga masiva finalizada");
+    } catch (e) {
+      toast.error("Error en la carga masiva");
+    }
   };
 
   return (
@@ -625,8 +655,8 @@ function VehiclesManager() {
 
   const fetchVehicles = useCallback(async () => {
     try { 
-      const { data } = await supabase.from('vehicles').select('*').order('plate');
-      if (data) setVehicles(data || []);
+      const r = await api.get('/vehicles');
+      setVehicles(r.data || []);
     } catch (e) {} finally { setLoading(false); }
   }, []);
 
@@ -639,12 +669,10 @@ function VehiclesManager() {
       const dataToSave = { ...formData, zonal_number: formattedZonal };
 
       if (editingId) {
-        const { error } = await supabase.from('vehicles').update(dataToSave).eq('id', editingId);
-        if (error) throw error;
+        await api.put(`/vehicles/${editingId}`, dataToSave);
         toast.success("Vehículo actualizado exitosamente");
       } else {
-        const { error } = await supabase.from('vehicles').insert([dataToSave]);
-        if (error) throw error;
+        await api.post('/vehicles', dataToSave);
         toast.success("Vehículo creado exitosamente");
       }
       closeDialog();
@@ -679,8 +707,7 @@ function VehiclesManager() {
   const handleDelete = async (id) => {
     if (window.confirm("¿Eliminar vehículo definitivamente?")) {
       try { 
-        const { error } = await supabase.from('vehicles').delete().eq('id', id);
-        if (error) throw error;
+        await api.delete(`/vehicles/${id}`);
         toast.success("Eliminado"); 
         fetchVehicles(); 
       } catch (e) { 
@@ -799,18 +826,23 @@ function VehiclesManager() {
           { key: "km", label: "Kilometraje", required: false, validate: v => !v || !isNaN(parseFloat(v)) }
         ]}
         onImport={async (rows) => {
-          const inserts = rows.map(r => ({
-            plate: r.patente.toUpperCase(),
-            zonal_number: r.numero_zonal ? formatZonalNumber(r.numero_zonal) : "",
-            brand: r.marca || "",
-            model: r.modelo || "",
-            type: r.tipo || "Auto/SUV",
-            year: parseInt(r.ano) || 2024,
-            mileage: parseFloat(r.km) || 0
-          }));
-          const { error } = await supabase.from('vehicles').insert(inserts);
-          if (error) throw error;
-          fetchVehicles();
+          try {
+            for (const r of rows) {
+              await api.post('/vehicles', {
+                plate: r.patente.toUpperCase(),
+                zonal_number: r.numero_zonal ? formatZonalNumber(r.numero_zonal) : "",
+                brand: r.marca || "",
+                model: r.modelo || "",
+                type: r.tipo || "Auto/SUV",
+                year: parseInt(r.ano) || 2024,
+                mileage: parseFloat(r.km) || 0
+              });
+            }
+            fetchVehicles();
+            toast.success("Carga masiva finalizada");
+          } catch (e) {
+            toast.error("Error en la carga masiva");
+          }
         }}
         exampleRows={[
           ["ABCD-12", "012", "Toyota", "Hilux", "Camioneta", "2022", "45000"],
