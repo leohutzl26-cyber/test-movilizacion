@@ -488,6 +488,7 @@ export default function MyRequestsSection({ onEdit }) {
                 <TripEvolutionLog tripId={selectedReq.id} />
               </div>
             </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

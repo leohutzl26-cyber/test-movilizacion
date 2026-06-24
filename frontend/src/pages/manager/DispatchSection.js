@@ -618,7 +618,7 @@ export default function DispatchSection() {
               </div>
             </div>
           </div>
-        </Dialog>
+        </DialogContent>
       </Dialog>
 
       {/* DIALOGO CANCELACIÓN */}
