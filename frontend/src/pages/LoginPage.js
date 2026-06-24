@@ -31,7 +31,8 @@ export default function LoginPage() {
         coordinador: "/manager", 
         solicitante: "/requester", 
         conductor: "/driver",
-        gestion_camas: "/gestion-camas" 
+        gestion_camas: "/gestion-camas",
+        panel: "/panel"
       };
       
       navigate(routes[user.role] || "/");

@@ -5,6 +5,7 @@ import ShiftManagerDashboard from "@/pages/ShiftManagerDashboard";
 import DriverDashboard from "@/pages/DriverDashboard";
 import RequesterDashboard from "@/pages/RequesterDashboard";
 import GestionCamasDashboard from "@/pages/GestionCamasDashboard"; // NUEVA IMPORTACIÓN
+import PanelDashboard from "@/pages/PanelDashboard";
 import ChangePasswordForceScreen from "@/components/ChangePasswordForceScreen";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -45,6 +46,7 @@ function App() {
           <Route path="/driver/*" element={<ProtectedRoute roles={["conductor"]}><DriverDashboard /></ProtectedRoute>} />
           <Route path="/requester/*" element={<ProtectedRoute roles={["solicitante", "coordinador", "admin"]}><RequesterDashboard /></ProtectedRoute>} />
           <Route path="/gestion-camas/*" element={<ProtectedRoute roles={["gestion_camas", "admin"]}><GestionCamasDashboard /></ProtectedRoute>} /> {/* NUEVA RUTA */}
+          <Route path="/panel/*" element={<ProtectedRoute roles={["panel", "coordinador", "admin"]}><PanelDashboard /></ProtectedRoute>} />
         </Routes>
         <Toaster />
       </Router>

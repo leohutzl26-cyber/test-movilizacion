@@ -207,6 +207,7 @@ export default function UsersManager() {
                     <SelectItem value="conductor">Conductor</SelectItem>
                     <SelectItem value="coordinador">Coordinador</SelectItem>
                     <SelectItem value="gestion_camas">Gestión de Camas</SelectItem>
+                    <SelectItem value="panel">Pantalla TV (Panel)</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
