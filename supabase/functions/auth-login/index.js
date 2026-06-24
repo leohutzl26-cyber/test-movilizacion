@@ -77,7 +77,7 @@ exports.handler = async (event, context) => {
         role: profile.role,
         must_change_password: profile.must_change_password
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 

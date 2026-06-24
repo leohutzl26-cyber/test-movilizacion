@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -10,23 +11,65 @@ const PORT = process.env.PORT || 10000;
 // Environment variables for Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('⚠️  ADVERTENCIA: JWT_SECRET no está configurado. La autenticación no funcionará correctamente.');
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    throw new Error('JWT_SECRET es obligatorio en producción. Configúralo en las variables de entorno de Vercel.');
+  }
+}
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Missing Supabase environment variables. Please set SUPABASE_URL/REACT_APP_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY/REACT_APP_SUPABASE_SERVICE_ROLE_KEY');
 }
 
-// Enable CORS for frontend development
-app.use(cors());
+// CORS configurado para orígenes permitidos
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'http://localhost:10000'
+].filter(Boolean);
 
-// Parse JSON bodies
-app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString();
-  }
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (apps móviles, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    // Permitir cualquier subdominio de vercel.app del proyecto
+    if (origin.endsWith('.vercel.app') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('No permitido por CORS'));
+  },
+  credentials: true
 }));
 
-// Parse JSON bodies (but we'll pass them as strings to the handlers to match their expectations)
+// Rate limiting para endpoints de autenticación (prevenir fuerza bruta)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10, // máximo 10 intentos por IP
+  message: { error: 'Demasiados intentos de autenticación. Intenta de nuevo en 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Rate limiting general para la API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 200, // máximo 200 requests por IP
+  message: { error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Aplicar rate limiting a rutas de autenticación
+app.use('/api/auth-login', authLimiter);
+app.use('/api/auth-register', authLimiter);
+app.use('/api/auth-change-password', authLimiter);
+
+// Aplicar rate limiting general a toda la API
+app.use('/api/', apiLimiter);
+
+// Parse JSON bodies
 app.use(express.json({
   verify: (req, res, buf) => {
     req.rawBody = buf.toString();
@@ -56,7 +99,7 @@ const authenticateToken = (req, res, next) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const decoded = jwt.verify(token, JWT_SECRET);
       req.context.user = {
         id: decoded.userId,
         email: decoded.email,
