@@ -241,8 +241,7 @@ export default function AssignSection() {
                 <Button variant="ghost" onClick={() => setAssignDialog(null)} className="text-xs font-black uppercase text-slate-500">Cerrar</Button>
               </div>
             </div>
-          </div>
-        </Dialog>
+        </DialogContent>
       </Dialog>
     </div>
   );

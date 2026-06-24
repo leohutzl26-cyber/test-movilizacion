@@ -449,8 +449,9 @@ export default function DispatchSection() {
           {t.status === "en_curso" && <Badge className="w-full justify-center bg-blue-100 text-blue-700 border-none font-black text-[9px] uppercase py-1 shadow-sm rounded-xl">En Ruta</Badge>}
           {t.status === "completado" && <Badge className="w-full justify-center bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase py-1 shadow-sm rounded-xl">Finalizado</Badge>}
         </div>
-      </Card>
-    );
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="animate-slide-up space-y-6">
