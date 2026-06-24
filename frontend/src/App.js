@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/AdminDashboard";
-import ShiftManagerDashboard from "@/pages/ShiftManagerDashboard_UTF8";
+import ShiftManagerDashboard from "@/pages/ShiftManagerDashboard";
 import DriverDashboard from "@/pages/DriverDashboard";
 import RequesterDashboard from "@/pages/RequesterDashboard";
 import GestionCamasDashboard from "@/pages/GestionCamasDashboard"; // NUEVA IMPORTACIÓN
