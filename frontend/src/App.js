@@ -46,7 +46,7 @@ function App() {
           <Route path="/driver/*" element={<ProtectedRoute roles={["conductor"]}><DriverDashboard /></ProtectedRoute>} />
           <Route path="/requester/*" element={<ProtectedRoute roles={["solicitante", "coordinador", "admin"]}><RequesterDashboard /></ProtectedRoute>} />
           <Route path="/gestion-camas/*" element={<ProtectedRoute roles={["gestion_camas", "admin"]}><GestionCamasDashboard /></ProtectedRoute>} /> {/* NUEVA RUTA */}
-          <Route path="/panel/*" element={<ProtectedRoute roles={["panel", "coordinador", "admin"]}><PanelDashboard /></ProtectedRoute>} />
+          <Route path="/panel/*" element={<ProtectedRoute roles={["panel"]}><PanelDashboard /></ProtectedRoute>} />
         </Routes>
         <Toaster />
       </Router>
