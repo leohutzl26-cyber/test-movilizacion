@@ -15,6 +15,7 @@ export default function CalendarSection() {
     const [loading, setLoading] = useState(true);
     const [detailTrip, setDetailTrip] = useState(null);
     const [draggedTripId, setDraggedTripId] = useState(null);
+    const [draggedTrip, setDraggedTrip] = useState(null);
     const [dragOverDate, setDragOverDate] = useState(null);
 
     const navigateTimeoutRef = useRef(null);
@@ -36,7 +37,7 @@ export default function CalendarSection() {
 
     const handleMoveTrip = async (tripId, targetDate) => {
         try {
-            const tripToMove = trips.find(t => t.id === tripId);
+            const tripToMove = trips.find(t => t.id === tripId) || draggedTrip;
             if (!tripToMove) return;
 
             await api.put(`/trips/${tripId}`, {
@@ -48,6 +49,11 @@ export default function CalendarSection() {
             fetchCalendar();
         } catch (e) {
             toast.error("Error al re-programar el traslado");
+        } finally {
+            setDraggedTripId(null);
+            setDraggedTrip(null);
+            setDragOverDate(null);
+            handleDragLeaveNavigate();
         }
     };
 
@@ -80,6 +86,17 @@ export default function CalendarSection() {
     }, [getDateRange]);
 
     useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
+
+    useEffect(() => {
+        const handleGlobalDragEnd = () => {
+            setDraggedTripId(null);
+            setDraggedTrip(null);
+            setDragOverDate(null);
+            handleDragLeaveNavigate();
+        };
+        window.addEventListener("dragend", handleGlobalDragEnd);
+        return () => window.removeEventListener("dragend", handleGlobalDragEnd);
+    }, []);
 
     const navigate = (dir) => {
         const d = new Date(currentDate);
@@ -239,8 +256,8 @@ export default function CalendarSection() {
                                             <div 
                                                 key={t.id} 
                                                 draggable={true}
-                                                onDragStart={(e) => { e.stopPropagation(); setDraggedTripId(t.id); }}
-                                                onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); handleDragLeaveNavigate(); }}
+                                                onDragStart={(e) => { e.stopPropagation(); setDraggedTripId(t.id); setDraggedTrip(t); }}
+                                                onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); setDraggedTrip(null); handleDragLeaveNavigate(); }}
                                                 onClick={(e) => { e.stopPropagation(); setDetailTrip(t); }} 
                                                 className={`p-2 rounded-lg border-l-4 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${
                                                     sColors[t.status] || "bg-slate-50 text-slate-800 border-slate-200"

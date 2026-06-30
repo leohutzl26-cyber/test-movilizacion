@@ -14,6 +14,7 @@ export default function ClinicalCalendarSection() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draggedTripId, setDraggedTripId] = useState(null);
+  const [draggedTrip, setDraggedTrip] = useState(null);
   const [dragOverDate, setDragOverDate] = useState(null);
   const [detailTrip, setDetailTrip] = useState(null);
 
@@ -36,7 +37,7 @@ export default function ClinicalCalendarSection() {
 
   const handleMoveTrip = async (tripId, targetDate) => {
     try {
-      const tripToMove = trips.find(t => t.id === tripId);
+      const tripToMove = trips.find(t => t.id === tripId) || draggedTrip;
       if (!tripToMove) return;
 
       await api.put(`/trips/${tripId}`, {
@@ -48,6 +49,11 @@ export default function ClinicalCalendarSection() {
       fetchCalendar();
     } catch (e) {
       toast.error("Error al re-programar el traslado");
+    } finally {
+      setDraggedTripId(null);
+      setDraggedTrip(null);
+      setDragOverDate(null);
+      handleDragLeaveNavigate();
     }
   };
 
@@ -86,6 +92,17 @@ export default function ClinicalCalendarSection() {
   }, [getDateRange]);
 
   useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
+
+  useEffect(() => {
+    const handleGlobalDragEnd = () => {
+      setDraggedTripId(null);
+      setDraggedTrip(null);
+      setDragOverDate(null);
+      handleDragLeaveNavigate();
+    };
+    window.addEventListener("dragend", handleGlobalDragEnd);
+    return () => window.removeEventListener("dragend", handleGlobalDragEnd);
+  }, []);
 
   const navigate = (dir) => {
     const d = new Date(currentDate);
@@ -136,8 +153,8 @@ export default function ClinicalCalendarSection() {
   const TripCard = ({ t }) => (
     <div 
       draggable={true}
-      onDragStart={() => setDraggedTripId(t.id)}
-      onDragEnd={() => { setDraggedTripId(null); handleDragLeaveNavigate(); }}
+      onDragStart={() => { setDraggedTripId(t.id); setDraggedTrip(t); }}
+      onDragEnd={() => { setDraggedTripId(null); setDraggedTrip(null); handleDragLeaveNavigate(); }}
       onClick={() => setDetailTrip(t)}
       className={`p-2 rounded-lg border-l-4 mb-1 text-xs transition-all duration-200 cursor-pointer ${
         statusColors[t.status] || "bg-slate-100 text-slate-800 border border-slate-200"
