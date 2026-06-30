@@ -155,7 +155,7 @@ export default function CalendarSection() {
             </div>
 
             {draggedTripId && (
-                <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 text-xs font-bold text-teal-800 flex items-center justify-center gap-2 animate-pulse shadow-sm">
+                <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-teal-600 border border-teal-500 text-white rounded-2xl px-6 py-3 text-xs font-bold flex items-center gap-2 shadow-2xl animate-bounce">
                     <span className="text-base">💡</span>
                     <span>Arrastra el traslado sobre los botones de navegación (flechas) en la parte superior para moverlo a otra semana</span>
                 </div>
