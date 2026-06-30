@@ -193,105 +193,116 @@ export default function ClinicalCalendarSection() {
         </div>
       </div>
 
-      {loading ? <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-teal-600" /></div> : (
-        <>
-          {/* DAILY VIEW */}
-          {viewMode === "daily" && (() => {
-            const dailyTrips = tripsByDate(formatLocalDate(currentDate));
-            return (
-              <div className="space-y-3">
-                {dailyTrips.length === 0 ? (
-                  <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200"><CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-lg font-bold text-slate-500">Sin traslados para este día</p></div>
-                ) : dailyTrips.map(t => (
-                  <Card key={t.id} onClick={() => setDetailTrip(t)} className="shadow-sm border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md transition-shadow bg-white">
-                    <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="bg-slate-100 p-2 rounded-xl text-center min-w-[70px]"><p className="text-[9px] font-bold text-slate-500 uppercase">Cita</p><p className="text-base font-black text-slate-900">{t.appointment_time || "--:--"}</p></div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold">{t.tracking_number}</span>
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
-                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
-                          </div>
-                          <p className="font-bold text-slate-900">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
-                          <p className="text-xs text-slate-500 mt-0.5"><MapPin className="w-3 h-3 inline text-teal-500" /> {t.origin} → {t.destination}</p>
-                        </div>
-                      </div>
-                      <div className="bg-slate-50 p-2 rounded-lg border text-right"><p className="text-[9px] font-bold text-slate-400 uppercase">Personal</p><p className="text-xs font-black text-teal-800">{t.clinical_team || "Sin asignar"}</p></div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            );
-          })()}
+      {draggedTripId && (
+        <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 text-xs font-bold text-teal-800 flex items-center justify-center gap-2 animate-pulse shadow-sm mb-6">
+          <span className="text-base">💡</span>
+          <span>Arrastra el traslado sobre los botones de navegación (flechas) en la parte superior para moverlo a otra semana</span>
+        </div>
+      )}
 
-          {/* WEEKLY VIEW */}
-          {viewMode === "weekly" && (
-            <div className="grid grid-cols-7 gap-2">
-              {getWeekDates().map((dateStr, i) => {
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 bg-slate-50/30 backdrop-blur-[1px] flex justify-center items-center z-50 rounded-3xl pointer-events-none">
+            <RefreshCw className="w-10 h-10 animate-spin text-teal-600" />
+          </div>
+        )}
+
+        {/* DAILY VIEW */}
+        {viewMode === "daily" && (() => {
+          const dailyTrips = tripsByDate(formatLocalDate(currentDate));
+          return (
+            <div className="space-y-3">
+              {dailyTrips.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200"><CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" /><p className="text-lg font-bold text-slate-500">Sin traslados para este día</p></div>
+              ) : dailyTrips.map(t => (
+                <Card key={t.id} onClick={() => setDetailTrip(t)} className="shadow-sm border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md transition-shadow bg-white">
+                  <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-slate-100 p-2 rounded-xl text-center min-w-[70px]"><p className="text-[9px] font-bold text-slate-500 uppercase">Cita</p><p className="text-base font-black text-slate-900">{t.appointment_time || "--:--"}</p></div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-slate-800 text-white font-mono px-2 py-0.5 rounded text-[10px] font-bold">{t.tracking_number}</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
+                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase">{t.trip_type === "clinico" ? "Clínico" : "No Clínico"}</span>
+                        </div>
+                        <p className="font-bold text-slate-900">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+                        <p className="text-xs text-slate-500 mt-0.5"><MapPin className="w-3 h-3 inline text-teal-500" /> {t.origin} → {t.destination}</p>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-2 rounded-lg border text-right"><p className="text-[9px] font-bold text-slate-400 uppercase">Personal</p><p className="text-xs font-black text-teal-800">{t.clinical_team || "Sin asignar"}</p></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* WEEKLY VIEW */}
+        {viewMode === "weekly" && (
+          <div className="grid grid-cols-7 gap-2">
+            {getWeekDates().map((dateStr, i) => {
+              const dayTrips = tripsByDate(dateStr);
+              const isToday = dateStr === formatLocalDate(new Date());
+              const isOver = dragOverDate === dateStr;
+              return (
+                <div 
+                  key={dateStr} 
+                  onDragOver={(e) => { e.preventDefault(); if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
+                  onDragLeave={() => { if (dragOverDate === dateStr) setDragOverDate(null); }}
+                  onDrop={async (e) => { e.preventDefault(); setDragOverDate(null); if (draggedTripId) { await handleMoveTrip(draggedTripId, dateStr); } }}
+                  className={`bg-white rounded-xl border p-2 min-h-[200px] transition-all duration-200 flex flex-col ${
+                    isToday 
+                      ? "border-teal-400 ring-2 ring-teal-100" 
+                      : "border-slate-200"
+                  } ${
+                    isOver 
+                      ? "bg-teal-50 border-teal-500 shadow-md ring-2 ring-teal-100 scale-[1.02]" 
+                      : "shadow-sm"
+                  }`}
+                >
+                  <div className={`text-center mb-2 pb-1 border-b ${isToday ? "border-teal-200" : "border-slate-100"}`}>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">{dayNames[i]}</p>
+                    <p className={`text-sm font-black ${isToday ? "text-teal-700" : "text-slate-700"}`}>{dateStr.split("-")[2]}</p>
+                  </div>
+                  <div className="space-y-1 overflow-y-auto max-h-[250px] custom-scrollbar flex-1">
+                    {dayTrips.map(t => <TripCard key={t.id} t={t} />)}
+                    {dayTrips.length === 0 && <p className="text-[10px] text-slate-300 text-center mt-4">—</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* MONTHLY VIEW */}
+        {viewMode === "monthly" && (
+          <div>
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {dayNames.map(d => <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase py-1">{d}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {getMonthGrid().map((dateStr, i) => {
+                if (!dateStr) return <div key={`empty-${i}`} className="min-h-[80px]" />;
                 const dayTrips = tripsByDate(dateStr);
                 const isToday = dateStr === formatLocalDate(new Date());
-                const isOver = dragOverDate === dateStr;
+                const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["assigned", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
                 return (
-                  <div 
-                    key={dateStr} 
-                    onDragOver={(e) => { e.preventDefault(); if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
-                    onDragLeave={() => { if (dragOverDate === dateStr) setDragOverDate(null); }}
-                    onDrop={async (e) => { e.preventDefault(); setDragOverDate(null); if (draggedTripId) { await handleMoveTrip(draggedTripId, dateStr); } }}
-                    className={`bg-white rounded-xl border p-2 min-h-[200px] transition-all duration-200 flex flex-col ${
-                      isToday 
-                        ? "border-teal-400 ring-2 ring-teal-100" 
-                        : "border-slate-200"
-                    } ${
-                      isOver 
-                        ? "bg-teal-50 border-teal-500 shadow-md ring-2 ring-teal-100 scale-[1.02]" 
-                        : "shadow-sm"
-                    }`}
-                  >
-                    <div className={`text-center mb-2 pb-1 border-b ${isToday ? "border-teal-200" : "border-slate-100"}`}>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">{dayNames[i]}</p>
-                      <p className={`text-sm font-black ${isToday ? "text-teal-700" : "text-slate-700"}`}>{dateStr.split("-")[2]}</p>
-                    </div>
-                    <div className="space-y-1 overflow-y-auto max-h-[250px] custom-scrollbar flex-1">
-                      {dayTrips.map(t => <TripCard key={t.id} t={t} />)}
-                      {dayTrips.length === 0 && <p className="text-[10px] text-slate-300 text-center mt-4">—</p>}
-                    </div>
+                  <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("weekly"); }} className={`min-h-[80px] bg-white rounded-lg border p-1.5 cursor-pointer hover:shadow-md transition-all ${isToday ? "border-teal-400 ring-1 ring-teal-100" : "border-slate-100"}`}>
+                    <p className={`text-xs font-bold mb-1 ${isToday ? "text-teal-700" : "text-slate-600"}`}>{parseInt(dateStr.split("-")[2])}</p>
+                    {dayTrips.length > 0 && (
+                      <div className="space-y-0.5">
+                        {counts.pending > 0 && <div className="bg-amber-100 text-amber-800 text-[9px] font-bold px-1 py-0.5 rounded">{counts.pending} pend.</div>}
+                        {counts.active > 0 && <div className="bg-blue-100 text-blue-800 text-[9px] font-bold px-1 py-0.5 rounded">{counts.active} activo</div>}
+                        {counts.done > 0 && <div className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1 py-0.5 rounded">{counts.done} hecho</div>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
-          )}
-
-          {/* MONTHLY VIEW */}
-          {viewMode === "monthly" && (
-            <div>
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {dayNames.map(d => <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase py-1">{d}</div>)}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {getMonthGrid().map((dateStr, i) => {
-                  if (!dateStr) return <div key={`empty-${i}`} className="min-h-[80px]" />;
-                  const dayTrips = tripsByDate(dateStr);
-                  const isToday = dateStr === formatLocalDate(new Date());
-                  const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["assigned", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
-                  return (
-                    <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("weekly"); }} className={`min-h-[80px] bg-white rounded-lg border p-1.5 cursor-pointer hover:shadow-md transition-all ${isToday ? "border-teal-400 ring-1 ring-teal-100" : "border-slate-100"}`}>
-                      <p className={`text-xs font-bold mb-1 ${isToday ? "text-teal-700" : "text-slate-600"}`}>{parseInt(dateStr.split("-")[2])}</p>
-                      {dayTrips.length > 0 && (
-                        <div className="space-y-0.5">
-                          {counts.pending > 0 && <div className="bg-amber-100 text-amber-800 text-[9px] font-bold px-1 py-0.5 rounded">{counts.pending} pend.</div>}
-                          {counts.active > 0 && <div className="bg-blue-100 text-blue-800 text-[9px] font-bold px-1 py-0.5 rounded">{counts.active} activo</div>}
-                          {counts.done > 0 && <div className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1 py-0.5 rounded">{counts.done} hecho</div>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>
