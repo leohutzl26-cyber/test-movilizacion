@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +16,23 @@ export default function ClinicalCalendarSection() {
   const [draggedTripId, setDraggedTripId] = useState(null);
   const [dragOverDate, setDragOverDate] = useState(null);
   const [detailTrip, setDetailTrip] = useState(null);
+
+  const navigateTimeoutRef = useRef(null);
+
+  const handleDragOverNavigate = (dir) => {
+    if (navigateTimeoutRef.current) return;
+    navigateTimeoutRef.current = setTimeout(() => {
+      navigate(dir);
+      navigateTimeoutRef.current = null;
+    }, 700);
+  };
+
+  const handleDragLeaveNavigate = () => {
+    if (navigateTimeoutRef.current) {
+      clearTimeout(navigateTimeoutRef.current);
+      navigateTimeoutRef.current = null;
+    }
+  };
 
   const handleMoveTrip = async (tripId, targetDate) => {
     try {
@@ -120,7 +137,7 @@ export default function ClinicalCalendarSection() {
     <div 
       draggable={true}
       onDragStart={() => setDraggedTripId(t.id)}
-      onDragEnd={() => setDraggedTripId(null)}
+      onDragEnd={() => { setDraggedTripId(null); handleDragLeaveNavigate(); }}
       onClick={() => setDetailTrip(t)}
       className={`p-2 rounded-lg border-l-4 mb-1 text-xs transition-all duration-200 cursor-pointer ${
         statusColors[t.status] || "bg-slate-100 text-slate-800 border border-slate-200"
@@ -153,9 +170,25 @@ export default function ClinicalCalendarSection() {
             ))}
           </div>
           <div className="flex items-center gap-1 bg-white border rounded-xl p-1">
-            <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-slate-100 rounded-lg"><ChevronLeft className="w-4 h-4" /></button>
+            <button 
+              onClick={() => navigate(-1)} 
+              onDragOver={(e) => { e.preventDefault(); handleDragOverNavigate(-1); }}
+              onDragLeave={handleDragLeaveNavigate}
+              onDrop={handleDragLeaveNavigate}
+              className="p-1.5 hover:bg-slate-100 rounded-lg"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
             <button onClick={() => setCurrentDate(new Date())} className="px-2 py-1 text-xs font-bold text-teal-700 hover:bg-teal-50 rounded-lg">Hoy</button>
-            <button onClick={() => navigate(1)} className="p-1.5 hover:bg-slate-100 rounded-lg"><ChevronRight className="w-4 h-4" /></button>
+            <button 
+              onClick={() => navigate(1)} 
+              onDragOver={(e) => { e.preventDefault(); handleDragOverNavigate(1); }}
+              onDragLeave={handleDragLeaveNavigate}
+              onDrop={handleDragLeaveNavigate}
+              className="p-1.5 hover:bg-slate-100 rounded-lg"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>

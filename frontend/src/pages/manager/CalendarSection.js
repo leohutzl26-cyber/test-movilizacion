@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,23 @@ export default function CalendarSection() {
     const [detailTrip, setDetailTrip] = useState(null);
     const [draggedTripId, setDraggedTripId] = useState(null);
     const [dragOverDate, setDragOverDate] = useState(null);
+
+    const navigateTimeoutRef = useRef(null);
+
+    const handleDragOverNavigate = (dir) => {
+        if (navigateTimeoutRef.current) return;
+        navigateTimeoutRef.current = setTimeout(() => {
+            navigate(dir);
+            navigateTimeoutRef.current = null;
+        }, 700);
+    };
+
+    const handleDragLeaveNavigate = () => {
+        if (navigateTimeoutRef.current) {
+            clearTimeout(navigateTimeoutRef.current);
+            navigateTimeoutRef.current = null;
+        }
+    };
 
     const handleMoveTrip = async (tripId, targetDate) => {
         try {
@@ -114,9 +131,25 @@ export default function CalendarSection() {
                         ))}
                     </div>
                     <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
-                        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><ChevronLeft className="w-5 h-5" /></button>
+                        <button 
+                            onClick={() => navigate(-1)} 
+                            onDragOver={(e) => { e.preventDefault(); handleDragOverNavigate(-1); }}
+                            onDragLeave={handleDragLeaveNavigate}
+                            onDrop={handleDragLeaveNavigate}
+                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </button>
                         <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1.5 text-xs font-black text-teal-700 hover:bg-teal-50 rounded-lg">Hoy</button>
-                        <button onClick={() => navigate(1)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><ChevronRight className="w-5 h-5" /></button>
+                        <button 
+                            onClick={() => navigate(1)} 
+                            onDragOver={(e) => { e.preventDefault(); handleDragOverNavigate(1); }}
+                            onDragLeave={handleDragLeaveNavigate}
+                            onDrop={handleDragLeaveNavigate}
+                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+                        >
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
             </div>
@@ -195,7 +228,7 @@ export default function CalendarSection() {
                                                     key={t.id} 
                                                     draggable={true}
                                                     onDragStart={(e) => { e.stopPropagation(); setDraggedTripId(t.id); }}
-                                                    onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); }}
+                                                    onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); handleDragLeaveNavigate(); }}
                                                     onClick={(e) => { e.stopPropagation(); setDetailTrip(t); }} 
                                                     className={`p-2 rounded-lg border-l-4 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${
                                                         sColors[t.status] || "bg-slate-50 text-slate-800 border-slate-200"
