@@ -205,7 +205,31 @@ export const tripsApi = {
 
   // Get active trips
   getActiveTrips: async () => {
-    return await tripsApi.getTrips({ status: ['pendiente', 'asignado', 'en_curso'] });
+    // 1. Obtener traslados activos normales (pendiente, asignado, en curso)
+    const activeTrips = await tripsApi.getTrips({ status: ['pendiente', 'asignado', 'en_curso'] });
+    
+    // 2. Obtener traslados completados hoy (para mostrar en la sección "Finalizados Hoy" de la bandeja de entrada)
+    try {
+      const tzOffset = new Date().getTimezoneOffset() * 60000;
+      const todayStr = new Date(Date.now() - tzOffset).toISOString().split('T')[0];
+      
+      const { data: completedTrips, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('status', 'completado')
+        .eq('scheduled_date', todayStr);
+        
+      if (error) {
+        console.error("Error fetching completed trips:", error);
+        return activeTrips;
+      }
+      
+      const parsedCompleted = (completedTrips || []).map(parseTrip);
+      return [...activeTrips, ...parsedCompleted];
+    } catch (e) {
+      console.error("Error in getActiveTrips completed query:", e);
+      return activeTrips;
+    }
   },
 
   // Get trip history
