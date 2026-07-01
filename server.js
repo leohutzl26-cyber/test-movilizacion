@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+app.set('trust proxy', 1); // Confiar en el proxy inverso (Vercel, Render, etc.) para obtener la IP real del cliente
 const PORT = process.env.PORT || 10000;
 
 // Environment variables for Supabase
@@ -46,7 +47,7 @@ app.use(cors({
 // Rate limiting para endpoints de autenticación (prevenir fuerza bruta)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 10, // máximo 10 intentos por IP
+  max: 30, // máximo 30 intentos por IP
   message: { error: 'Demasiados intentos de autenticación. Intenta de nuevo en 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false
