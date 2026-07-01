@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ClipboardList, Ambulance, RotateCcw, Search, User } from "lucide-react";
+import { MapPin, ArrowRight, ClipboardList, Ambulance, RotateCcw, Search, User, ArrowUpDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
 import TripDetailDialog from "./TripDetailDialog";
 import {
@@ -24,6 +25,12 @@ export default function AssignSection() {
   const [assignDialog, setAssignDialog] = useState(null);
   const [driverSearch, setDriverSearch] = useState("");
   const [detailTrip, setDetailTrip] = useState(null);
+
+  // Estados de ordenamiento multi-criterio
+  const [sortPrimary, setSortPrimary] = useState("appointment_time");
+  const [sortPrimaryDir, setSortPrimaryDir] = useState("asc");
+  const [sortSecondary, setSortSecondary] = useState("priority");
+  const [sortSecondaryDir, setSortSecondaryDir] = useState("desc");
 
   const fetchAll = useCallback(async () => {
     try {
@@ -64,8 +71,60 @@ export default function AssignSection() {
   };
 
   const filteredTrips = filter === "all" ? trips : trips.filter((t) => t.status === filter);
-  const clinicalTrips = filteredTrips.filter((t) => t.trip_type === "clinico");
-  const nonClinicalTrips = filteredTrips.filter((t) => t.trip_type !== "clinico");
+
+  const getPriorityWeight = (p) => {
+    if (!p) return 0;
+    const clean = p.toLowerCase();
+    if (clean === "urgente") return 3;
+    if (clean === "alta") return 2;
+    return 1;
+  };
+
+  const compareTripsBy = (a, b, field, direction) => {
+    let valA, valB;
+    if (field === "priority") {
+      valA = getPriorityWeight(a.priority);
+      valB = getPriorityWeight(b.priority);
+    } else if (field === "appointment_time") {
+      const timeA = a.appointment_time || "";
+      const timeB = b.appointment_time || "";
+      if (timeA === "" && timeB !== "") return 1;
+      if (timeA !== "" && timeB === "") return -1;
+      if (timeA === "" && timeB === "") return 0;
+      valA = timeA;
+      valB = timeB;
+    } else if (field === "scheduled_date") {
+      valA = a.scheduled_date || "";
+      valB = b.scheduled_date || "";
+    } else if (field === "origin") {
+      valA = (a.origin || "").toLowerCase();
+      valB = (b.origin || "").toLowerCase();
+    } else if (field === "destination") {
+      valA = (a.destination || "").toLowerCase();
+      valB = (b.destination || "").toLowerCase();
+    } else if (field === "tracking_number") {
+      valA = a.tracking_number || "";
+      valB = b.tracking_number || "";
+    } else {
+      return 0;
+    }
+
+    if (valA < valB) return direction === "asc" ? -1 : 1;
+    if (valA > valB) return direction === "asc" ? 1 : -1;
+    return 0;
+  };
+
+  const sortedTrips = [...filteredTrips].sort((a, b) => {
+    const primaryRes = compareTripsBy(a, b, sortPrimary, sortPrimaryDir);
+    if (primaryRes !== 0) return primaryRes;
+    if (sortSecondary && sortSecondary !== "none" && sortSecondary !== sortPrimary) {
+      return compareTripsBy(a, b, sortSecondary, sortSecondaryDir);
+    }
+    return 0;
+  });
+
+  const clinicalTrips = sortedTrips.filter((t) => t.trip_type === "clinico");
+  const nonClinicalTrips = sortedTrips.filter((t) => t.trip_type !== "clinico");
 
   if (loading) return <div className="flex justify-center py-20 text-teal-600"><RotateCcw className="w-10 h-10 animate-spin" /></div>;
 
@@ -111,10 +170,76 @@ export default function AssignSection() {
   return (
     <div className="animate-slide-up space-y-6">
       <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Asignación de Traslados</h1>
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {[{ v: "all", l: "Todos" }, { v: "pendiente", l: "Pendientes" }, { v: "asignado", l: "Asignados" }, { v: "en_curso", l: "En Curso" }].map((f) => (
-          <Button key={f.v} variant={filter === f.v ? "default" : "outline"} size="sm" onClick={() => setFilter(f.v)} className={`${filter === f.v ? "bg-teal-600 hover:bg-teal-700 text-white font-bold" : "font-bold shadow-sm"} h-10 px-6 rounded-xl`}>{f.l}</Button>
-        ))}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+        <div className="flex gap-2 flex-wrap">
+          {[{ v: "all", l: "Todos" }, { v: "pendiente", l: "Pendientes" }, { v: "asignado", l: "Asignados" }, { v: "en_curso", l: "En Curso" }].map((f) => (
+            <Button key={f.v} variant={filter === f.v ? "default" : "outline"} size="sm" onClick={() => setFilter(f.v)} className={`${filter === f.v ? "bg-teal-600 hover:bg-teal-700 text-white font-bold" : "font-bold shadow-sm"} h-10 px-6 rounded-xl`}>{f.l}</Button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-sm text-xs font-bold text-slate-600 self-start lg:self-auto">
+          <div className="flex items-center gap-1 pl-1 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <span>Ordenar por:</span>
+          </div>
+          
+          {/* Criterio Primario */}
+          <div className="flex items-center gap-1 bg-white p-1 rounded-xl shadow-xs border border-slate-200/30">
+            <Select value={sortPrimary} onValueChange={setSortPrimary}>
+              <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-black text-slate-800 rounded-lg w-[110px] hover:bg-slate-50 focus:ring-0">
+                <SelectValue placeholder="Criterio 1" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-100 shadow-lg">
+                <SelectItem value="appointment_time" className="text-xs font-bold">Hora Cita</SelectItem>
+                <SelectItem value="priority" className="text-xs font-bold">Prioridad</SelectItem>
+                <SelectItem value="scheduled_date" className="text-xs font-bold">Fecha</SelectItem>
+                <SelectItem value="origin" className="text-xs font-bold">Origen</SelectItem>
+                <SelectItem value="destination" className="text-xs font-bold">Destino</SelectItem>
+                <SelectItem value="tracking_number" className="text-xs font-bold">N° Seguimiento</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSortPrimaryDir(p => p === "asc" ? "desc" : "asc")}
+              className="h-7 w-7 hover:bg-slate-100 rounded-lg text-slate-600"
+              title={sortPrimaryDir === "asc" ? "Ascendente" : "Descendente"}
+            >
+              <ArrowUpDown className={`w-3 h-3 transition-transform duration-300 ${sortPrimaryDir === "desc" ? "rotate-180 text-teal-600" : "text-indigo-600"}`} />
+            </Button>
+          </div>
+
+          <div className="text-[10px] font-black uppercase text-slate-400 px-1">y luego</div>
+
+          {/* Criterio Secundario */}
+          <div className="flex items-center gap-1 bg-white p-1 rounded-xl shadow-xs border border-slate-200/30">
+            <Select value={sortSecondary} onValueChange={setSortSecondary}>
+              <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-black text-slate-800 rounded-lg w-[110px] hover:bg-slate-50 focus:ring-0">
+                <SelectValue placeholder="Criterio 2" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-100 shadow-lg">
+                <SelectItem value="none" className="text-xs font-bold text-slate-400 italic">Ninguno</SelectItem>
+                <SelectItem value="appointment_time" className="text-xs font-bold">Hora Cita</SelectItem>
+                <SelectItem value="priority" className="text-xs font-bold">Prioridad</SelectItem>
+                <SelectItem value="scheduled_date" className="text-xs font-bold">Fecha</SelectItem>
+                <SelectItem value="origin" className="text-xs font-bold">Origen</SelectItem>
+                <SelectItem value="destination" className="text-xs font-bold">Destino</SelectItem>
+                <SelectItem value="tracking_number" className="text-xs font-bold">N° Seguimiento</SelectItem>
+              </SelectContent>
+            </Select>
+            {sortSecondary !== "none" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSortSecondaryDir(p => p === "asc" ? "desc" : "asc")}
+                className="h-7 w-7 hover:bg-slate-100 rounded-lg text-slate-600"
+                title={sortSecondaryDir === "asc" ? "Ascendente" : "Descendente"}
+              >
+                <ArrowUpDown className={`w-3 h-3 transition-transform duration-300 ${sortSecondaryDir === "desc" ? "rotate-180 text-teal-600" : "text-indigo-600"}`} />
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
