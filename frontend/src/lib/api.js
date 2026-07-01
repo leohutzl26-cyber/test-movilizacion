@@ -123,7 +123,7 @@ const api = {
         }
 
         case "/stats/dashboard":
-          return await supabaseApi.stats.getDashboardStats();
+          return { data: await supabaseApi.stats.getDashboardStats() };
 
         case "/trips/active":
           return { data: await supabaseApi.trips.getActiveTrips() };
