@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Upload, Plus, Pencil, Trash2 } from "lucide-react";
+import { Upload, Plus, Pencil, Trash2, FileDown } from "lucide-react";
 import BulkUploader from "@/components/BulkUploader";
+import * as XLSX from "xlsx";
 
 export default function OriginsMantenedor() {
   const [origins, setOrigins] = useState([]);
@@ -39,11 +40,29 @@ export default function OriginsMantenedor() {
     try { await api.delete(`/origins/${id}`); toast.success("Origen eliminado"); fetchOrigins(); } catch { toast.error("Error"); }
   };
 
+  const handleExportExcel = () => {
+    if (origins.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+    const dataToExport = origins.map(o => ({
+      "Nombre del Origen": o.name,
+      "Dirección": o.address || "N/A",
+      "Estado": o.is_active !== false ? "Activo" : "Inactivo"
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Orígenes");
+    XLSX.writeFile(wb, `Origenes_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success("Excel generado con éxito");
+  };
+
   return (
     <div className="max-w-3xl mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-6">
         <div><h1 className="text-2xl font-black text-slate-900">Mantenedor de Orígenes</h1><p className="text-sm text-slate-500 mt-1">Administre las ubicaciones físicas de origen predefinidas para los traslados.</p></div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportExcel} className="font-bold h-10 border-emerald-200 text-emerald-700 hover:bg-emerald-50"><FileDown className="w-4 h-4 mr-1" /> Exportar Excel</Button>
           <Button variant="outline" onClick={() => setBulkOpen(true)} className="font-bold h-10 border-teal-200 text-teal-700 hover:bg-teal-50"><Upload className="w-4 h-4 mr-1" /> Carga Masiva</Button>
           <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
         </div>
