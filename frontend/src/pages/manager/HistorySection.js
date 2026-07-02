@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { History, FileDown, Search, User, Filter, Ambulance, CalendarDays, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, ArrowRight, Siren, Bus, Car, Eye, ClipboardList } from "lucide-react";
+import { History, FileDown, Search, User, Filter, Ambulance, CalendarDays, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, ArrowRight, Siren, Bus, Car, Eye, ClipboardList, RefreshCw } from "lucide-react";
 import { formatScheduledDate } from "@/lib/tripUtils";
 import TripAuditDetailDialog from "./TripAuditDetailDialog";
 
