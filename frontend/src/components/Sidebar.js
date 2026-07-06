@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight, BookOpen, BadgeAlert, Fingerprint } from "lucide-react";
+import { LogOut, Home, Users, Truck, MapPin, ClipboardList, Clock, CalendarDays, Shield, Plus, Key, Menu, X, BedDouble, FileText, BarChart3, History, Settings, ChevronDown, ChevronRight, BookOpen, BadgeAlert, Fingerprint, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { startRegistration } from '@simplewebauthn/browser';
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     coordinador: [
       { id: "dispatch", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
+      { id: "analytics", label: "Estadísticas y Gráficos", icon: TrendingUp },
       { id: "by_driver", label: "Pizarra por Conductores", icon: BarChart3 },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { 
