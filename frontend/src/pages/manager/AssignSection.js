@@ -27,10 +27,10 @@ export default function AssignSection() {
   const [detailTrip, setDetailTrip] = useState(null);
 
   // Estados de ordenamiento multi-criterio
-  const [sortPrimary, setSortPrimary] = useState("appointment_time");
-  const [sortPrimaryDir, setSortPrimaryDir] = useState("asc");
-  const [sortSecondary, setSortSecondary] = useState("priority");
-  const [sortSecondaryDir, setSortSecondaryDir] = useState("desc");
+  const [sortPrimary, setSortPrimary] = useState("scheduled_date");
+  const [sortPrimaryDir, setSortPrimaryDir] = useState("desc");
+  const [sortSecondary, setSortSecondary] = useState("appointment_time");
+  const [sortSecondaryDir, setSortSecondaryDir] = useState("asc");
 
   const fetchAll = useCallback(async () => {
     try {
