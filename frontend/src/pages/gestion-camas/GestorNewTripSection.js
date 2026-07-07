@@ -238,6 +238,7 @@ export default function GestorNewTripSection() {
           }));
         }}
         title="Seleccionar Dirección de Origen"
+        initialAddress={form.origin_address}
       />
       <MapAddressSelector 
         open={showDestMap}
@@ -250,6 +251,7 @@ export default function GestorNewTripSection() {
           }));
         }}
         title="Seleccionar Dirección de Destino"
+        initialAddress={form.destination_address}
       />
     </div>
   );

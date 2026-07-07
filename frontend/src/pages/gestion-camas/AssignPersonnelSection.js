@@ -742,6 +742,7 @@ export default function AssignPersonnelSection() {
           }));
         }}
         title="Seleccionar Dirección de Origen (Edición)"
+        initialAddress={editData?.origin_address}
       />
       <MapAddressSelector 
         open={showEditDestMap}
@@ -754,6 +755,7 @@ export default function AssignPersonnelSection() {
           }));
         }}
         title="Seleccionar Dirección de Destino (Edición)"
+        initialAddress={editData?.destination_address}
       />
     </div>
   );

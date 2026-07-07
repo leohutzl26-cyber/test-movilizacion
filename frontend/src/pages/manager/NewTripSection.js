@@ -428,6 +428,7 @@ export default function NewTripSection({ onNavigate }) {
                     setForm(prev => ({ ...prev, origin_address: address, origin_maps_url: mapsUrl }));
                 }}
                 title="Seleccionar Dirección de Origen"
+                initialAddress={form.origin_address}
             />
             <MapAddressSelector 
                 open={showDestMap}
@@ -436,6 +437,7 @@ export default function NewTripSection({ onNavigate }) {
                     setForm(prev => ({ ...prev, destination_address: address, destination_maps_url: mapsUrl }));
                 }}
                 title="Seleccionar Dirección de Destino"
+                initialAddress={form.destination_address}
             />
         </div>
     );

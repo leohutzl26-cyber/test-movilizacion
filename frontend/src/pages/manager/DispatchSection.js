@@ -1057,6 +1057,7 @@ export default function DispatchSection() {
           handleEditFormChange("origin_maps_url", mapsUrl);
         }}
         title="Seleccionar Dirección de Origen (Edición)"
+        initialAddress={editDialog?.origin_address}
       />
       <MapAddressSelector
         open={showEditDestMap}
@@ -1066,6 +1067,7 @@ export default function DispatchSection() {
           handleEditFormChange("destination_maps_url", mapsUrl);
         }}
         title="Seleccionar Dirección de Destino (Edición)"
+        initialAddress={editDialog?.destination_address}
       />
     </div>
   );

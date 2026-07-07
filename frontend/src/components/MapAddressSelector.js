@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Search, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function MapAddressSelector({ open, onClose, onSelect, title = "Seleccionar Ubicación en Mapa" }) {
+export default function MapAddressSelector({ 
+  open, 
+  onClose, 
+  onSelect, 
+  title = "Seleccionar Ubicación en Mapa",
+  initialAddress = "" 
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAddress, setSelectedAddress] = useState("");
   const [coordinates, setCoordinates] = useState({ lat: -33.4489, lon: -70.6693 }); // Centrado por defecto en Santiago
@@ -13,6 +19,47 @@ export default function MapAddressSelector({ open, onClose, onSelect, title = "S
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+
+  // Geocodificar la dirección inicial cuando se abre el modal
+  useEffect(() => {
+    if (!open) return;
+
+    if (initialAddress && initialAddress.trim()) {
+      setSearchQuery(initialAddress);
+      setSelectedAddress(initialAddress);
+
+      const geocodeInitialAddress = async () => {
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(initialAddress)}&limit=1&addressdetails=1`, {
+            headers: {
+              'Accept-Language': 'es'
+            }
+          });
+          const results = await response.json();
+          if (results && results.length > 0) {
+            const result = results[0];
+            const lat = parseFloat(result.lat);
+            const lon = parseFloat(result.lon);
+            
+            setCoordinates({ lat, lon });
+
+            if (mapRef.current && markerRef.current) {
+              mapRef.current.setView([lat, lon], 16);
+              markerRef.current.setLatLng([lat, lon]);
+            }
+          }
+        } catch (e) {
+          console.error("Error geocodificando dirección inicial:", e);
+        }
+      };
+
+      geocodeInitialAddress();
+    } else {
+      setSearchQuery("");
+      setSelectedAddress("");
+      setCoordinates({ lat: -33.4489, lon: -70.6693 });
+    }
+  }, [open, initialAddress]);
 
   // Inyectar Leaflet dinámicamente
   useEffect(() => {
@@ -113,8 +160,10 @@ export default function MapAddressSelector({ open, onClose, onSelect, title = "S
         await reverseGeocode(lat, lng);
       });
 
-      // Geocodificación inversa inicial
-      reverseGeocode(coordinates.lat, coordinates.lon);
+      // Geocodificación inversa inicial (solo si no se especificó una dirección inicial)
+      if (!initialAddress) {
+        reverseGeocode(coordinates.lat, coordinates.lon);
+      }
 
     }, 300);
 
