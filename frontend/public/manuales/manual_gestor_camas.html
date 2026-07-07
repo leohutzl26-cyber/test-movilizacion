@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual del Gestor de Camas - Sistema de Movilización HCU</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --primary: #6366f1; /* Índigo elegante para el Gestor de Camas */
+            --primary-dark: #4f46e5;
+            --primary-light: #e0e7ff;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-400: #94a3b8;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --teal-600: #0d9488;
+            --teal-50: #f0fdfa;
+            --amber-500: #d97706;
+            --amber-50: #fef3c7;
+            --red-600: #dc2626;
+            --red-50: #fef2f2;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--slate-800);
+            background-color: var(--slate-50);
+            line-height: 1.6;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+            box-shadow: var(--shadow-lg);
+            min-height: 297mm; /* Proporción A4 */
+        }
+
+        /* DISEÑO DE PORTADA */
+        .cover-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 250mm;
+            padding: 40px;
+            border: 2px solid var(--slate-100);
+            border-radius: 24px;
+            background: radial-gradient(circle at 10% 20%, rgb(255, 255, 255) 0%, rgb(250, 252, 252) 100%);
+            margin-bottom: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover-page::before {
+            content: "";
+            position: absolute;
+            top: -150px;
+            right: -150px;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-light), transparent);
+            z-index: 1;
+            opacity: 0.5;
+        }
+
+        .cover-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 2;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+        }
+
+        .institution {
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--primary-dark);
+        }
+
+        .cover-body {
+            z-index: 2;
+            margin-top: 100px;
+        }
+
+        .cover-title {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--slate-900);
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .cover-subtitle {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
+        }
+
+        .cover-description {
+            font-size: 14px;
+            color: var(--slate-600);
+            max-width: 500px;
+        }
+
+        .cover-footer {
+            z-index: 2;
+            border-top: 1px solid var(--slate-100);
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .meta-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--slate-400);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--slate-700);
+        }
+
+        /* SECCIONES Y CONTENIDO */
+        .section-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--slate-900);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--slate-100);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subsection-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--slate-800);
+            margin-top: 25px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        p {
+            font-size: 13.5px;
+            color: var(--slate-700);
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        /* ALERTAS */
+        .alert-box {
+            padding: 16px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 13px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .alert-info {
+            background-color: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            color: var(--slate-700);
+        }
+
+        .alert-tip {
+            background-color: var(--primary-light);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: var(--primary-dark);
+        }
+
+        .alert-warning {
+            background-color: var(--amber-50);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            color: var(--amber-500);
+        }
+
+        .alert-danger {
+            background-color: var(--red-50);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            color: var(--red-600);
+        }
+
+        .alert-icon {
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        /* LISTAS Y PASOS */
+        ul, ol {
+            margin-bottom: 20px;
+            margin-left: 20px;
+        }
+
+        li {
+            font-size: 13px;
+            color: var(--slate-700);
+            margin-bottom: 8px;
+        }
+
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 15px;
+            background: var(--slate-50);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px dashed var(--slate-200);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .step-body h4 {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 5px;
+        }
+
+        .step-body p {
+            margin-bottom: 0;
+            font-size: 12.5px;
+        }
+
+        /* TABLAS */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+
+        th {
+            background: var(--slate-100);
+            color: var(--slate-900);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--slate-200);
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--slate-100);
+            color: var(--slate-700);
+        }
+
+        tr:hover {
+            background: var(--slate-50);
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 9999px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-revision { background: #f3e8ff; color: #6b21a8; }
+        .badge-pendiente { background: var(--slate-100); color: var(--slate-600); }
+        .badge-asignado { background: #dbeafe; color: #1e40af; }
+        .badge-en-curso { background: #fef3c7; color: #92400e; }
+        .badge-completado { background: #dcfce7; color: #166534; }
+        .badge-cancelado { background: var(--red-50); color: var(--red-600); }
+
+        /* BOTONES INTERACTIVOS SIMULADOS */
+        .btn-sim {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: white;
+            border: 1px solid var(--slate-200);
+            color: var(--slate-700);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-sim-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* PAGINACIÓN */
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* PRINT CONFIG */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+            }
+            .cover-page {
+                height: 270mm;
+                border: none;
+                padding: 20px;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- PÁGINA DE PORTADA -->
+        <div class="cover-page">
+            <div class="cover-header">
+                <div class="logo-icon">H</div>
+                <div>
+                    <div class="institution">Hospital Curicó</div>
+                    <div class="meta-label">Sistema de Movilización</div>
+                </div>
+            </div>
+            
+            <div class="cover-body">
+                <div class="cover-subtitle">Manual del Usuario</div>
+                <h1 class="cover-title">Perfil:<br>Gestor de Camas</h1>
+                <p class="cover-description">Manual operativo para la visación clínica de traslados, asignación de personal acompañante, y gestión de personal clínico y servicios de origen.</p>
+            </div>
+            
+            <div class="cover-footer">
+                <div>
+                    <div class="meta-label">Versión del documento</div>
+                    <div class="meta-value">v2.1 - Producción</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="meta-label">Fecha de Actualización</div>
+                    <div class="meta-value">Julio, 2026</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 1: EL ROL DEL GESTOR DE CAMAS -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            1. El Rol de la Unidad de Gestión de Camas
+        </h2>
+        <p>El perfil de <strong>Gestor de Camas</strong> es el filtro clínico y logístico del sistema. A diferencia del Coordinador de Movilización (que gestiona móviles y choferes), el Gestor de Camas tiene a su cargo la **evaluación clínica de la solicitud**, la asignación de profesionales de salud de acompañamiento (Médicos, Enfermeros, TENS) y la confirmación de la disponibilidad de camas.</p>
+        
+        <p>Tu flujo de trabajo garantiza que:</p>
+        <ul>
+            <li>Toda solicitud de traslado clínico cumpla con los estándares médicos antes de asignarse a una ambulancia.</li>
+            <li>Se designe al personal de enfermería o médico de acompañamiento requerido según la complejidad del paciente.</li>
+            <li>Se validen correctamente las camas de destino para evitar esperas y colapso de camillas en la ambulancia.</li>
+            <li>El catálogo de personal clínico de turno y servicios del hospital esté al día.</li>
+        </ul>
+
+        <div class="alert-box alert-tip">
+            <span class="alert-icon">💡 TIP</span>
+            <div>
+                <strong>Visación Rápida:</strong> Un traslado creado por un solicitante clínico no podrá ser visto por el Coordinador de Movilización ni asignado a una ambulancia hasta que tú lo apruebes. Una revisión ágil de tu bandeja de entrada disminuye drásticamente la demora en los traslados del hospital.
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: VISACIÓN Y APROBACIÓN DE TRASLADOS -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            2. Visación y Aprobación de Solicitudes
+        </h2>
+        <p>Cuando un médico o enfermero solicita un traslado clínico, este ingresa a tu Dashboard en estado <span class="badge badge-revision">Revisión Gestor</span>. Para procesarlo, sigue estos pasos:</p>
+
+        <div class="steps-container">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-body">
+                    <h4>Paso 1: Abrir la solicitud pendiente de visación</h4>
+                    <p>En tu panel verás el listado de traslados en revisión. Haz clic sobre la tarjeta del paciente para abrir el **Formulario de Visación Clínica**.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-body">
+                    <h4>Paso 2: Evaluar la información y Prioridad</h4>
+                    <p>Revisa el diagnóstico, cama de origen, justificación del traslado y verifica si la prioridad marcada (Normal/Urgente) corresponde a la condición del paciente. Puedes modificar la prioridad en este paso si lo estimas necesario.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-body">
+                    <h4>Paso 3: Asignar el Personal Clínico Acompañante</h4>
+                    <p>En la sección "Personal de Acompañamiento", selecciona el personal clínico requerido del listado de funcionarios de turno. El sistema te permite agregar múltiples filas (Ej: 1 Enfermero Universitario y 1 TENS). Al elegir el tipo de profesional, selecciona su nombre desde la base de datos activa.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-body">
+                    <h4>Paso 4: Visar y Aprobar</h4>
+                    <p>Una vez completado el equipo clínico de acompañamiento, haz clic en el botón verde <span class="btn-sim btn-sim-primary">Aprobar y Visar</span>. El traslado cambiará al estado <span class="badge badge-pendiente">Pendiente</span> y se enviará automáticamente al tablero del Coordinador de Movilización para asignación de ambulancia.</p>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="subsection-title">Rechazo de Solicitudes Clínicas</h3>
+        <p>Si la solicitud está incompleta, el diagnóstico no justifica el traslado, o no hay cama de destino confirmada:</p>
+        <ol>
+            <li>Haz clic en el botón rojo <span class="btn-sim" style="color:var(--red-600);border-color:rgba(220, 38, 38, 0.2)">Rechazar Solicitud</span>.</li>
+            <li>Ingresa un **Motivo de Rechazo** descriptivo (Ej: "Falta adjuntar orden de examen o confirmación de cama receptora").</li>
+            <li>Confirma. El traslado quedará en estado <span class="badge badge-cancelado">Cancelado</span> y el Solicitante será notificado de inmediato con el motivo del rechazo en su historial.</li>
+        </ol>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 3: GESTIÓN DE CATÁLOGOS CLÍNICOS -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            3. Administración de Catálogos Clínicos
+        </h2>
+        <p>En el menú lateral de tu Dashboard dispones de acceso a tres mantenedores cruciales para alimentar los formularios del sistema:</p>
+
+        <h3 class="subsection-title">A. Mantenedor de Personal Clínico</h3>
+        <p>Permite registrar a los profesionales de la salud que realizan turnos de acompañamiento en las ambulancias:</p>
+        <ul>
+            <li><strong>Agregar Personal:</strong> Haz clic en "+ Agregar" e ingresa el Nombre Completo y su Rol (Médico, Enfermero/a, Matrón/a, TENS, Auxiliar).</li>
+            <li><strong>Control de Turno:</strong> Puedes activar o desactivar temporalmente a un funcionario utilizando el switch de estado. Si un profesional tiene licencia médica o vacaciones, desactívalo del catálogo para evitar que el personal de la central lo asigne por error en los traslados activos.</li>
+        </ul>
+
+        <h3 class="subsection-title">B. Mantenedor de Servicios de Origen</h3>
+        <p>Mantiene al día el catastro de salas, pisos y servicios internos de recogida del Hospital Curicó (Ej: UCI Pediátrica, Urgencias Adulto, Pabellón Central):</p>
+        <ul>
+            <li>Registra el nombre del servicio e indica su ubicación exacta (Piso, Sector, Ala del hospital).</li>
+        </ul>
+
+        <h3 class="subsection-title">C. Mantenedor de Orígenes y Destinos (Mapa Integrado)</h3>
+        <p>Permite registrar puntos geográficos frecuentes fuera del hospital (clínicas regionales, centros de diálisis, laboratorios periféricos):</p>
+        <ul>
+            <li><strong>Ver en Google Maps:</strong> Valida las rutas y la dirección ingresada pulsando el enlace directo en la tabla.</li>
+            <li><strong>Modificar con Mapa Interactivo:</strong> Pulsa en "Cambiar ubicación" para abrir la cartografía satelital. Podrás posicionar el pin en el punto exacto de acceso de ambulancia de ese destino y guardar el enlace de Google Maps y dirección física de forma automática.</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 4: CALENDARIO CLÍNICO E HISTORIAL -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+            4. Calendario Clínico y Auditoría Histórica
+        </h2>
+        <p>Para la planificación de recursos a mediano y largo plazo, dispones de dos herramientas analíticas y de auditoría:</p>
+
+        <h3 class="subsection-title">Calendario Clínico de Traslados</h3>
+        <p>Esta pestaña te presenta un almanaque dinámico interactivo:</p>
+        <ul>
+            <li><strong>Volumen por Fecha:</strong> Muestra la cantidad de traslados clínicos programados por día.</li>
+            <li><strong>Planificación de Personal:</strong> Al hacer clic en un día del calendario, podrás visualizar qué personal clínico estuvo a cargo de cada traslado. Esto facilita la confección de informes de horas de acompañamiento para el cálculo de asignaciones de turnos.</li>
+        </ul>
+
+        <h3 class="subsection-title">Historial Clínico General</h3>
+        <p>En el historial clínico puedes realizar búsquedas rápidas por RUT del paciente o rango de fechas, lo que te permite comprobar:</p>
+        <ul>
+            <li>Qué personal clínico visó cada traslado.</li>
+            <li>Quiénes conformaron el equipo de acompañamiento de salud en la ruta.</li>
+            <li>La firma digital de recepción e identidad del funcionario que recepcionó al paciente en destino, ideal para la resolución de reclamos o auditorías de fichas clínicas.</li>
+        </ul>
+
+    </div>
+</body>
+</html>
