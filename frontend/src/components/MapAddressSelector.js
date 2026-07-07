@@ -20,6 +20,22 @@ export default function MapAddressSelector({
   const mapRef = useRef(null);
   const markerRef = useRef(null);
 
+  // Función para consultar la API de Nominatim de forma segura con headers correctos
+  const fetchGeocode = async (query) => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`, {
+        headers: {
+          'Accept-Language': 'es',
+          'User-Agent': 'HospitalCuricoMovilizacionApp/1.0'
+        }
+      });
+      return await response.json();
+    } catch (e) {
+      console.error("Error en fetchGeocode para:", query, e);
+      return null;
+    }
+  };
+
   // Geocodificar la dirección inicial cuando se abre el modal
   useEffect(() => {
     if (!open) return;
@@ -30,12 +46,22 @@ export default function MapAddressSelector({
 
       const geocodeInitialAddress = async () => {
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(initialAddress)}&limit=1&addressdetails=1`, {
-            headers: {
-              'Accept-Language': 'es'
-            }
-          });
-          const results = await response.json();
+          // Búsqueda 1: la dirección tal cual
+          let query = initialAddress;
+          let results = await fetchGeocode(query);
+
+          // Búsqueda 2: si falla y no tiene el contexto de la comuna/país, agregarlo
+          if ((!results || results.length === 0) && !query.toLowerCase().includes("curicó") && !query.toLowerCase().includes("chile") && !query.toLowerCase().includes("curico")) {
+            query = `${initialAddress}, Curicó, Chile`;
+            results = await fetchGeocode(query);
+          }
+
+          // Búsqueda 3: si sigue fallando, centrar en el propio Hospital de Curicó
+          if (!results || results.length === 0) {
+            query = "Hospital de Curicó, Chile";
+            results = await fetchGeocode(query);
+          }
+
           if (results && results.length > 0) {
             const result = results[0];
             const lat = parseFloat(result.lat);
@@ -197,12 +223,21 @@ export default function MapAddressSelector({
 
     setLoading(true);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&addressdetails=1`, {
-        headers: {
-          'Accept-Language': 'es'
-        }
-      });
-      const results = await response.json();
+      let query = searchQuery;
+      let results = await fetchGeocode(query);
+
+      // Si no encuentra nada, intentar añadiendo el contexto local
+      if ((!results || results.length === 0) && !query.toLowerCase().includes("curicó") && !query.toLowerCase().includes("chile") && !query.toLowerCase().includes("curico")) {
+        query = `${searchQuery}, Curicó, Chile`;
+        results = await fetchGeocode(query);
+      }
+
+      // Si aún así no encuentra nada, probar buscando en el hospital
+      if (!results || results.length === 0) {
+        query = "Hospital de Curicó, Chile";
+        results = await fetchGeocode(query);
+      }
+
       if (results && results.length > 0) {
         const result = results[0];
         const lat = parseFloat(result.lat);
