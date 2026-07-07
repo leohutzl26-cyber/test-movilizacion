@@ -429,7 +429,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                       <Input
                         placeholder="Ej: Av. Principal 123 o Referencia"
                         value={form.origin_address || ""}
-                        onChange={(e) => setForm({ ...form, origin_address: e.target.value })}
+                        onChange={(e) => setForm({ ...form, origin_address: e.target.value, origin_maps_url: "" })}
                         className="flex-1"
                       />
                       <Button
@@ -446,7 +446,10 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                           type="button"
                           variant="outline"
                           className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.origin_address)}`, "_blank")}
+                          onClick={() => {
+                            const url = form.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.origin_address)}`;
+                            window.open(url, "_blank");
+                          }}
                           title="Ver dirección en Google Maps (sin claves)"
                         >
                           <ExternalLink className="w-4 h-4 text-teal-600" />
@@ -494,7 +497,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                       <Input
                         placeholder="Ej: Lo Fontecilla 441 o Referencia"
                         value={form.destination_address || ""}
-                        onChange={(e) => setForm({ ...form, destination_address: e.target.value })}
+                        onChange={(e) => setForm({ ...form, destination_address: e.target.value, destination_maps_url: "" })}
                         className="flex-1"
                       />
                       <Button
@@ -511,7 +514,10 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                           type="button"
                           variant="outline"
                           className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.destination_address)}`, "_blank")}
+                          onClick={() => {
+                            const url = form.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.destination_address)}`;
+                            window.open(url, "_blank");
+                          }}
                           title="Ver dirección en Google Maps (sin claves)"
                         >
                           <ExternalLink className="w-4 h-4 text-teal-600" />

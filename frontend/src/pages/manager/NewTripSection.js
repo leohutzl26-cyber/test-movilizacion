@@ -284,7 +284,7 @@ export default function NewTripSection({ onNavigate }) {
                                     <div className="space-y-1 md:col-span-8">
                                         <Label className="text-slate-500 text-[10px] font-bold">Dirección de Origen</Label>
                                         <div className="flex gap-2">
-                                            <Input className="h-9 text-xs font-semibold flex-1" placeholder="Dirección exacta o referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value })} />
+                                            <Input className="h-9 text-xs font-semibold flex-1" placeholder="Dirección exacta o referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value, origin_maps_url: "" })} />
                                             <Button 
                                                 type="button" 
                                                 variant="outline" 
@@ -299,7 +299,10 @@ export default function NewTripSection({ onNavigate }) {
                                                     type="button"
                                                     variant="outline"
                                                     className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0"
-                                                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.origin_address)}`, "_blank")}
+                                                    onClick={() => {
+                                                        const url = form.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.origin_address)}`;
+                                                        window.open(url, "_blank");
+                                                    }}
                                                     title="Ver dirección en Google Maps (sin claves)"
                                                 >
                                                     <ExternalLink className="w-4 h-4 text-teal-600" />
@@ -327,7 +330,7 @@ export default function NewTripSection({ onNavigate }) {
                                     <div className="space-y-1 md:col-span-8">
                                         <Label className="text-slate-500 text-[10px] font-bold">Dirección de Destino</Label>
                                         <div className="flex gap-2">
-                                            <Input className="h-9 text-xs font-semibold flex-1" placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value })} />
+                                            <Input className="h-9 text-xs font-semibold flex-1" placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value, destination_maps_url: "" })} />
                                             <Button 
                                                 type="button" 
                                                 variant="outline" 
@@ -342,7 +345,10 @@ export default function NewTripSection({ onNavigate }) {
                                                     type="button"
                                                     variant="outline"
                                                     className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0"
-                                                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.destination_address)}`, "_blank")}
+                                                    onClick={() => {
+                                                        const url = form.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.destination_address)}`;
+                                                        window.open(url, "_blank");
+                                                    }}
                                                     title="Ver dirección en Google Maps (sin claves)"
                                                 >
                                                     <ExternalLink className="w-4 h-4 text-teal-600" />
