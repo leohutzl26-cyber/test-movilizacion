@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual del Conductor - Sistema de Movilización HCU</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --primary: #0284c7; /* Azul cielo para conductores */
+            --primary-dark: #0369a1;
+            --primary-light: #e0f2fe;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-400: #94a3b8;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --amber-500: #d97706;
+            --amber-50: #fef3c7;
+            --red-600: #dc2626;
+            --red-50: #fef2f2;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--slate-800);
+            background-color: var(--slate-50);
+            line-height: 1.6;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+            box-shadow: var(--shadow-lg);
+            min-height: 297mm; /* Proporción A4 */
+        }
+
+        /* DISEÑO DE PORTADA */
+        .cover-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 250mm;
+            padding: 40px;
+            border: 2px solid var(--slate-100);
+            border-radius: 24px;
+            background: radial-gradient(circle at 10% 20%, rgb(255, 255, 255) 0%, rgb(250, 252, 252) 100%);
+            margin-bottom: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover-page::before {
+            content: "";
+            position: absolute;
+            top: -150px;
+            right: -150px;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-light), transparent);
+            z-index: 1;
+            opacity: 0.5;
+        }
+
+        .cover-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 2;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+        }
+
+        .institution {
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--primary-dark);
+        }
+
+        .cover-body {
+            z-index: 2;
+            margin-top: 100px;
+        }
+
+        .cover-title {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--slate-900);
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .cover-subtitle {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
+        }
+
+        .cover-description {
+            font-size: 14px;
+            color: var(--slate-600);
+            max-width: 500px;
+        }
+
+        .cover-footer {
+            z-index: 2;
+            border-top: 1px solid var(--slate-100);
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .meta-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--slate-400);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--slate-700);
+        }
+
+        /* SECCIONES Y CONTENIDO */
+        .section-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--slate-900);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--slate-100);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subsection-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--slate-800);
+            margin-top: 25px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        p {
+            font-size: 13.5px;
+            color: var(--slate-700);
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        /* ALERTAS */
+        .alert-box {
+            padding: 16px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 13px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .alert-info {
+            background-color: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            color: var(--slate-700);
+        }
+
+        .alert-tip {
+            background-color: var(--primary-light);
+            border: 1px solid rgba(2, 132, 199, 0.2);
+            color: var(--primary-dark);
+        }
+
+        .alert-warning {
+            background-color: var(--amber-50);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            color: var(--amber-500);
+        }
+
+        .alert-danger {
+            background-color: var(--red-50);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            color: var(--red-600);
+        }
+
+        .alert-icon {
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        /* LISTAS Y PASOS */
+        ul, ol {
+            margin-bottom: 20px;
+            margin-left: 20px;
+        }
+
+        li {
+            font-size: 13px;
+            color: var(--slate-700);
+            margin-bottom: 8px;
+        }
+
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 15px;
+            background: var(--slate-50);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px dashed var(--slate-200);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .step-body h4 {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 5px;
+        }
+
+        .step-body p {
+            margin-bottom: 0;
+            font-size: 12.5px;
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 9999px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-pendiente { background: var(--slate-100); color: var(--slate-600); }
+        .badge-asignado { background: #dbeafe; color: #1e40af; }
+        .badge-en-curso { background: #fef3c7; color: #92400e; }
+        .badge-completado { background: #dcfce7; color: #166534; }
+        .badge-cancelado { background: var(--red-50); color: var(--red-600); }
+
+        /* PAGINACIÓN */
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* BOTONES INTERACTIVOS SIMULADOS */
+        .btn-sim {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: white;
+            border: 1px solid var(--slate-200);
+            color: var(--slate-700);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-sim-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* PRINT CONFIG */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+            }
+            .cover-page {
+                height: 270mm;
+                border: none;
+                padding: 20px;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- PÁGINA DE PORTADA -->
+        <div class="cover-page">
+            <div class="cover-header">
+                <div class="logo-icon">H</div>
+                <div>
+                    <div class="institution">Hospital Curicó</div>
+                    <div class="meta-label">Sistema de Movilización</div>
+                </div>
+            </div>
+            
+            <div class="cover-body">
+                <div class="cover-subtitle">Manual del Usuario</div>
+                <h1 class="cover-title">Perfil:<br>Conductor</h1>
+                <p class="cover-description">Guía práctica en terreno para la ejecución de viajes, registro de kilometraje, firma digital y navegación GPS con Google Maps.</p>
+            </div>
+            
+            <div class="cover-footer">
+                <div>
+                    <div class="meta-label">Versión del documento</div>
+                    <div class="meta-value">v2.1 - Producción</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="meta-label">Fecha de Actualización</div>
+                    <div class="meta-value">Julio, 2026</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 1: INTRODUCCIÓN Y ENFOQUE MÓVIL -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            1. Introducción y Enfoque Móvil
+        </h2>
+        <p>El perfil de <strong>Conductor</strong> está optimizado para dispositivos móviles (smartphones o tablets) que llevas contigo en tu jornada diaria. La interfaz cuenta con botones de gran tamaño para facilitar la interacción táctil en terreno y de forma rápida.</p>
+        
+        <p>Tu misión principal en la aplicación es registrar los hitos del traslado en tiempo real para que la Central y el Servicio Clínico sepan en todo momento dónde está el paciente, mantener al día el kilometraje del vehículo asignado para asegurar su plan de mantenimiento, y validar la correcta entrega de los pacientes mediante firma digital.</p>
+
+        <div class="alert-box alert-tip">
+            <span class="alert-icon">💡 TIP</span>
+            <div>
+                <strong>Ahorro de batería y datos:</strong> La aplicación es liviana y consume un mínimo de datos. Te recomendamos mantener tu celular cargado en el soporte de la ambulancia y activar el GPS para el guiado cartográfico de Google Maps.
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: FLUJO DE TRASLADO PASO A PASO -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            2. Ciclo de Ejecución de un Viaje
+        </h2>
+        <p>Cuando la Central de Coordinación te asigne un viaje, este aparecerá de inmediato en la pantalla de inicio de tu celular. Deberás completar secuencialmente los siguientes pasos para completar el traslado:</p>
+
+        <div class="steps-container">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-body">
+                    <h4>Paso 1: Aceptar el Traslado y Asignar Vehículo</h4>
+                    <p>Pulsa sobre la tarjeta del traslado pendiente y haz clic en <span class="btn-sim btn-sim-primary">Aceptar Viaje</span>. El sistema te pedirá seleccionar la <strong>Patente del Vehículo</strong> que vas a conducir y registrar el **Kilometraje Inicial** actual del tablero. Al confirmar, el traslado pasa a estar <span class="badge badge-asignado">Asignado</span>.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-body">
+                    <h4>Paso 2: Retiro del Paciente (Inicio de Ruta)</h4>
+                    <p>Desplázate al servicio de Origen. Una vez que tengas al paciente verificado y a bordo de la ambulancia, presiona el botón amarillo <span class="btn-sim" style="background:#f59e0b;color:white;border-color:#d97706">Iniciar Viaje</span>. En este momento el estado cambia a <span class="badge badge-en-curso">En Curso</span>.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-body">
+                    <h4>Paso 3: Llegada a Destino y Entrega</h4>
+                    <p>Conduce con precaución hacia el Destino. Al llegar y entregar al paciente al personal receptor de destino, pulsa el botón verde <span class="btn-sim" style="background:#10b981;color:white;border-color:#059669">Finalizar Viaje</span>.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-body">
+                    <h4>Paso 4: Kilometraje de Llegada y Firma Receptor</h4>
+                    <p>El sistema te pedirá registrar el **Kilometraje Final** marcado en el odómetro de la ambulancia. Finalmente, pídele al funcionario que recibe al paciente que escriba su nombre y estampe su **Firma Digital** directamente con el dedo en tu pantalla. Al guardar, el traslado se cierra como <span class="badge badge-completado">Completado</span>.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 3: NAVEGACIÓN GPS -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            3. Navegación GPS Integrada con Google Maps
+        </h2>
+        <p>Para facilitar tu traslado y evitar perderte (especialmente hacia clínicas extrahospitalarias o laboratorios periféricos), cada dirección de origen y destino cuenta con un botón inteligente de navegación:</p>
+
+        <ul>
+            <li><strong>Botón Navegación en Fila:</strong> Al lado de la dirección de origen y destino verás un botón azul que dice <span class="btn-sim" style="color:var(--primary)"><svg style="width:10px;height:10px;fill:currentColor;display:inline" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Ver en Google Maps</span>.</li>
+            <li><strong>Apertura Automática:</strong> Al presionarlo, la app abrirá automáticamente **Google Maps** (o la aplicación cartográfica instalada en tu teléfono) con la ruta optimizada calculada desde tu ubicación actual hasta el punto exacto de la dirección ingresada, brindándote guiado por voz paso a paso.</li>
+        </ul>
+
+        <div class="alert-box alert-tip">
+            <span class="alert-icon">💡 TIP</span>
+            <div>
+                <strong>Uso de Maps:</strong> Puedes alternar entre Google Maps para guiarte en el trayecto y la aplicación de Movilización para cambiar los estados del viaje. La app recordará el estado del traslado incluso si cierras la pestaña momentáneamente.
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: GESTIÓN DE INCIDENCIAS -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            4. Alertas y Reportes de Incidencias
+        </h2>
+        <p>Si durante el transcurso del viaje ocurre un imprevisto en la ruta, cuentas con un módulo simplificado de reporte de incidencias en la zona inferior de tu pantalla de viaje activo:</p>
+
+        <ol>
+            <li>Haz clic en el botón <span class="btn-sim" style="color:var(--amber-500);border-color:rgba(217, 119, 6, 0.2)">Reportar Incidencia</span>.</li>
+            <li>Selecciona el tipo de evento:
+                <ul>
+                    <li><strong>Panne de Vehículo</strong> (problema mecánico de la ambulancia).</li>
+                    <li><strong>Taco Vial Pesado / Congestión</strong> (retraso significativo en el trayecto).</li>
+                    <li><strong>Accidente en Ruta</strong> (colisión o alteración vial externa).</li>
+                    <li><strong>Descompensación del Paciente</strong> (emergencia clínica del paciente que obliga a desviar ruta o retornar a urgencias).</li>
+                </ul>
+            </li>
+            <li>Escribe una breve descripción y presiona enviar.</li>
+        </ol>
+
+        <div class="alert-box alert-danger">
+            <span class="alert-icon">🛑 IMPORTANTE</span>
+            <div>
+                <strong>Aviso a la Central:</strong> Reportar una incidencia a través de la aplicación notifica de inmediato al Coordinador mediante una alarma visual en su pantalla. Sin embargo, para incidentes graves (accidentes o riesgo de vida del paciente), comunícate inmediatamente mediante tu equipo de radio o celular con la Central.
+            </div>
+        </div>
+
+        <!-- SECCIÓN 5: HISTORIAL Y ESTADÍSTICAS -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+            5. Historial de Turno y Kilometraje
+        </h2>
+        <p>En el menú lateral de tu aplicación, dispones de una sección dedicada a revisar tu historial de desempeño en el turno:</p>
+        
+        <ul>
+            <li><strong>Mis Viajes del Día:</strong> Un desglose de todas las personas que transportaste durante el turno con su respectiva hora de cierre.</li>
+            <li><strong>Estadísticas de Kilometraje:</strong> Muestra la cantidad de kilómetros recorridos durante el día o la semana, ayudándote a controlar la entrega de bitácoras físicas de tu ambulancia al finalizar el turno clínico.</li>
+        </ul>
+
+    </div>
+</body>
+</html>

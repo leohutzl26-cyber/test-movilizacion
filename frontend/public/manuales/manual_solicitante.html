@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual del Solicitante - Sistema de Movilización HCU</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --primary: #0d9488;
+            --primary-dark: #0f766e;
+            --primary-light: #ccfbf1;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-400: #94a3b8;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --amber-500: #d97706;
+            --amber-50: #fef3c7;
+            --red-600: #dc2626;
+            --red-50: #fef2f2;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--slate-800);
+            background-color: var(--slate-50);
+            line-height: 1.6;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+            box-shadow: var(--shadow-lg);
+            min-height: 297mm; /* Proporción A4 */
+        }
+
+        /* DISEÑO DE PORTADA */
+        .cover-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 250mm;
+            padding: 40px;
+            border: 2px solid var(--slate-100);
+            border-radius: 24px;
+            background: radial-gradient(circle at 10% 20%, rgb(255, 255, 255) 0%, rgb(250, 252, 252) 100%);
+            margin-bottom: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover-page::before {
+            content: "";
+            position: absolute;
+            top: -150px;
+            right: -150px;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-light), transparent);
+            z-index: 1;
+            opacity: 0.5;
+        }
+
+        .cover-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 2;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+        }
+
+        .institution {
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--primary-dark);
+        }
+
+        .cover-body {
+            z-index: 2;
+            margin-top: 100px;
+        }
+
+        .cover-title {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--slate-900);
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .cover-subtitle {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
+        }
+
+        .cover-description {
+            font-size: 14px;
+            color: var(--slate-600);
+            max-width: 500px;
+        }
+
+        .cover-footer {
+            z-index: 2;
+            border-top: 1px solid var(--slate-100);
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .meta-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--slate-400);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--slate-700);
+        }
+
+        /* SECCIONES Y CONTENIDO */
+        .section-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--slate-900);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--slate-100);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subsection-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--slate-800);
+            margin-top: 25px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        p {
+            font-size: 13.5px;
+            color: var(--slate-700);
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        /* ALERTAS */
+        .alert-box {
+            padding: 16px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 13px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .alert-info {
+            background-color: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            color: var(--slate-700);
+        }
+
+        .alert-tip {
+            background-color: var(--primary-light);
+            border: 1px solid rgba(13, 148, 136, 0.2);
+            color: var(--primary-dark);
+        }
+
+        .alert-warning {
+            background-color: var(--amber-50);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+            color: var(--amber-500);
+        }
+
+        .alert-danger {
+            background-color: var(--red-50);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            color: var(--red-600);
+        }
+
+        .alert-icon {
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        /* LISTAS Y PASOS */
+        ul, ol {
+            margin-bottom: 20px;
+            margin-left: 20px;
+        }
+
+        li {
+            font-size: 13px;
+            color: var(--slate-700);
+            margin-bottom: 8px;
+        }
+
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 15px;
+            background: var(--slate-50);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px dashed var(--slate-200);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .step-body h4 {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 5px;
+        }
+
+        .step-body p {
+            margin-bottom: 0;
+            font-size: 12.5px;
+        }
+
+        /* TABLAS */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+
+        th {
+            background: var(--slate-100);
+            color: var(--slate-900);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--slate-200);
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--slate-100);
+            color: var(--slate-700);
+        }
+
+        tr:hover {
+            background: var(--slate-50);
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 9999px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-pendiente { background: var(--slate-100); color: var(--slate-600); }
+        .badge-asignado { background: #dbeafe; color: #1e40af; }
+        .badge-en-curso { background: #fef3c7; color: #92400e; }
+        .badge-completado { background: var(--primary-light); color: var(--primary-dark); }
+        .badge-cancelado { background: var(--red-50); color: var(--red-600); }
+
+        /* FLUJO DE TRASLADO */
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--slate-50);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--slate-200);
+            margin: 30px 0;
+        }
+
+        .flow-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 80px;
+            text-align: center;
+        }
+
+        .flow-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid var(--slate-400);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            color: var(--slate-600);
+            transition: all 0.3s;
+        }
+
+        .flow-node.active .flow-circle {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        .flow-node.active span {
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
+        .flow-arrow {
+            flex: 1;
+            height: 2px;
+            background: var(--slate-200);
+            margin: 0 10px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .flow-arrow::after {
+            content: "➔";
+            position: absolute;
+            right: -2px;
+            top: -9px;
+            color: var(--slate-200);
+            font-size: 12px;
+        }
+
+        .flow-node span {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--slate-500);
+            text-transform: uppercase;
+        }
+
+        /* PAGINACIÓN */
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* BOTONES INTERACTIVOS SIMULADOS */
+        .btn-sim {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: white;
+            border: 1px solid var(--slate-200);
+            color: var(--slate-700);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-sim-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* PRINT CONFIG */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+            }
+            .cover-page {
+                height: 270mm;
+                border: none;
+                padding: 20px;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- PÁGINA DE PORTADA -->
+        <div class="cover-page">
+            <div class="cover-header">
+                <div class="logo-icon">H</div>
+                <div>
+                    <div class="institution">Hospital Curicó</div>
+                    <div class="meta-label">Sistema de Movilización</div>
+                </div>
+            </div>
+            
+            <div class="cover-body">
+                <div class="cover-subtitle">Manual del Usuario</div>
+                <h1 class="cover-title">Perfil:<br>Solicitante Clínico</h1>
+                <p class="cover-description">Guía completa para la creación, seguimiento y gestión de solicitudes de traslados intrahospitalarios y extrahospitalarios.</p>
+            </div>
+            
+            <div class="cover-footer">
+                <div>
+                    <div class="meta-label">Versión del documento</div>
+                    <div class="meta-value">v2.1 - Producción</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="meta-label">Fecha de Actualización</div>
+                    <div class="meta-value">Julio, 2026</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 1: INTRODUCCIÓN -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            1. Introducción al Perfil
+        </h2>
+        <p>El perfil de <strong>Solicitante Clínico</strong> está asignado al personal médico, de enfermería, matronas, técnicos en enfermería (TENS) y personal administrativo facultado de las diferentes unidades y servicios del <strong>Hospital de Curicó</strong>. Tu rol es fundamental, ya que eres quien inicia el ciclo de vida del traslado de un paciente o material clínico.</p>
+        
+        <p>A través de la aplicación, podrás realizar requerimientos de transporte de manera rápida y segura, evitando los llamados telefónicos reiterativos, la pérdida de información y garantizando que los recursos del hospital (ambulancias y conductores) se asignen prioritariamente según la gravedad clínica del paciente.</p>
+
+        <div class="alert-box alert-tip">
+            <span class="alert-icon">💡 TIP</span>
+            <div>
+                <strong>Acceso y seguridad:</strong> Tu cuenta es personal e intransferible. Todo traslado solicitado queda registrado en la bitácora de auditoría con tu nombre y timestamp. Mantén tus credenciales a salvo.
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: EL FLUJO DEL TRASLADO -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            2. Ciclo de Vida de un Traslado
+        </h2>
+        <p>El sistema opera bajo un flujo de estados secuencial. Comprender estos estados te ayudará a saber exactamente dónde se encuentra tu paciente en cada momento del traslado:</p>
+
+        <div class="flow-diagram">
+            <div class="flow-node active">
+                <div class="flow-circle">1</div>
+                <span>Pendiente</span>
+            </div>
+            <div class="flow-arrow"></div>
+            <div class="flow-node">
+                <div class="flow-circle">2</div>
+                <span>Asignado</span>
+            </div>
+            <div class="flow-arrow"></div>
+            <div class="flow-node">
+                <div class="flow-circle">3</div>
+                <span>En Ruta</span>
+            </div>
+            <div class="flow-arrow"></div>
+            <div class="flow-node">
+                <div class="flow-circle">4</div>
+                <span>Cerrado</span>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%">Estado del Viaje</th>
+                    <th>¿Qué significa en la operación?</th>
+                    <th style="width: 30%">Acción permitida para ti</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="badge badge-pendiente">Pendiente</span></td>
+                    <td>La solicitud ha sido creada con éxito y está en espera de que el Coordinador asigne un vehículo y conductor idóneo.</td>
+                    <td><strong>Permite cancelación directa</strong> en caso de que cambie la condición clínica o se suspenda el examen.</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-asignado">Asignado</span></td>
+                    <td>El Coordinador ya asignó un conductor y una ambulancia para este traslado. El conductor está notificado.</td>
+                    <td>Lectura de detalles del chofer/vehículo. No permite cancelación directa (debe coordinarse con Central).</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-en-curso">En Curso</span></td>
+                    <td>El conductor ha retirado al paciente del origen y se encuentra en ruta hacia el destino. El paciente está en tránsito.</td>
+                    <td>Monitoreo visual del viaje. Bloqueo total de modificaciones por seguridad médica.</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-completado">Completado</span></td>
+                    <td>El paciente ha sido entregado en el destino, se registró el kilometraje de llegada y se cerró la firma de recepción.</td>
+                    <td>Historial. El traslado se archiva y pasa a formar parte de tus estadísticas de servicio.</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-cancelado">Cancelado</span></td>
+                    <td>El traslado se anuló antes de iniciarse por decisión del solicitante o por rechazo operativo en central.</td>
+                    <td>Historial. Se muestra el motivo ingresado para la cancelación.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 3: CÓMO SOLICITAR UN TRASLADO -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            3. Crear una Nueva Solicitud
+        </h2>
+        <p>Para ingresar una nueva solicitud de traslado al sistema, sigue estos sencillos pasos desde tu Dashboard principal:</p>
+
+        <div class="steps-container">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-body">
+                    <h4>Paso 1: Acceder al Formulario</h4>
+                    <p>Haz clic en el botón <span class="btn-sim btn-sim-primary">+ Solicitar Traslado</span> que se encuentra en la parte superior derecha de tu pantalla de inicio.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-body">
+                    <h4>Paso 2: Definir el Tipo de Traslado y Prioridad</h4>
+                    <p>Selecciona si corresponde a un traslado <strong>Clínico</strong> (pacientes) o <strong>No Clínico</strong> (insumos, exámenes, correspondencia). Define la prioridad: <strong>Normal</strong> (programada) o <strong>Urgente</strong> (compromiso de vía aérea, riesgo vital, traslado crítico).</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-body">
+                    <h4>Paso 3: Identificación del Paciente (Solo traslados Clínicos)</h4>
+                    <p>Ingresa el RUT, Nombre Completo, Edad, Diagnóstico médico inicial, Peso estimado y la Cama asignada. Esta información es crucial para que el conductor conozca las precauciones necesarias durante la ruta.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-body">
+                    <h4>Paso 4: Origen y Destino</h4>
+                    <p>Selecciona el <strong>Origen</strong> (servicio hospitalario de recogida) y el <strong>Destino</strong> desde la lista desplegable de puntos preconfigurados. La dirección física de ambos puntos se rellenará automáticamente.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert-box alert-warning">
+            <span class="alert-icon">⚠️ ADVERTENCIA</span>
+            <div>
+                <strong>Prioridad Urgente:</strong> Esta opción solo debe ser utilizada ante emergencias clínicas reales. El abuso de la prioridad "Urgente" altera la programación logística de la central y puede comprometer la atención de un paciente crítico.
+            </div>
+        </div>
+
+        <h3 class="subsection-title">
+            <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            Funcionalidad Extra: Integración de Google Maps
+        </h3>
+        <p>El sistema cuenta con una integración a Google Maps y geocodificación mediante mapa interactivo:</p>
+        <ul>
+            <li><strong>Verificación de Dirección:</strong> Al seleccionar un origen y destino, al lado de la dirección aparecerá el enlace <span class="btn-sim" style="color:var(--primary)"><svg style="width:10px;height:10px;fill:currentColor;display:inline" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Ver en Google Maps</span>. Puedes pulsar este botón para validar visualmente si la dirección ingresada es la correcta.</li>
+            <li><strong>Personalización / Ajuste:</strong> Si la dirección automática no coincide exactamente con el acceso de tu servicio, pulsa el botón del <strong>Mapa interactivo</strong> ubicado en el formulario. Se abrirá una ventana cartográfica donde podrás desplazar el pin marcador hasta el punto exacto. El sistema actualizará de inmediato la dirección del traslado.</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <!-- SECCIÓN 4: SEGUIMIENTO Y GESTIÓN -->
+        <h2 class="section-title">
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 4.36 6 6.92 6 10v5l-2 2v1h16v-1l-2-2z"/></svg>
+            4. Seguimiento de Solicitudes y Cancelación
+        </h2>
+        <p>Una vez creada la solicitud, serás redirigido a tu panel de control, donde tendrás acceso a las siguientes herramientas en tiempo real:</p>
+
+        <h3 class="subsection-title">Panel de Estado en Vivo</h3>
+        <p>Verás una lista con tus requerimientos activos. El color de la tarjeta te indicará la urgencia, y un indicador dinámico reflejará si se encuentra en espera, si el conductor ya va en camino o si ya completó el traslado. No es necesario refrescar la página: los estados se actualizan automáticamente mediante conexión de datos directa.</p>
+
+        <h3 class="subsection-title">Cancelación de un Traslado</h3>
+        <p>Si la condición clínica cambia o el procedimiento se suspende, puedes anular la solicitud de la siguiente manera:</p>
+        <ol>
+            <li>Ubica la solicitud en el listado de <strong>Traslados Pendientes</strong>.</li>
+            <li>Haz clic en el botón de menú o detalles del viaje.</li>
+            <li>Selecciona la opción de color rojo <span class="btn-sim" style="color:var(--red-600);border-color:rgba(220, 38, 38, 0.2)">Cancelar Solicitud</span>.</li>
+            <li><strong>Motivo de Cancelación:</strong> El sistema te solicitará obligatoriamente ingresar un motivo (Ej. "Paciente con alza febril, examen suspendido"). Ingresa el motivo y pulsa en "Confirmar".</li>
+        </ol>
+
+        <div class="alert-box alert-danger">
+            <span class="alert-icon">🛑 IMPORTANTE</span>
+            <div>
+                <strong>Cancelación bloqueada:</strong> Si el traslado ya está en estado <span class="badge badge-en-curso">En Curso</span> o <span class="badge badge-asignado">Asignado</span> (es decir, el conductor ya se está movilizando o el paciente ya va dentro del vehículo), el botón de cancelación desaparecerá de tu interfaz. Para cancelarlo en esta etapa, debes llamar directamente al Coordinador de Movilización por radio o teléfono interno.
+            </div>
+        </div>
+
+        <h3 class="subsection-title">Historial de Solicitudes</h3>
+        <p>En la pestaña "Historial de Solicitudes" podrás consultar todos los viajes cerrados que ingresó tu servicio en el pasado. Esto te permite descargar reportes rápidos, comprobar a qué hora exacta se retiró un paciente para resolver discrepancias y ver quién firmó la entrega en el destino final.</p>
+
+    </div>
+</body>
+</html>
