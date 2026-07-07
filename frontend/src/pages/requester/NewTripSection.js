@@ -432,15 +432,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                         onChange={(e) => setForm({ ...form, origin_address: e.target.value, origin_maps_url: "" })}
                         className="flex-1"
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                        onClick={() => setShowOriginMap(true)}
-                      >
-                        <Map className="w-4 h-4 text-teal-600" />
-                        <span className="hidden sm:inline text-xs font-bold">Mapa</span>
-                      </Button>
+
                       {form.origin_address && form.origin_address.trim() && (
                         <Button
                           type="button"
@@ -500,15 +492,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                         onChange={(e) => setForm({ ...form, destination_address: e.target.value, destination_maps_url: "" })}
                         className="flex-1"
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                        onClick={() => setShowDestMap(true)}
-                      >
-                        <Map className="w-4 h-4 text-teal-600" />
-                        <span className="hidden sm:inline text-xs font-bold">Mapa</span>
-                      </Button>
+
                       {form.destination_address && form.destination_address.trim() && (
                         <Button
                           type="button"
@@ -743,32 +727,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
           </form>
         </CardContent>
       </Card>
-      <MapAddressSelector
-        open={showOriginMap}
-        onClose={() => setShowOriginMap(false)}
-        onSelect={({ address, mapsUrl }) => {
-          setForm((prev) => ({
-            ...prev,
-            origin_address: address,
-            origin_maps_url: mapsUrl
-          }));
-        }}
-        title="Seleccionar Dirección de Origen"
-        initialAddress={form.origin_address}
-      />
-      <MapAddressSelector
-        open={showDestMap}
-        onClose={() => setShowDestMap(false)}
-        onSelect={({ address, mapsUrl }) => {
-          setForm((prev) => ({
-            ...prev,
-            destination_address: address,
-            destination_maps_url: mapsUrl
-          }));
-        }}
-        title="Seleccionar Dirección de Destino"
-        initialAddress={form.destination_address}
-      />
+
     </div>
   );
 }

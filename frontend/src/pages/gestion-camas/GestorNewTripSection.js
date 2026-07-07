@@ -202,15 +202,7 @@ export default function GestorNewTripSection() {
                 <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
                 <div className="flex gap-2">
                   <Input placeholder="Dirección exacta o referencia" value={form.origin_address || ""} onChange={e => setForm({ ...form, origin_address: e.target.value, origin_maps_url: "" })} className="flex-1" />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-9"
-                    onClick={() => setShowOriginMap(true)}
-                  >
-                    <Map className="w-4 h-4 text-teal-600" />
-                    <span className="hidden sm:inline text-xs font-bold">Mapa</span>
-                  </Button>
+
                   {form.origin_address && form.origin_address.trim() && (
                     <Button
                       type="button"
@@ -261,15 +253,7 @@ export default function GestorNewTripSection() {
                 <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
                 <div className="flex gap-2">
                   <Input placeholder="Dirección exacta o referencia" value={form.destination_address || ""} onChange={e => setForm({ ...form, destination_address: e.target.value, destination_maps_url: "" })} className="flex-1" />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-9"
-                    onClick={() => setShowDestMap(true)}
-                  >
-                    <Map className="w-4 h-4 text-teal-600" />
-                    <span className="hidden sm:inline text-xs font-bold">Mapa</span>
-                  </Button>
+
                   {form.destination_address && form.destination_address.trim() && (
                     <Button
                       type="button"
@@ -311,32 +295,7 @@ export default function GestorNewTripSection() {
           <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white h-12 text-lg font-bold" disabled={loading}>{loading ? "Creando..." : "Crear Traslado"}</Button>
         </form>
       </CardContent></Card>
-      <MapAddressSelector 
-        open={showOriginMap}
-        onClose={() => setShowOriginMap(false)}
-        onSelect={({ address, mapsUrl }) => {
-          setForm(prev => ({
-            ...prev,
-            origin_address: address,
-            origin_maps_url: mapsUrl
-          }));
-        }}
-        title="Seleccionar Dirección de Origen"
-        initialAddress={form.origin_address}
-      />
-      <MapAddressSelector 
-        open={showDestMap}
-        onClose={() => setShowDestMap(false)}
-        onSelect={({ address, mapsUrl }) => {
-          setForm(prev => ({
-            ...prev,
-            destination_address: address,
-            destination_maps_url: mapsUrl
-          }));
-        }}
-        title="Seleccionar Dirección de Destino"
-        initialAddress={form.destination_address}
-      />
+
     </div>
   );
 }
