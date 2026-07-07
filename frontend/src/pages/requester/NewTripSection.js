@@ -391,131 +391,139 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
               <h3 className="font-bold text-teal-800 border-b border-teal-100 pb-2 flex items-center gap-2">
                 <MapPin className="w-5 h-5" /> Ubicación y Tiempos
               </h3>
+              <div className="space-y-4">
+                {/* FILA DE ORIGEN */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="space-y-1 md:col-span-4">
+                    <Label>Origen *</Label>
+                    {!useCustomOrigin ? (
+                      <Select value={form.origin || undefined} onValueChange={handleOriginChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="otro" className="font-bold text-teal-600 border-b border-slate-100 bg-slate-50">Otro (Ingresar dirección manual)...</SelectItem>
+                          {origins.map((o) => (
+                            <SelectItem key={o.id} value={o.name}>
+                              {o.name}
+                            </SelectItem>
+                          ))}
+                          {form.origin && !origins.find((o) => o.name === form.origin) && (
+                            <SelectItem value={form.origin}>{form.origin} (Personalizado)</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        placeholder="Escriba origen"
+                        value={form.origin}
+                        onChange={(e) => setForm({ ...form, origin: e.target.value })}
+                        onDoubleClick={() => setUseCustomOrigin(false)}
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-1 md:col-span-8">
+                    <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ej: Av. Principal 123 o Referencia"
+                        value={form.origin_address || ""}
+                        onChange={(e) => setForm({ ...form, origin_address: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
+                        onClick={() => setShowOriginMap(true)}
+                      >
+                        <Map className="w-4 h-4 text-teal-600" />
+                        <span className="hidden sm:inline text-xs font-bold">Mapa</span>
+                      </Button>
+                      {form.origin_address && form.origin_address.trim() && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0 h-10"
+                          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.origin_address)}`, "_blank")}
+                          title="Ver dirección en Google Maps (sin claves)"
+                        >
+                          <ExternalLink className="w-4 h-4 text-teal-600" />
+                          <span className="hidden md:inline text-xs font-bold">G-Maps</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* FILA DE DESTINO */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="space-y-1 md:col-span-4">
+                    <Label>Destino *</Label>
+                    {!useCustomDest ? (
+                      <Select value={form.destination || undefined} onValueChange={handleDestChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="otro" className="font-bold text-teal-600 border-b border-slate-100 bg-slate-50">Otro (Ingresar dirección manual)...</SelectItem>
+                          {destinations.map((d) => (
+                            <SelectItem key={d.id} value={d.name}>
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                          {form.destination && !destinations.find((d) => d.name === form.destination) && (
+                            <SelectItem value={form.destination}>{form.destination} (Personalizado)</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        placeholder="Escriba destino"
+                        value={form.destination}
+                        onChange={(e) => setForm({ ...form, destination: e.target.value })}
+                        onDoubleClick={() => setUseCustomDest(false)}
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-1 md:col-span-8">
+                    <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ej: Lo Fontecilla 441 o Referencia"
+                        value={form.destination_address || ""}
+                        onChange={(e) => setForm({ ...form, destination_address: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
+                        onClick={() => setShowDestMap(true)}
+                      >
+                        <Map className="w-4 h-4 text-teal-600" />
+                        <span className="hidden sm:inline text-xs font-bold">Mapa</span>
+                      </Button>
+                      {form.destination_address && form.destination_address.trim() && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0 h-10"
+                          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.destination_address)}`, "_blank")}
+                          title="Ver dirección en Google Maps (sin claves)"
+                        >
+                          <ExternalLink className="w-4 h-4 text-teal-600" />
+                          <span className="hidden md:inline text-xs font-bold">G-Maps</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label>Origen *</Label>
-                  {!useCustomOrigin ? (
-                    <Select value={form.origin || undefined} onValueChange={handleOriginChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {origins.map((o) => (
-                          <SelectItem key={o.id} value={o.name}>
-                            {o.name}
-                          </SelectItem>
-                        ))}
-                        {form.origin && !origins.find((o) => o.name === form.origin) && (
-                          <SelectItem value={form.origin}>{form.origin} (Personalizado)</SelectItem>
-                        )}
-                        <SelectItem value="otro">Otro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      placeholder="Escriba origen"
-                      value={form.origin}
-                      onChange={(e) => setForm({ ...form, origin: e.target.value })}
-                      onDoubleClick={() => setUseCustomOrigin(false)}
-                    />
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Ej: Av. Principal 123 o Referencia"
-                      value={form.origin_address || ""}
-                      onChange={(e) => setForm({ ...form, origin_address: e.target.value })}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                      onClick={() => setShowOriginMap(true)}
-                    >
-                      <Map className="w-4 h-4 text-teal-600" />
-                      <span className="hidden sm:inline text-xs font-bold">Mapa</span>
-                    </Button>
-                    {form.origin_address && form.origin_address.trim() && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.origin_address)}`, "_blank")}
-                        title="Ver dirección en Google Maps (sin claves)"
-                      >
-                        <ExternalLink className="w-4 h-4 text-teal-600" />
-                        <span className="hidden md:inline text-xs font-bold">G-Maps</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>Destino *</Label>
-                  {!useCustomDest ? (
-                    <Select value={form.destination || undefined} onValueChange={handleDestChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {destinations.map((d) => (
-                          <SelectItem key={d.id} value={d.name}>
-                            {d.name}
-                          </SelectItem>
-                        ))}
-                        {form.destination && !destinations.find((d) => d.name === form.destination) && (
-                          <SelectItem value={form.destination}>{form.destination} (Personalizado)</SelectItem>
-                        )}
-                        <SelectItem value="otro">Otro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      placeholder="Escriba destino"
-                      value={form.destination}
-                      onChange={(e) => setForm({ ...form, destination: e.target.value })}
-                      onDoubleClick={() => setUseCustomDest(false)}
-                    />
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Ej: Lo Fontecilla 441 o Referencia"
-                      value={form.destination_address || ""}
-                      onChange={(e) => setForm({ ...form, destination_address: e.target.value })}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                      onClick={() => setShowDestMap(true)}
-                    >
-                      <Map className="w-4 h-4 text-teal-600" />
-                      <span className="hidden sm:inline text-xs font-bold">Mapa</span>
-                    </Button>
-                    {form.destination_address && form.destination_address.trim() && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0 h-10"
-                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.destination_address)}`, "_blank")}
-                        title="Ver dirección en Google Maps (sin claves)"
-                      >
-                        <ExternalLink className="w-4 h-4 text-teal-600" />
-                        <span className="hidden md:inline text-xs font-bold">G-Maps</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
                 {tripType === "clinico" && (
                   <>
                     <div className="space-y-1">
