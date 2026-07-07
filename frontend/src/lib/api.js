@@ -355,12 +355,12 @@ const api = {
         }
 
         case "/origins": {
-          const originData = { name: data.name, address: data.address };
+          const originData = { name: data.name, address: data.address, maps_url: data.maps_url };
           return { data: await supabaseApi.origins.createOrigin(originData) };
         }
 
         case "/destinations": {
-          const destData = { name: data.name, address: data.address };
+          const destData = { name: data.name, address: data.address, maps_url: data.maps_url };
           return { data: await supabaseApi.destinations.createDestination(destData) };
         }
 
@@ -675,13 +675,13 @@ const api = {
 
       if (url.startsWith("/destinations/")) {
         const destId = parts[2];
-        const updateData = { name: data.name, address: data.address };
+        const updateData = { name: data.name, address: data.address, maps_url: data.maps_url };
         return { data: await supabaseApi.destinations.updateDestination(destId, updateData) };
       }
 
       if (url.startsWith("/origins/")) {
         const originId = parts[2];
-        const updateData = { name: data.name, address: data.address };
+        const updateData = { name: data.name, address: data.address, maps_url: data.maps_url };
         return { data: await supabaseApi.origins.updateOrigin(originId, updateData) };
       }
 
