@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ambulance, ClipboardList, User, CheckCircle, XCircle, Activity, MapPin, Map, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Ambulance, ClipboardList, User, CheckCircle, XCircle, Activity, MapPin, Map, Plus, Trash2, RefreshCw, ExternalLink } from "lucide-react";
 import MapAddressSelector from "@/components/MapAddressSelector";
 import { validateRut, PERSONNEL_TYPES, REQUIREMENT_OPTIONS, REASON_OPTIONS, ACCOMPANIMENT_OPTIONS } from "@/lib/tripUtils";
 
@@ -290,6 +290,18 @@ export default function NewTripSection({ onNavigate }) {
                                             <Map className="w-4 h-4 text-teal-600" />
                                             <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
                                         </Button>
+                                        {form.origin_address && form.origin_address.trim() && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0"
+                                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.origin_address)}`, "_blank")}
+                                                title="Ver dirección en Google Maps (sin claves)"
+                                            >
+                                                <ExternalLink className="w-4 h-4 text-teal-600" />
+                                                <span className="hidden md:inline text-[10px] font-bold uppercase">G-Maps</span>
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -315,6 +327,18 @@ export default function NewTripSection({ onNavigate }) {
                                             <Map className="w-4 h-4 text-teal-600" />
                                             <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
                                         </Button>
+                                        {form.destination_address && form.destination_address.trim() && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0"
+                                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.destination_address)}`, "_blank")}
+                                                title="Ver dirección en Google Maps (sin claves)"
+                                            >
+                                                <ExternalLink className="w-4 h-4 text-teal-600" />
+                                                <span className="hidden md:inline text-[10px] font-bold uppercase">G-Maps</span>
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
