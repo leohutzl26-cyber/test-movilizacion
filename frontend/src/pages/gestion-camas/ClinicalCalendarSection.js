@@ -9,7 +9,7 @@ import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { formatScheduledDate, sColors as statusColors, statusColorsSolid, statusHeaderStyles } from "@/lib/tripUtils";
 
 export default function ClinicalCalendarSection() {
-  const [viewMode, setViewMode] = useState("daily"); // daily, weekly, monthly
+  const [viewMode, setViewMode] = useState("weekly"); // daily, weekly, monthly
   const [currentDate, setCurrentDate] = useState(new Date());
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -281,7 +281,7 @@ export default function ClinicalCalendarSection() {
                     <p className="text-[10px] font-bold text-slate-400 uppercase">{dayNames[i]}</p>
                     <p className={`text-sm font-black ${isToday ? "text-teal-700" : "text-slate-700"}`}>{dateStr.split("-")[2]}</p>
                   </div>
-                  <div className="space-y-1 overflow-y-auto max-h-[250px] custom-scrollbar flex-1">
+                  <div className="space-y-1 overflow-y-auto max-h-[600px] custom-scrollbar flex-1">
                     {dayTrips.map(t => <TripCard key={t.id} t={t} />)}
                     {dayTrips.length === 0 && <p className="text-[10px] text-slate-300 text-center mt-4">—</p>}
                   </div>
@@ -302,7 +302,7 @@ export default function ClinicalCalendarSection() {
                 if (!dateStr) return <div key={`empty-${i}`} className="min-h-[80px]" />;
                 const dayTrips = tripsByDate(dateStr);
                 const isToday = dateStr === formatLocalDate(new Date());
-                const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["assigned", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
+                const counts = { pending: dayTrips.filter(t => ["pendiente", "revision_gestor"].includes(t.status)).length, active: dayTrips.filter(t => ["asignado", "en_curso"].includes(t.status)).length, done: dayTrips.filter(t => t.status === "completado").length };
                 return (
                   <div key={dateStr} onClick={() => { setCurrentDate(new Date(dateStr + "T12:00:00")); setViewMode("weekly"); }} className={`min-h-[80px] bg-white rounded-lg border p-1.5 cursor-pointer hover:shadow-md transition-all ${isToday ? "border-teal-400 ring-1 ring-teal-100" : "border-slate-100"}`}>
                     <p className={`text-xs font-bold mb-1 ${isToday ? "text-teal-700" : "text-slate-600"}`}>{parseInt(dateStr.split("-")[2])}</p>
