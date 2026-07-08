@@ -21,6 +21,44 @@ const VEHICLE_ICONS = {
     Van: <Bus className="w-6 h-6 text-indigo-600 drop-shadow-sm" />
 };
 
+const STATUS_CARD_STYLES = {
+    pendiente: {
+        bg: "bg-amber-50/40 border-amber-100 hover:border-amber-300 hover:shadow-md",
+        indicator: "bg-amber-500",
+        badge: "bg-amber-100 text-amber-800 border-amber-200"
+    },
+    revision_gestor: {
+        bg: "bg-purple-50/40 border-purple-100 hover:border-purple-300 hover:shadow-md",
+        indicator: "bg-purple-500",
+        badge: "bg-purple-100 text-purple-800 border-purple-200"
+    },
+    asignado: {
+        bg: "bg-indigo-50/40 border-indigo-100 hover:border-indigo-300 hover:shadow-md",
+        indicator: "bg-indigo-500",
+        badge: "bg-indigo-100 text-indigo-800 border-indigo-200"
+    },
+    en_curso: {
+        bg: "bg-blue-50/50 border-blue-200 hover:border-blue-400 hover:shadow-md",
+        indicator: "bg-blue-500",
+        badge: "bg-blue-100 text-blue-800 border-blue-200"
+    },
+    completado: {
+        bg: "bg-emerald-50/40 border-emerald-100 hover:border-emerald-300 hover:shadow-md",
+        indicator: "bg-emerald-500",
+        badge: "bg-emerald-100 text-emerald-800 border-emerald-200"
+    },
+    cancelado: {
+        bg: "bg-rose-50/40 border-rose-100 hover:border-rose-300 hover:shadow-md",
+        indicator: "bg-rose-500",
+        badge: "bg-rose-100 text-rose-800 border-rose-200"
+    },
+    devuelto: {
+        bg: "bg-rose-50/40 border-rose-100 hover:border-rose-300 hover:shadow-md",
+        indicator: "bg-rose-500",
+        badge: "bg-rose-100 text-rose-800 border-rose-200"
+    }
+};
+
 export default function ByDriverSection() {
     const [data, setData] = useState([]);
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -146,23 +184,21 @@ export default function ByDriverSection() {
                                                         className={`p-2.5 rounded-xl border group transition-all cursor-grab relative overflow-hidden ${
                                                             snap.isDragging 
                                                             ? "bg-white shadow-2xl scale-105 border-teal-500 z-50 ring-2 ring-teal-500/20" 
-                                                            : t.status === "en_curso"
-                                                                ? "bg-blue-50/50 border-blue-200 hover:border-blue-400"
-                                                                : "bg-white border-slate-100 hover:border-teal-200 hover:shadow-md"
+                                                            : (STATUS_CARD_STYLES[t.status]?.bg || "bg-white border-slate-100 hover:border-teal-200 hover:shadow-md")
                                                         }`}
                                                     >
                                                         {/* Indicador de estado lateral */}
-                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${t.status === "en_curso" ? "bg-blue-500" : "bg-teal-500"}`}></div>
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${STATUS_CARD_STYLES[t.status]?.indicator || "bg-slate-400"}`}></div>
 
                                                         <div className="flex justify-between items-center mb-1.5">
-                                                            <div className="flex items-center gap-1.5">
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
                                                                 <span className="bg-slate-900 text-teal-400 px-1.5 py-0.5 rounded font-mono text-[9px] font-black">#{t.tracking_number}</span>
-                                                                {t.status === "en_curso" && (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                                                                        <span className="text-[8px] font-black text-blue-600 uppercase">Ruta</span>
-                                                                    </div>
-                                                                )}
+                                                                <Badge className={`text-[8px] font-black px-1.5 py-0.5 uppercase border-none shrink-0 leading-none h-4 flex items-center justify-center rounded-md ${STATUS_CARD_STYLES[t.status]?.badge || "bg-slate-100 text-slate-700"}`}>
+                                                                    {t.status === "en_curso" && (
+                                                                        <span className="w-1 h-1 rounded-full bg-blue-600 animate-pulse mr-1 inline-block"></span>
+                                                                    )}
+                                                                    {(t.status || "").replace(/_/g, " ")}
+                                                                </Badge>
                                                             </div>
                                                             {t.trip_type === "clinico" ? <Ambulance className="w-3 h-3 text-rose-500" /> : (t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <ClipboardList className="w-3 h-3 text-blue-500" />)}
                                                         </div>
