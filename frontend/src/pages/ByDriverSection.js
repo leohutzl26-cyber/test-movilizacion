@@ -200,7 +200,15 @@ export default function ByDriverSection() {
                                                                     {(t.status || "").replace(/_/g, " ")}
                                                                 </Badge>
                                                             </div>
-                                                            {t.trip_type === "clinico" ? <Ambulance className="w-3 h-3 text-rose-500" /> : (t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <ClipboardList className="w-3 h-3 text-blue-500" />)}
+                                                            {t.trip_type === "clinico" ? (
+                                                                 <div className="p-1 bg-rose-50 border border-rose-100 rounded-lg shrink-0" title="Traslado Clínico">
+                                                                     <Ambulance className="w-4 h-4 text-rose-600" />
+                                                                 </div>
+                                                             ) : (
+                                                                 <div className="p-1 bg-slate-50 border border-slate-200 rounded-lg shrink-0" title="Traslado No Clínico">
+                                                                     <ClipboardList className="w-4 h-4 text-slate-600" />
+                                                                 </div>
+                                                             )}
                                                         </div>
 
                                                         <p className="font-black text-[11px] text-slate-800 leading-tight mb-2 uppercase line-clamp-2" title={t.trip_type === "clinico" ? t.patient_name : t.task_details}>
