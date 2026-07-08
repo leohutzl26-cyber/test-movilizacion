@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { MapPin, Map, ArrowRight, CalendarDays, Clock, BedDouble, Activity, Plus, Users, Trash2, AlertTriangle, XCircle, Pencil, Stethoscope, User } from "lucide-react";
+import { MapPin, Map, ArrowRight, CalendarDays, Clock, BedDouble, Activity, Plus, Users, Trash2, AlertTriangle, XCircle, Pencil, Stethoscope, User, Truck } from "lucide-react";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import MapAddressSelector from "@/components/MapAddressSelector";
 import { formatScheduledDate, PERSONNEL_TYPES, REQUIREMENT_OPTIONS, statusHeaderStyles } from "@/lib/tripUtils";
@@ -264,6 +264,17 @@ export default function AssignPersonnelSection() {
             <div className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-blue-600" /> <span className="text-sm font-bold text-slate-800">{t.destination || "-"}</span></div>
           </div>
 
+          {t.driver_name && (
+            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200/50 mb-3 text-xs flex items-center gap-2">
+              <Truck className="w-4 h-4 text-teal-600 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-0.5">Conductor / Móvil</p>
+                <p className="font-bold text-slate-800 uppercase truncate leading-tight">{t.driver_name}</p>
+                {t.vehicle_plate && <p className="text-[8px] font-bold text-teal-600 font-mono leading-none mt-0.5">{t.vehicle_plate}</p>}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2">
              <div className="flex-1">
                 {renderClinicalTeam(t)}
@@ -334,6 +345,7 @@ export default function AssignPersonnelSection() {
                 <th className="px-6 py-5 min-w-[200px]">Ruta / Servicio</th>
                 <th className="px-6 py-5">Programación</th>
                 <th className="px-6 py-5">Equipo / Detalles</th>
+                <th className="px-6 py-5">Conductor / Móvil</th>
                 <th className="px-6 py-5 text-center">Estado</th>
                 <th className="px-6 py-5 text-center">Acciones</th>
               </tr>
@@ -389,6 +401,16 @@ export default function AssignPersonnelSection() {
                     </td>
                     <td className="px-6 py-4">
                       {renderClinicalTeam(t)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {t.driver_name ? (
+                        <div className="flex flex-col gap-0.5 text-xs text-slate-800 font-semibold">
+                          <span className="font-black text-slate-900 uppercase truncate max-w-[150px]" title={t.driver_name}>{t.driver_name}</span>
+                          {t.vehicle_plate && <span className="text-[10px] font-bold text-teal-600 font-mono">Patente: {t.vehicle_plate}</span>}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic font-medium">No asignado</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <Badge className={`font-bold uppercase text-xs px-2.5 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
