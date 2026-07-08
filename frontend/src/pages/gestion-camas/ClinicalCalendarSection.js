@@ -40,6 +40,11 @@ export default function ClinicalCalendarSection() {
       const tripToMove = trips.find(t => t.id === tripId) || draggedTrip;
       if (!tripToMove) return;
 
+      if (tripToMove.status === "completado" || tripToMove.status === "cancelado") {
+        toast.error("No está permitido cambiar la fecha de un traslado ya finalizado o cancelado");
+        return;
+      }
+
       await api.put(`/trips/${tripId}`, {
         ...tripToMove,
         scheduled_date: targetDate
@@ -150,28 +155,33 @@ export default function ClinicalCalendarSection() {
     return grid;
   };
 
-  const TripCard = ({ t }) => (
-    <div 
-      draggable={true}
-      onDragStart={() => { setDraggedTripId(t.id); setDraggedTrip(t); }}
-      onDragEnd={() => { setDraggedTripId(null); setDraggedTrip(null); handleDragLeaveNavigate(); }}
-      onClick={() => setDetailTrip(t)}
-      className={`p-2 rounded-lg border-l-4 mb-1 text-xs transition-all duration-200 cursor-pointer ${
-        statusColors[t.status] || "bg-slate-100 text-slate-800 border border-slate-200"
-      } ${
-        draggedTripId === t.id 
-          ? "opacity-40 scale-95 cursor-grabbing" 
-          : "cursor-grab active:cursor-grabbing hover:shadow-md hover:bg-slate-100/50"
-      }`}
-    >
-      <div className="flex justify-between items-center">
-        <span className="font-mono font-bold text-[9px] text-slate-600">{t.tracking_number}</span>
-        <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
+  const TripCard = ({ t }) => {
+    const isFinished = t.status === "completado" || t.status === "cancelado";
+    return (
+      <div 
+        draggable={!isFinished}
+        onDragStart={() => { if (!isFinished) { setDraggedTripId(t.id); setDraggedTrip(t); } }}
+        onDragEnd={() => { setDraggedTripId(null); setDraggedTrip(null); handleDragLeaveNavigate(); }}
+        onClick={() => setDetailTrip(t)}
+        className={`p-2 rounded-lg border-l-4 mb-1 text-xs transition-all duration-200 cursor-pointer ${
+          statusColors[t.status] || "bg-slate-100 text-slate-800 border border-slate-200"
+        } ${
+          isFinished 
+            ? "cursor-not-allowed opacity-75"
+            : draggedTripId === t.id 
+              ? "opacity-40 scale-95 cursor-grabbing" 
+              : "cursor-grab active:cursor-grabbing hover:shadow-md hover:bg-slate-100/50"
+        }`}
+      >
+        <div className="flex justify-between items-center">
+          <span className="font-mono font-bold text-[9px] text-slate-600">{t.tracking_number}</span>
+          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${statusColors[t.status] || "bg-slate-100"}`}>{(t.status || "").replace(/_/g, " ")}</span>
+        </div>
+        <p className="font-bold text-slate-800 truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
+        {t.appointment_time && <p className="text-[10px] text-red-600 font-bold">🕐 {t.appointment_time}</p>}
       </div>
-      <p className="font-bold text-slate-800 truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>
-      {t.appointment_time && <p className="text-[10px] text-red-600 font-bold">🕐 {t.appointment_time}</p>}
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
