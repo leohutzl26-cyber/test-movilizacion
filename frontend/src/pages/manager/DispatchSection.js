@@ -7,10 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, Map, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
-import MapAddressSelector from "@/components/MapAddressSelector";
 import TripDetailDialog from "./TripDetailDialog";
 import {
   PERSONNEL_TYPES as personnelTypes,
@@ -822,15 +821,21 @@ export default function DispatchSection() {
                   <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Origen</Label>
                   <div className="flex gap-2">
                     <Input value={editForm.origin_address} onChange={(e) => handleEditFormChange("origin_address", e.target.value)} className="h-9 text-xs font-semibold flex-1" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
-                      onClick={() => setShowEditOriginMap(true)}
-                    >
-                      <Map className="w-4 h-4 text-teal-600" />
-                      <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
-                    </Button>
+                    {editForm.origin_address && editForm.origin_address.trim() && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0"
+                        onClick={() => {
+                          const url = editForm.origin_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editForm.origin_address)}`;
+                          window.open(url, "_blank");
+                        }}
+                        title="Ver dirección en Google Maps"
+                      >
+                        <ExternalLink className="w-4 h-4 text-teal-600" />
+                        <span className="hidden sm:inline text-[10px] font-bold uppercase">G-Maps</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -843,15 +848,21 @@ export default function DispatchSection() {
                   <Label className="text-[10px] font-bold text-slate-500 uppercase">Dirección de Destino</Label>
                   <div className="flex gap-2">
                     <Input value={editForm.destination_address} onChange={(e) => handleEditFormChange("destination_address", e.target.value)} className="h-9 text-xs font-semibold flex-1" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
-                      onClick={() => setShowEditDestMap(true)}
-                    >
-                      <Map className="w-4 h-4 text-teal-600" />
-                      <span className="hidden sm:inline text-[10px] font-bold uppercase">Mapa</span>
-                    </Button>
+                    {editForm.destination_address && editForm.destination_address.trim() && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-teal-600 rounded-lg flex items-center gap-1 shrink-0"
+                        onClick={() => {
+                          const url = editForm.destination_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editForm.destination_address)}`;
+                          window.open(url, "_blank");
+                        }}
+                        title="Ver dirección en Google Maps"
+                      >
+                        <ExternalLink className="w-4 h-4 text-teal-600" />
+                        <span className="hidden sm:inline text-[10px] font-bold uppercase">G-Maps</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1049,26 +1060,6 @@ export default function DispatchSection() {
           )}
         </DialogContent>
       </Dialog>
-      <MapAddressSelector
-        open={showEditOriginMap}
-        onClose={() => setShowEditOriginMap(false)}
-        onSelect={({ address, mapsUrl }) => {
-          handleEditFormChange("origin_address", address);
-          handleEditFormChange("origin_maps_url", mapsUrl);
-        }}
-        title="Seleccionar Dirección de Origen (Edición)"
-        initialAddress={editDialog?.origin_address}
-      />
-      <MapAddressSelector
-        open={showEditDestMap}
-        onClose={() => setShowEditDestMap(false)}
-        onSelect={({ address, mapsUrl }) => {
-          handleEditFormChange("destination_address", address);
-          handleEditFormChange("destination_maps_url", mapsUrl);
-        }}
-        title="Seleccionar Dirección de Destino (Edición)"
-        initialAddress={editDialog?.destination_address}
-      />
     </div>
   );
 }
