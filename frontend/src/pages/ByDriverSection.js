@@ -101,6 +101,13 @@ export default function ByDriverSection() {
 
         const sTrips = Array.from(newData[sDriverIndex].trips);
         const dTrips = Array.from(newData[dDriverIndex].trips);
+        
+        const movedTrip = sTrips[result.source.index];
+        if (movedTrip && movedTrip.status === "completado") {
+            toast.error("No se puede mover un traslado completado");
+            return;
+        }
+
         const [moved] = sTrips.splice(result.source.index, 1);
 
         if (sId === dId) {
@@ -175,13 +182,15 @@ export default function ByDriverSection() {
                                 {(provided, snapshot) => (
                                     <div ref={provided.innerRef} {...provided.droppableProps} className={`p-2 flex-grow space-y-2 transition-colors min-h-[100px] ${snapshot.isDraggingOver ? "bg-teal-50/50" : ""}`}>
                                         {col.trips.map((t, idx) => (
-                                            <Draggable key={t.id} draggableId={t.id} index={idx}>
+                                            <Draggable key={t.id} draggableId={t.id} index={idx} isDragDisabled={t.status === "completado"}>
                                                 {(provided, snap) => (
                                                     <div 
                                                         ref={provided.innerRef} 
                                                         {...provided.draggableProps} 
                                                         {...provided.dragHandleProps} 
-                                                        className={`p-2.5 rounded-xl border group transition-all cursor-grab relative overflow-hidden ${
+                                                        className={`p-2.5 rounded-xl border group transition-all relative overflow-hidden ${
+                                                            t.status === "completado" ? "cursor-not-allowed" : "cursor-grab"
+                                                        } ${
                                                             snap.isDragging 
                                                             ? "bg-white shadow-2xl scale-105 border-teal-500 z-50 ring-2 ring-teal-500/20" 
                                                             : (STATUS_CARD_STYLES[t.status]?.bg || "bg-white border-slate-100 hover:border-teal-200 hover:shadow-md")

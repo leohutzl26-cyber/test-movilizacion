@@ -40,6 +40,11 @@ export default function CalendarSection() {
             const tripToMove = trips.find(t => t.id === tripId) || draggedTrip;
             if (!tripToMove) return;
 
+            if (tripToMove.status === "completado") {
+                toast.error("No se puede mover un traslado completado");
+                return;
+            }
+
             await api.put(`/trips/${tripId}`, {
                 ...tripToMove,
                 scheduled_date: targetDate
@@ -255,7 +260,7 @@ export default function CalendarSection() {
                                         {dayTrips.map(t => (
                                             <div 
                                                 key={t.id} 
-                                                draggable={true}
+                                                draggable={t.status !== "completado"}
                                                 onDragStart={(e) => { e.stopPropagation(); setDraggedTripId(t.id); setDraggedTrip(t); }}
                                                 onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); setDraggedTrip(null); handleDragLeaveNavigate(); }}
                                                 onClick={(e) => { e.stopPropagation(); setDetailTrip(t); }} 
@@ -264,7 +269,9 @@ export default function CalendarSection() {
                                                 } ${
                                                     draggedTripId === t.id 
                                                         ? "opacity-40 scale-95 cursor-grabbing" 
-                                                        : "cursor-grab active:cursor-grabbing hover:shadow-md hover:bg-teal-50"
+                                                        : t.status === "completado"
+                                                            ? "cursor-not-allowed"
+                                                            : "cursor-grab active:cursor-grabbing hover:shadow-md hover:bg-teal-50"
                                                 }`}
                                             >
                                                 <p className="font-bold text-slate-800 truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</p>

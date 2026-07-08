@@ -50,6 +50,11 @@ export default function AssignSection() {
 
   const handleAssign = async (tripId, driverId) => {
     try {
+      const trip = trips.find(t => t.id === tripId);
+      if (trip && trip.status === "completado") {
+        toast.error("No se puede asignar un traslado completado");
+        return;
+      }
       await api.put(`/trips/${tripId}/manager-assign`, { driver_id: driverId });
       toast.success("Viaje asignado exitosamente");
       setAssignDialog(null);
@@ -60,6 +65,11 @@ export default function AssignSection() {
   };
 
   const handleUnassign = async (tripId) => {
+    const trip = trips.find(t => t.id === tripId);
+    if (trip && trip.status === "completado") {
+      toast.error("No se puede desasignar un traslado completado");
+      return;
+    }
     if (!window.confirm("¿Seguro que deseas desasignar el conductor? El viaje volverá a estado pendiente.")) return;
     try {
       await api.put(`/trips/${tripId}/unassign`);
@@ -154,9 +164,11 @@ export default function AssignSection() {
               <p className="text-[8px] font-bold text-teal-600/70 font-mono uppercase leading-none mt-0.5">{t.vehicle_plate || "Sin Móvil"}</p>
             </div>
           ) : null}
-          <Button onClick={() => setAssignDialog(t)} className={`h-9 w-full font-black uppercase text-[9px] shadow-md rounded-xl transition-all active:scale-95 ${t.driver_id ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"}`}>
-            <ClipboardList className="w-3.5 h-3.5 mr-1.5" />{t.driver_id ? "Reasignar" : "Asignar"}
-          </Button>
+          {["pendiente", "asignado"].includes(t.status) && (
+            <Button onClick={() => setAssignDialog(t)} className={`h-9 w-full font-black uppercase text-[9px] shadow-md rounded-xl transition-all active:scale-95 ${t.driver_id ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"}`}>
+              <ClipboardList className="w-3.5 h-3.5 mr-1.5" />{t.driver_id ? "Reasignar" : "Asignar"}
+            </Button>
+          )}
           {t.driver_id && t.status === "asignado" && (
             <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-8 w-full font-black uppercase text-[9px] text-red-600 border-red-100 hover:bg-red-50 rounded-xl transition-all">
               <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Quitar

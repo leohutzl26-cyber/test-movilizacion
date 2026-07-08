@@ -413,8 +413,16 @@ const api = {
         }
 
         if (parts[3] === "manager-assign") {
+          const oldTrip = await supabaseApi.trips.getTripById(tripId);
+          if (oldTrip && oldTrip.status === "completado") {
+            throw new Error("No se puede asignar un traslado completado");
+          }
           return { data: await supabaseApi.trips.assignDriver(tripId, data.driver_id, data.vehicle_id) };
         } else if (parts[3] === "assign") {
+          const oldTrip = await supabaseApi.trips.getTripById(tripId);
+          if (oldTrip && oldTrip.status === "completado") {
+            throw new Error("No se puede asignar un traslado completado");
+          }
           const session = await getCurrentUserSession();
           const driverId = session.user.id;
           
@@ -445,6 +453,10 @@ const api = {
           
           return { data: await supabaseApi.trips.assignDriver(tripId, driverId, vehicleId) };
         } else if (parts[3] === "unassign") {
+          const oldTrip = await supabaseApi.trips.getTripById(tripId);
+          if (oldTrip && oldTrip.status === "completado") {
+            throw new Error("No se puede desasignar un traslado completado");
+          }
           const updatedTrip = await supabaseApi.trips.updateTrip(tripId, {
             driver_id: null,
             driver_name: null,
@@ -578,6 +590,9 @@ const api = {
           return { data: updatedTrip };
         } else {
           const oldTrip = await supabaseApi.trips.getTripById(tripId);
+          if (oldTrip && oldTrip.status === "completado") {
+            throw new Error("No se puede modificar un traslado completado");
+          }
           const updatedTrip = await supabaseApi.trips.updateTrip(tripId, data);
 
           const fieldsToCompare = [
