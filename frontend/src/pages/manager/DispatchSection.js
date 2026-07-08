@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink, MessageSquare, CheckCircle2, PlusCircle, UserPlus, FileText, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import TripDetailDialog from "./TripDetailDialog";
 import {
   PERSONNEL_TYPES as personnelTypes,
@@ -21,6 +22,104 @@ import {
   VEHICLE_ICONS,
   formatScheduledDate
 } from "@/lib/tripUtils";
+
+const ACTIVITY_MAPPINGS = {
+  create_trip: {
+    title: "Traslado Creado",
+    bg: "bg-blue-50/70 border-blue-100",
+    iconColor: "text-blue-600",
+    Icon: PlusCircle
+  },
+  cambiar_estado_pendiente: {
+    title: "Traslado Visado",
+    bg: "bg-purple-50/70 border-purple-100",
+    iconColor: "text-purple-600",
+    Icon: CheckCircle2
+  },
+  cambiar_estado_en_curso: {
+    title: "Viaje Iniciado",
+    bg: "bg-amber-50/70 border-amber-100",
+    iconColor: "text-amber-600",
+    Icon: Ambulance
+  },
+  cambiar_estado_completado: {
+    title: "Viaje Finalizado",
+    bg: "bg-emerald-50/70 border-emerald-100",
+    iconColor: "text-emerald-600",
+    Icon: CheckCircle2
+  },
+  cambiar_estado_cancelado: {
+    title: "Viaje Cancelado",
+    bg: "bg-red-50/70 border-red-100",
+    iconColor: "text-red-600",
+    Icon: XCircle
+  },
+  desasignar_conductor: {
+    title: "Conductor Quitado",
+    bg: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-500",
+    Icon: UserPlus
+  },
+  asignar_conductor: {
+    title: "Conductor Asignado",
+    bg: "bg-indigo-50/70 border-indigo-100",
+    iconColor: "text-indigo-600",
+    Icon: UserPlus
+  },
+  auto_assign: {
+    title: "Auto-Asignación",
+    bg: "bg-indigo-50/70 border-indigo-100",
+    iconColor: "text-indigo-600",
+    Icon: UserPlus
+  },
+  auto_asignar: {
+    title: "Auto-Asignación",
+    bg: "bg-indigo-50/70 border-indigo-100",
+    iconColor: "text-indigo-600",
+    Icon: UserPlus
+  },
+  guardar_observaciones_conductor: {
+    title: "Bitácora / Nota",
+    bg: "bg-teal-50/70 border-teal-100",
+    iconColor: "text-teal-600",
+    Icon: MessageSquare
+  },
+  editar_traslado: {
+    title: "Traslado Editado",
+    bg: "bg-slate-50 border-slate-100",
+    iconColor: "text-slate-600",
+    Icon: Edit
+  }
+};
+
+const formatActivityLog = (log) => {
+  const mapping = ACTIVITY_MAPPINGS[log.action] || {
+    title: log.action.replace(/_/g, " "),
+    bg: "bg-slate-50 border-slate-100",
+    iconColor: "text-slate-600",
+    Icon: FileText
+  };
+
+  let description = "";
+  if (log.action === "create_trip") {
+    description = `Paciente/Detalle: ${log.new_values?.patient_name || log.new_values?.task_details || "-"}`;
+  } else if (log.action === "guardar_observaciones_conductor") {
+    description = log.new_values?.driver_notes || "Añadió notas al traslado";
+  } else if (log.action === "asignar_conductor" || log.action === "auto_asignar") {
+    description = `Conductor: ${log.new_values?.driver_name || "Asignado"}`;
+  } else if (log.action === "desasignar_conductor") {
+    description = "Se quitó la asignación del conductor";
+  } else if (log.action === "editar_traslado") {
+    description = log.new_values?.detalle || "Se modificaron datos del traslado";
+  } else if (log.action.startsWith("cambiar_estado_")) {
+    const estado = log.action.replace("cambiar_estado_", "");
+    description = `Traslado cambió a estado ${estado === "en_curso" ? "en curso" : estado}`;
+  } else {
+    description = `Acción ejecutada en el folio #${log.new_values?.tracking_number || "-"}`;
+  }
+
+  return { ...mapping, description };
+};
 
 export default function DispatchSection() {
   const { user } = useAuth();
@@ -36,6 +135,8 @@ export default function DispatchSection() {
   const [editDialog, setEditDialog] = useState(null);
   const [detailTrip, setDetailTrip] = useState(null);
   const [driverSearch, setDriverSearch] = useState("");
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
 
   // Estados de ordenamiento multi-criterio
   const [sortPrimary, setSortPrimary] = useState("scheduled_date");
@@ -63,6 +164,42 @@ export default function DispatchSection() {
     api.get("/destinations").then((r) => setDestinations((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
     api.get("/origin-services").then((r) => setOriginServices((r.data || []).filter((s) => s.is_active !== false))).catch(() => {});
   }, []);
+
+  const fetchActivityLogs = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(20);
+      if (!error && data) {
+        setActivityLogs(data);
+      }
+    } catch (e) {
+      console.error("Error cargando logs de actividad:", e);
+    } finally {
+      setLoadingActivity(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActivityLogs();
+
+    const channel = supabase
+      .channel('audit-logs-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'audit_logs' },
+        (payload) => {
+          setActivityLogs((prev) => [payload.new, ...prev.slice(0, 19)]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchActivityLogs]);
 
   // Sincronizar estados locales de edición cuando se abre el modal
   useEffect(() => {
@@ -530,7 +667,8 @@ export default function DispatchSection() {
         <StatusCard id="completado" label="Finalizados" count={stats.completado} color="#10b981" activeColor="bg-emerald-50" />
       </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-b border-slate-200 pb-4 gap-4">
           <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
             <Activity className="w-6 h-6 text-teal-600" />
@@ -642,6 +780,84 @@ export default function DispatchSection() {
                 <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   Sin traslados no clínicos activos
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+        </div>
+
+        {/* Panel de Actividad Reciente */}
+        <div className="xl:col-span-1 flex flex-col space-y-4 self-start">
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[700px]">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                <Activity className="w-5 h-5 text-teal-600 animate-pulse shrink-0" /> Actividad Reciente
+              </h2>
+              <Badge className="bg-emerald-50 text-emerald-700 border-none font-black px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wide">
+                En vivo
+              </Badge>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-3.5 pr-1" style={{ maxHeight: "calc(700px - 75px)" }}>
+              {loadingActivity ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 py-20">
+                  <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Cargando novedades...</span>
+                </div>
+              ) : activityLogs.length === 0 ? (
+                <div className="text-center py-20 text-slate-300 italic text-xs">
+                  Sin novedades registradas hoy.
+                </div>
+              ) : (
+                activityLogs.map((log) => {
+                  const logDetail = formatActivityLog(log);
+                  const Icon = logDetail.Icon;
+                  return (
+                    <div 
+                      key={log.id} 
+                      className={`p-3 rounded-2xl border transition-all hover:shadow-sm flex items-start gap-3 ${logDetail.bg}`}
+                    >
+                      <div className={`p-2 rounded-xl bg-white border border-slate-100 shrink-0 shadow-sm ${logDetail.iconColor}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between items-start gap-1.5 flex-wrap">
+                          <p className="text-xs font-black text-slate-900 leading-snug">{logDetail.title}</p>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        
+                        <p className="text-[10px] font-semibold text-slate-600 mt-1 leading-snug break-words">
+                          {logDetail.description}
+                        </p>
+                        
+                        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap border-t border-slate-100/50 pt-1.5">
+                          <p className="text-[9px] font-bold text-slate-400 truncate uppercase">
+                            por {log.user_name || "Sistema"}
+                          </p>
+                          {log.new_values?.tracking_number && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const foundTrip = trips.find(t => t.tracking_number === log.new_values.tracking_number);
+                                if (foundTrip) {
+                                  setDetailTrip(foundTrip);
+                                } else {
+                                  setDetailTrip(log.new_values);
+                                }
+                              }}
+                              className="text-[9px] font-mono font-black text-teal-600 hover:text-teal-700 bg-white hover:bg-teal-50/50 px-1.5 py-0.5 rounded border border-teal-100 shadow-sm transition-colors cursor-pointer"
+                            >
+                              #{log.new_values.tracking_number}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
