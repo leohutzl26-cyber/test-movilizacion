@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw, MapPin, User, Ambulance, Truck, Map } from "lucide-react";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
