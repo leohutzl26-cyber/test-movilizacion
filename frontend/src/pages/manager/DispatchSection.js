@@ -93,32 +93,140 @@ const ACTIVITY_MAPPINGS = {
 };
 
 const formatActivityLog = (log) => {
-  const mapping = ACTIVITY_MAPPINGS[log.action] || {
-    title: log.action.replace(/_/g, " "),
+  let actionName = log.action;
+  let entityType = log.entity_type || "";
+
+  // 1. Detección y traducción de operaciones crudas de BD (INSERT, UPDATE, DELETE)
+  if (["INSERT", "UPDATE", "DELETE"].includes(actionName)) {
+    if (entityType === "trips") {
+      if (actionName === "INSERT") {
+        actionName = "create_trip";
+      } else if (actionName === "DELETE") {
+        actionName = "eliminar_traslado";
+      } else if (actionName === "UPDATE") {
+        const oldStatus = log.old_values?.status;
+        const newStatus = log.new_values?.status;
+        
+        if (oldStatus !== newStatus && newStatus) {
+          actionName = `cambiar_estado_${newStatus}`;
+        } else if (log.old_values?.driver_id !== log.new_values?.driver_id) {
+          actionName = log.new_values?.driver_id ? "asignar_conductor" : "desasignar_conductor";
+        } else if (log.old_values?.driver_notes !== log.new_values?.driver_notes) {
+          actionName = "guardar_observaciones_conductor";
+        } else {
+          actionName = "editar_traslado";
+        }
+      }
+    } else if (entityType === "profiles") {
+      actionName = actionName === "INSERT" ? "usuario_registrado" : actionName === "UPDATE" ? "usuario_modificado" : "usuario_eliminado";
+    } else if (entityType === "vehicles") {
+      actionName = actionName === "INSERT" ? "vehiculo_registrado" : actionName === "UPDATE" ? "vehiculo_modificado" : "vehiculo_eliminado";
+    } else if (["origins", "destinations"].includes(entityType)) {
+      actionName = actionName === "INSERT" ? "catalogo_agregado" : actionName === "UPDATE" ? "catalogo_modificado" : "catalogo_eliminado";
+    }
+  } else if (actionName.includes("catalog")) {
+    actionName = "catalogo_modificado";
+  }
+
+  // Mapear el resultado final a su estilo visual
+  const mapping = ACTIVITY_MAPPINGS[actionName] || {
+    title: actionName.replace(/_/g, " "),
     bg: "bg-slate-50 border-slate-100",
-    iconColor: "text-slate-600",
+    iconColor: "text-slate-500",
     Icon: FileText
   };
 
+  // Mapeo extra para acciones no listadas en ACTIVITY_MAPPINGS originalmente
+  const EXTRA_MAPPINGS = {
+    eliminar_traslado: {
+      title: "Traslado Eliminado",
+      bg: "bg-red-50/70 border-red-100",
+      iconColor: "text-red-600",
+      Icon: Trash2
+    },
+    usuario_registrado: {
+      title: "Nuevo Usuario",
+      bg: "bg-blue-50/70 border-blue-100",
+      iconColor: "text-blue-600",
+      Icon: UserPlus
+    },
+    usuario_modificado: {
+      title: "Usuario Modificado",
+      bg: "bg-slate-50 border-slate-100",
+      iconColor: "text-slate-600",
+      Icon: Edit
+    },
+    usuario_eliminado: {
+      title: "Usuario Eliminado",
+      bg: "bg-red-50/70 border-red-100",
+      iconColor: "text-red-600",
+      Icon: Trash2
+    },
+    vehiculo_registrado: {
+      title: "Móvil Registrado",
+      bg: "bg-blue-50/70 border-blue-100",
+      iconColor: "text-blue-600",
+      Icon: Truck
+    },
+    vehiculo_modificado: {
+      title: "Móvil Modificado",
+      bg: "bg-slate-50 border-slate-100",
+      iconColor: "text-slate-600",
+      Icon: Edit
+    },
+    vehiculo_eliminado: {
+      title: "Móvil Eliminado",
+      bg: "bg-red-50/70 border-red-100",
+      iconColor: "text-red-600",
+      Icon: Trash2
+    },
+    catalogo_agregado: {
+      title: "Punto Agregado",
+      bg: "bg-blue-50/70 border-blue-100",
+      iconColor: "text-blue-600",
+      Icon: MapPin
+    },
+    catalogo_modificado: {
+      title: "Catálogo Modificado",
+      bg: "bg-slate-50 border-slate-100",
+      iconColor: "text-slate-600",
+      Icon: Edit
+    },
+    catalogo_eliminado: {
+      title: "Punto Eliminado",
+      bg: "bg-red-50/70 border-red-100",
+      iconColor: "text-red-600",
+      Icon: Trash2
+    }
+  };
+
+  const finalMapping = { ...mapping, ...(EXTRA_MAPPINGS[actionName] || {}) };
+
   let description = "";
-  if (log.action === "create_trip") {
+  if (actionName === "create_trip") {
     description = `Paciente/Detalle: ${log.new_values?.patient_name || log.new_values?.task_details || "-"}`;
-  } else if (log.action === "guardar_observaciones_conductor") {
+  } else if (actionName === "guardar_observaciones_conductor") {
     description = log.new_values?.driver_notes || "Añadió notas al traslado";
-  } else if (log.action === "asignar_conductor" || log.action === "auto_asignar") {
+  } else if (actionName === "asignar_conductor" || actionName === "auto_asignar") {
     description = `Conductor: ${log.new_values?.driver_name || "Asignado"}`;
-  } else if (log.action === "desasignar_conductor") {
+  } else if (actionName === "desasignar_conductor") {
     description = "Se quitó la asignación del conductor";
-  } else if (log.action === "editar_traslado") {
-    description = log.new_values?.detalle || "Se modificaron datos del traslado";
-  } else if (log.action.startsWith("cambiar_estado_")) {
-    const estado = log.action.replace("cambiar_estado_", "");
+  } else if (actionName === "editar_traslado") {
+    description = `Campos modificados en el traslado`;
+  } else if (actionName.startsWith("cambiar_estado_")) {
+    const estado = actionName.replace("cambiar_estado_", "");
     description = `Traslado cambió a estado ${estado === "en_curso" ? "en curso" : estado}`;
+  } else if (entityType === "profiles") {
+    description = `Usuario: ${log.new_values?.name || log.old_values?.name || "-"} (${(log.new_values?.role || log.old_values?.role || "").replace(/_/g, " ")})`;
+  } else if (entityType === "vehicles") {
+    description = `Móvil: ${log.new_values?.brand || log.old_values?.brand || ""} - Patente: ${log.new_values?.plate || log.old_values?.plate || "-"}`;
+  } else if (["origins", "destinations"].includes(entityType)) {
+    description = `Punto: ${log.new_values?.name || log.old_values?.name || "-"}`;
   } else {
-    description = `Acción ejecutada en el folio #${log.new_values?.tracking_number || "-"}`;
+    description = `Folio #${log.new_values?.tracking_number || log.old_values?.tracking_number || "-"}`;
   }
 
-  return { ...mapping, description };
+  return { ...finalMapping, description };
 };
 
 export default function DispatchSection() {
