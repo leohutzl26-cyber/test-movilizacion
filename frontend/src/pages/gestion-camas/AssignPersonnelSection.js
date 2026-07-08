@@ -13,6 +13,49 @@ import TripEvolutionLog from "@/components/TripEvolutionLog";
 import MapAddressSelector from "@/components/MapAddressSelector";
 import { formatScheduledDate, PERSONNEL_TYPES, REQUIREMENT_OPTIONS, statusHeaderStyles } from "@/lib/tripUtils";
 
+const renderClinicalTeam = (t) => {
+  if (t.assigned_clinical_staff && t.assigned_clinical_staff.length > 0) {
+    const staffList = t.assigned_clinical_staff.map(s => s.staff_name || s.type).filter(Boolean);
+    if (staffList.length > 0) {
+      return (
+        <div className="bg-teal-50 px-2.5 py-1.5 rounded text-xs font-semibold text-teal-900 border border-teal-100 flex flex-col gap-0.5">
+          <span className="font-bold uppercase text-[10px] text-teal-700 block mb-0.5">Personal Asignado:</span>
+          {t.assigned_clinical_staff.map((s, idx) => (
+            <div key={idx} className="flex justify-between items-center gap-2">
+              <span className="truncate max-w-[120px]">{s.staff_name || "Pendiente"}</span>
+              <span className="text-[8px] uppercase bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded font-bold shrink-0">{s.type}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+  }
+
+  if (t.required_personnel && t.required_personnel.length > 0) {
+    return (
+      <div className="bg-amber-50 px-2.5 py-1.5 rounded text-xs font-semibold text-amber-900 border border-amber-100 flex flex-col gap-0.5">
+        <span className="font-bold uppercase text-[10px] text-amber-700 block mb-0.5">Personal Requerido:</span>
+        <div className="flex flex-wrap gap-1 mt-0.5">
+          {t.required_personnel.map((p, idx) => (
+            <span key={idx} className="text-[8px] uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">{p}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (t.clinical_team) {
+    return (
+      <div className="bg-teal-50 px-2.5 py-1.5 rounded text-xs font-semibold text-teal-900 border border-teal-100">
+        <span className="font-bold uppercase text-[10px] text-teal-700 block mb-0.5">Equipo:</span>
+        {t.clinical_team}
+      </div>
+    );
+  }
+
+  return <span className="text-xs text-slate-400 italic font-medium">Sin personal extra</span>;
+};
+
 export default function AssignPersonnelSection() {
   const [trips, setTrips] = useState([]);
   const [clinicalStaffOptions, setClinicalStaffOptions] = useState([]);
@@ -67,10 +110,16 @@ export default function AssignPersonnelSection() {
 
   const handleApprove = async () => {
     try {
+      const clinicalTeamString = staffRows
+        .map(s => s.staff_name ? `${s.staff_name} (${s.type})` : s.type)
+        .filter(Boolean)
+        .join(", ");
+
       const payload = {
         ...editData,
         priority: priority,
-        assigned_clinical_staff: staffRows
+        assigned_clinical_staff: staffRows,
+        clinical_team: clinicalTeamString || null
       };
 
       if (assignDialog.status === "revision_gestor") {
@@ -217,12 +266,7 @@ export default function AssignPersonnelSection() {
 
           <div className="flex items-center justify-between gap-2">
              <div className="flex-1">
-                {t.clinical_team && (
-                  <div className="bg-teal-50 p-2 rounded-lg border border-teal-200">
-                    <p className="text-[10px] font-black text-teal-800 uppercase tracking-widest leading-none mb-1">Equipo:</p>
-                    <p className="text-xs font-bold text-teal-900 truncate">{t.clinical_team}</p>
-                  </div>
-                )}
+                {renderClinicalTeam(t)}
              </div>
              {(t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") && (
                 <Button onClick={(e) => {
@@ -344,14 +388,7 @@ export default function AssignPersonnelSection() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {t.clinical_team ? (
-                        <div className="bg-teal-50 px-2.5 py-1.5 rounded text-xs font-semibold text-teal-900 border border-teal-100">
-                           <span className="font-bold uppercase text-[10px] text-teal-700 block mb-0.5">Equipo:</span>
-                           {t.clinical_team}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic font-medium">Sin personal extra</span>
-                      )}
+                      {renderClinicalTeam(t)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <Badge className={`font-bold uppercase text-xs px-2.5 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
