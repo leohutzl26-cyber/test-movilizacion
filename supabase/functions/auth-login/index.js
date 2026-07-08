@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .or(`username.eq."${loginIdentifier}",email.eq."${loginIdentifier}"`)
+      .or(`username.ilike."${loginIdentifier}",email.ilike."${loginIdentifier}"`)
       .maybeSingle();
 
     if (profileError) {
