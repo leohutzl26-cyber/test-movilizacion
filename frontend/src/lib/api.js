@@ -286,6 +286,7 @@ const api = {
           const { vehicle_id, start_date, end_date } = config.params || {};
           const logbookData = await supabaseApi.trips.getTripHistory({
             vehicle_id,
+            status: "completado",
             startDate: start_date,
             endDate: end_date
           });

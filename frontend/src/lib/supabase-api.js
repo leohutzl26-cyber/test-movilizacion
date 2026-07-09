@@ -247,6 +247,14 @@ export const tripsApi = {
     if (filters.endDate) {
       query = query.lte('scheduled_date', filters.endDate);
     }
+
+    if (filters.vehicle_id) {
+      query = query.eq('vehicle_id', filters.vehicle_id);
+    }
+
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
     
     const { data, error } = await query;
     if (error) throw error;
