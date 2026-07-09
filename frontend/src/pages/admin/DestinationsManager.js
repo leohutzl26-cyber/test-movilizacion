@@ -4,17 +4,24 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Map, Upload, MapPin, Trash2 } from "lucide-react";
+import { ExternalLink, Upload, MapPin, Trash2 } from "lucide-react";
 import api from "@/lib/api";
 import BulkUploader from "@/components/BulkUploader";
-import MapAddressSelector from "@/components/MapAddressSelector";
 
 export default function DestinationsManager() {
   const [dests, setDests] = useState([]);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [showMap, setShowMap] = useState(false);
+
+  const handleOpenGoogleMaps = () => {
+    if (!address.trim()) {
+      toast.error("Por favor escriba una dirección primero");
+      return;
+    }
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    window.open(url, "_blank");
+  };
 
   const fetchDests = useCallback(async () => {
     try {
@@ -93,10 +100,10 @@ export default function DestinationsManager() {
                   type="button"
                   variant="outline"
                   className="h-11 px-3 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0"
-                  onClick={() => setShowMap(true)}
+                  onClick={handleOpenGoogleMaps}
                 >
-                  <Map className="w-4 h-4 text-teal-600" />
-                  <span className="hidden sm:inline text-xs font-bold">Mapa</span>
+                  <ExternalLink className="w-4 h-4 text-teal-600" />
+                  <span className="hidden sm:inline text-xs font-bold">G-Maps</span>
                 </Button>
               </div>
             </div>
@@ -151,12 +158,6 @@ export default function DestinationsManager() {
           ["Clínica Las Condes", "Av. Las Condes 763"],
           ["Laboratorio Central", "Av. Providencia 1234"]
         ]}
-      />
-      <MapAddressSelector
-        open={showMap}
-        onClose={() => setShowMap(false)}
-        onSelect={({ address }) => setAddress(address)}
-        title="Seleccionar Dirección de Destino"
       />
     </div>
   );
