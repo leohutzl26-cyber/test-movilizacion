@@ -11,6 +11,23 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+const formatDateShort = (dateStr) => {
+  if (!dateStr) return "—";
+  try {
+    const cleanDate = dateStr.split("T")[0];
+    const parts = cleanDate.split("-");
+    if (parts.length === 3) {
+      const year = parts[0].slice(-2);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      return `${day}/${month}/${year}`;
+    }
+    return dateStr;
+  } catch (e) {
+    return dateStr;
+  }
+};
+
 export default function LogbookReport() {
   const [vehicles, setVehicles] = useState([]);
   const [vehicleId, setVehicleId] = useState("");
@@ -69,7 +86,7 @@ export default function LogbookReport() {
           const horaLlegada = t.completed_at ? t.completed_at.split("T")[1]?.slice(0, 5) : "—";
 
           return {
-            "Fecha": t.scheduled_date || "",
+            "Fecha": formatDateShort(t.scheduled_date),
             "H.Salida": horaSalida,
             "H.Llegada": horaLlegada,
             "Km Ini": startKm,
@@ -120,7 +137,7 @@ export default function LogbookReport() {
           const horaLlegada = t.completed_at ? t.completed_at.split("T")[1]?.slice(0, 5) : "—";
 
           return [
-            t.scheduled_date || "",
+            formatDateShort(t.scheduled_date),
             horaSalida,
             horaLlegada,
             String(startKm),
@@ -272,7 +289,7 @@ export default function LogbookReport() {
 
                     return (
                       <tr key={t.id || i} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/80"} hover:bg-indigo-50/50 transition-colors`}>
-                        <td className="p-2.5 font-medium">{t.scheduled_date}</td>
+                        <td className="p-2.5 font-medium">{formatDateShort(t.scheduled_date)}</td>
                         <td className="p-2.5">{horaSalida}</td>
                         <td className="p-2.5">{horaLlegada}</td>
                         <td className="p-2.5 text-right font-mono">{startKm}</td>
