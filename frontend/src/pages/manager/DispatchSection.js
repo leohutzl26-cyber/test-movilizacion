@@ -634,7 +634,11 @@ export default function DispatchSection() {
             >
               #{t.tracking_number}
             </span>
-            <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm ${t.priority === "urgente" ? "bg-red-500 text-white" : t.priority === "alta" ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>{t.priority}</Badge>
+            <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm flex items-center gap-1 ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
+              {t.priority === "urgente" && "🚨"}
+              {t.priority === "alta" && "⚠️"}
+              {t.priority}
+            </Badge>
             <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm ${statusColorsSolid[t.status] || "bg-slate-500 text-white"}`}>
               {(t.status || "").replace(/_/g, " ")}
             </Badge>

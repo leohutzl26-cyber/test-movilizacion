@@ -124,7 +124,11 @@ export const statusHeaderStyles = {
   devuelto: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" }
 };
 
-export const pColors = { urgente: "bg-red-500 text-white font-bold", alta: "bg-orange-500 text-white font-bold", normal: "bg-slate-100 text-slate-700 font-bold border border-slate-200" };
+export const pColors = { 
+  urgente: "bg-gradient-to-r from-red-500 to-rose-600 text-white font-black shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse", 
+  alta: "bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400", 
+  normal: "bg-slate-100 text-slate-700 font-bold border border-slate-200" 
+};
 
 export const sColors = {
   pendiente: "bg-amber-100 text-amber-800 border border-amber-200",

@@ -251,7 +251,9 @@ export default function AssignPersonnelSection() {
             </div>
             <div className="flex flex-col items-end gap-2">
               <Badge className={`font-bold uppercase text-xs px-2.5 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
-              <Badge className={`font-bold border-none text-xs uppercase px-2.5 py-1 rounded-full ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
+              <Badge className={`font-black border-none text-xs uppercase px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
+                {t.priority === "urgente" && "🚨"}
+                {t.priority === "alta" && "⚠️"}
                 {t.priority.toUpperCase()}
               </Badge>
             </div>
@@ -378,7 +380,9 @@ export default function AssignPersonnelSection() {
                         <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm w-fit">
                           #{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}
                         </span>
-                        <Badge className={`font-bold border-none text-xs uppercase px-2.5 py-1 rounded-full w-fit ${t.priority === "urgente" ? "bg-red-500 text-white font-bold" : t.priority === "alta" ? "bg-orange-500 text-white font-bold" : "bg-slate-100 text-slate-700 font-bold border border-slate-200"}`}>
+                        <Badge className={`font-black border-none text-[10px] uppercase px-2.5 py-1 rounded-full w-fit flex items-center gap-1 shadow-sm ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
+                          {t.priority === "urgente" && "🚨"}
+                          {t.priority === "alta" && "⚠️"}
                           {t.priority.toUpperCase()}
                         </Badge>
                       </div>

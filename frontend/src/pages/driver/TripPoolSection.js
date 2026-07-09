@@ -49,9 +49,9 @@ export default function TripPoolSection({ onNavigate }) {
   };
 
   const priorityColors = {
-    urgente: "bg-red-500 text-white shadow-red-200",
-    alta: "bg-orange-400 text-white shadow-orange-200",
-    normal: "bg-slate-200 text-slate-700 shadow-slate-200",
+    urgente: "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 font-black animate-pulse",
+    alta: "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400 font-black",
+    normal: "bg-slate-100 text-slate-600 border border-slate-200 font-semibold",
   };
   const sLabels = { pendiente: "Pendiente", asignado: "Asignado", en_curso: "En Curso", completado: "Completado", cancelado: "Cancelado" };
   const sColors = {
@@ -108,8 +108,12 @@ export default function TripPoolSection({ onNavigate }) {
         {displayTrips.map((t) => (
           <Card
             key={t.id}
-            className={`shadow-md transition-all hover:shadow-lg border-t-4 ${
-              t.priority === "urgente" ? "border-t-red-500" : t.priority === "alta" ? "border-t-orange-400" : "border-t-teal-500"
+            className={`shadow-md transition-all hover:shadow-lg ${
+              t.priority === "urgente" 
+                ? "border-t-8 border-t-red-600 ring-2 ring-red-500/20 shadow-red-50" 
+                : t.priority === "alta" 
+                  ? "border-t-8 border-t-orange-500 ring-2 ring-orange-500/20 shadow-orange-50" 
+                  : "border-t-4 border-t-teal-500"
             }`}
           >
             <CardContent className="p-5">
@@ -119,10 +123,12 @@ export default function TripPoolSection({ onNavigate }) {
                     {t.tracking_number || t.id.substring(0, 6).toUpperCase()}
                   </span>
                   <span
-                    className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider self-start shadow-sm ${
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider self-start flex items-center gap-1.5 shadow-sm ${
                       priorityColors[t.priority] || priorityColors.normal
                     }`}
                   >
+                    {t.priority === "urgente" && "🚨"}
+                    {t.priority === "alta" && "⚠️"}
                     {t.priority}
                   </span>
                 </div>
