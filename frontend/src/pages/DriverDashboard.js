@@ -9,10 +9,11 @@ import MyTripsSection from "./driver/MyTripsSection";
 import DriverCalendarSection from "./driver/DriverCalendarSection";
 import LogbookSection from "./driver/LogbookSection";
 import DriverHistorySection from "./driver/DriverHistorySection";
+import DriverStatsSection from "./driver/DriverStatsSection";
 
 export default function DriverDashboard() {
   const [section, setSection] = useState(() => {
-    return localStorage.getItem("movilizacion.conductor.section") || "trips";
+    return localStorage.getItem("movilizacion.conductor.section") || "dashboard";
   });
   const [licenseExpired, setLicenseExpired] = useState(false);
 
@@ -46,6 +47,7 @@ export default function DriverDashboard() {
             </div>
           </div>
         )}
+        {section === "dashboard" && <DriverStatsSection />}
         {section === "pool" && <TripPoolSection onNavigate={setSection} />}
         {section === "trips" && <MyTripsSection />}
         {section === "calendar" && <DriverCalendarSection />}
