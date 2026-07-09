@@ -82,7 +82,7 @@ export default function LogbookReport() {
           const kmRec = endKm > startKm ? Math.round((endKm - startKm) * 10) / 10 : 0;
           const motivo = t.transfer_reason || t.task_details || t.notes || t.diagnosis || "—";
           const pasajeros = t.clinical_team || t.patient_name || "";
-          const horaSalida = t.departure_time || (t.created_at?.split("T")[1]?.slice(0, 5) || "—");
+          const horaSalida = t.started_at ? t.started_at.split("T")[1]?.slice(0, 5) : (t.departure_time || "—");
           const horaLlegada = t.completed_at ? t.completed_at.split("T")[1]?.slice(0, 5) : "—";
 
           return {
@@ -133,7 +133,7 @@ export default function LogbookReport() {
           const kmRec = endKm > startKm ? Math.round((endKm - startKm) * 10) / 10 : 0;
           const motivo = t.transfer_reason || t.task_details || t.notes || t.diagnosis || "—";
           const pasajeros = t.clinical_team || t.patient_name || "";
-          const horaSalida = t.departure_time || (t.created_at?.split("T")[1]?.slice(0, 5) || "—");
+          const horaSalida = t.started_at ? t.started_at.split("T")[1]?.slice(0, 5) : (t.departure_time || "—");
           const horaLlegada = t.completed_at ? t.completed_at.split("T")[1]?.slice(0, 5) : "—";
 
           return [
@@ -284,7 +284,7 @@ export default function LogbookReport() {
                     const kmRec = endKm > startKm ? Math.round((endKm - startKm) * 10) / 10 : 0;
                     const motivo = t.transfer_reason || t.task_details || t.notes || t.diagnosis || "—";
                     const pasajeros = t.clinical_team || t.patient_name || "";
-                    const horaSalida = t.departure_time || (t.created_at?.split("T")[1]?.slice(0, 5) || "—");
+                    const horaSalida = t.started_at ? t.started_at.split("T")[1]?.slice(0, 5) : (t.departure_time || "—");
                     const horaLlegada = t.completed_at ? t.completed_at.split("T")[1]?.slice(0, 5) : "—";
 
                     return (

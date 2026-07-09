@@ -73,11 +73,15 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // Handle mileage tracking
-      if (mileage !== undefined) {
-        if (status === 'en_curso') {
+      // Handle status events and mileage tracking
+      if (status === 'en_curso') {
+        updateData.started_at = new Date().toISOString();
+        if (mileage !== undefined) {
           updateData.start_mileage = mileage;
-        } else if (status === 'completado') {
+        }
+      } else if (status === 'completado') {
+        updateData.completed_at = new Date().toISOString();
+        if (mileage !== undefined) {
           updateData.end_mileage = mileage;
           if (currentTrip.start_mileage) {
             updateData.total_mileage = mileage - currentTrip.start_mileage;
