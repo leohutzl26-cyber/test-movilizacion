@@ -183,12 +183,22 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const finalOrigin = form.origin;
-    const finalDest = form.destination;
+    const finalOrigin = (form.origin || "").trim();
+    const finalDest = (form.destination || "").trim();
+    const finalPatientName = (form.patient_name || "").trim();
+    const finalPatientUnit = (form.patient_unit || "").trim();
+    const finalTransferReason = (form.transfer_reason || "").trim();
 
     if (tripType === "clinico") {
-      if (!form.patient_name || !form.patient_unit || !form.transfer_reason || !finalOrigin || !finalDest) {
-        toast.error("Complete todos los campos obligatorios del traslado clínico");
+      const missingFields = [];
+      if (!finalPatientName) missingFields.push("Nombre Paciente");
+      if (!finalPatientUnit) missingFields.push("Servicio Solicitante");
+      if (!finalTransferReason) missingFields.push("Motivo Traslado");
+      if (!finalOrigin) missingFields.push("Origen");
+      if (!finalDest) missingFields.push("Destino");
+
+      if (missingFields.length > 0) {
+        toast.error(`Complete todos los campos obligatorios del traslado clínico. Faltan: ${missingFields.join(", ")}`);
         return;
       }
       if (staffRows.length === 0 && form.transfer_reason !== "Alta") {
@@ -216,6 +226,9 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
         ...form,
         origin: finalOrigin,
         destination: finalDest,
+        patient_name: finalPatientName,
+        patient_unit: finalPatientUnit,
+        transfer_reason: finalTransferReason,
         trip_type: tripType,
         required_personnel: staffRows.map((r) => `${r.type}: ${r.staff_name || "Por identificar"}`),
         assigned_clinical_staff: staffRows,
