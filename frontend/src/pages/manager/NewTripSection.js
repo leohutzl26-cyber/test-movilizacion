@@ -133,20 +133,27 @@ export default function NewTripSection({ onNavigate }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const finalOrigin = useCustomOrigin ? form.origin : form.origin;
-        const finalDest = useCustomDest ? form.destination : form.destination;
+        const finalOrigin = (form.origin || "").trim();
+        const finalDest = (form.destination || "").trim();
+        const finalPatientName = (form.patient_name || "").trim();
+        const finalPatientUnit = (form.patient_unit || "").trim();
+        const finalTransferReason = (form.transfer_reason || "").trim();
 
         let newErrors = {};
 
+        if (!finalOrigin) newErrors.origin = true;
+        if (!finalDest) newErrors.destination = true;
+        if (!finalPatientUnit) newErrors.patient_unit = true;
+
         if (tripType === "clinico") {
-            if (!form.patient_name) newErrors.patient_name = true;
-            if (!form.patient_unit) newErrors.patient_unit = true;
-            if (!form.transfer_reason) newErrors.transfer_reason = true;
-            if (!finalOrigin) newErrors.origin = true;
-            if (!finalDest) newErrors.destination = true;
+            if (!finalPatientName) newErrors.patient_name = true;
+            if (!finalTransferReason) newErrors.transfer_reason = true;
             
             setErrors(newErrors);
 
+            if (Object.keys(newErrors).length > 0) {
+                toast.error("Complete todos los campos obligatorios del traslado clínico"); return;
+            }
             if (staffRows.length === 0 && form.transfer_reason !== "Alta") { 
                 toast.error("Debe añadir al menos un personal clínico para traslados clínicos"); return; 
             }
@@ -155,14 +162,13 @@ export default function NewTripSection({ onNavigate }) {
             }
             if (form.patient_requirements.length === 0) { toast.error("Seleccione requerimientos del paciente"); return; }
         } else {
-            if (!finalOrigin) newErrors.origin = true;
-            if (!finalDest) newErrors.destination = true;
-            if (!form.task_details) newErrors.task_details = true;
+            const finalTaskDetails = (form.task_details || "").trim();
+            if (!finalTaskDetails) newErrors.task_details = true;
             
             setErrors(newErrors);
 
             if (Object.keys(newErrors).length > 0) {
-                toast.error("Complete Origen, Destino y Cometido"); return;
+                toast.error("Complete todos los campos obligatorios del traslado no clínico: Origen, Destino, Servicio Solicitante y Cometido"); return;
             }
         }
 
@@ -173,6 +179,10 @@ export default function NewTripSection({ onNavigate }) {
                 ...form,
                 origin: finalOrigin,
                 destination: finalDest,
+                patient_name: finalPatientName,
+                patient_unit: finalPatientUnit,
+                transfer_reason: finalTransferReason,
+                task_details: tripType === "no_clinico" ? (form.task_details || "").trim() : "",
                 trip_type: tripType,
                 required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`),
                 assigned_clinical_staff: staffRows,
@@ -345,26 +355,24 @@ export default function NewTripSection({ onNavigate }) {
 
                                 {/* FILA DE DETALLES TEMPORALES Y SERVICIOS */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 pt-2 border-t border-slate-100">
+                                    <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.patient_unit ? "text-red-500" : "text-slate-500"}`}>Servicio Solicitante *</Label>
+                                        {!useCustomService ? (
+                                            <Select onValueChange={v => {
+                                                if (v === "otro") { setUseCustomService(true); }
+                                                else { setForm({ ...form, patient_unit: v }); if (errors.patient_unit) setErrors(p => ({ ...p, patient_unit: false })); }
+                                            }}>
+                                                <SelectTrigger className={`h-9 text-xs font-semibold ${errors.patient_unit ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                                                    <SelectItem value="otro">Otro (escribir)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <Input className={`h-9 text-xs font-semibold ${errors.patient_unit ? "border-red-500 bg-red-50 shadow-inner" : ""}`} placeholder="Escriba servicio" value={form.patient_unit || ""} onChange={e => { setForm({ ...form, patient_unit: e.target.value }); if (errors.patient_unit) setErrors(p => ({ ...p, patient_unit: false })); }} onDoubleClick={() => setUseCustomService(false)} />
+                                        )}
+                                    </div>
                                     {tripType === "clinico" && (
-                                        <>
-                                            <div className="space-y-1"><Label className={`text-[10px] font-bold ${errors.patient_unit ? "text-red-500" : "text-slate-500"}`}>Servicio Solicitante *</Label>
-                                                {!useCustomService ? (
-                                                    <Select onValueChange={v => {
-                                                        if (v === "otro") { setUseCustomService(true); }
-                                                        else { setForm({ ...form, patient_unit: v }); if (errors.patient_unit) setErrors(p => ({ ...p, patient_unit: false })); }
-                                                    }}>
-                                                        <SelectTrigger className={`h-9 text-xs font-semibold ${errors.patient_unit ? "border-red-500 bg-red-50" : ""}`}><SelectValue placeholder="Seleccione servicio" /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {originServices.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
-                                                            <SelectItem value="otro">Otro (escribir)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                ) : (
-                                                    <Input className={`h-9 text-xs font-semibold ${errors.patient_unit ? "border-red-500 bg-red-50 shadow-inner" : ""}`} placeholder="Escriba servicio" value={form.patient_unit || ""} onChange={e => { setForm({ ...form, patient_unit: e.target.value }); if (errors.patient_unit) setErrors(p => ({ ...p, patient_unit: false })); }} onDoubleClick={() => setUseCustomService(false)} />
-                                                )}
-                                            </div>
-                                            <div className="space-y-1"><Label className="text-[10px] font-bold text-slate-500">Cama</Label><Input className="h-9 text-xs font-semibold" value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
-                                        </>
+                                        <div className="space-y-1"><Label className="text-[10px] font-bold text-slate-500">Cama</Label><Input className="h-9 text-xs font-semibold" value={form.bed} onChange={e => setForm({ ...form, bed: e.target.value })} /></div>
                                     )}
                                     <div className="space-y-1"><Label className="text-[10px] font-bold text-slate-500">Fecha del Traslado</Label><Input type="date" className="h-9 text-xs font-semibold" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} /></div>
                                     <div className="space-y-1"><Label className="text-[10px] font-bold text-slate-500">Hora de Citación</Label><Input type="time" className="h-9 text-xs font-semibold" value={form.appointment_time} onChange={e => setForm({ ...form, appointment_time: e.target.value })} /></div>
