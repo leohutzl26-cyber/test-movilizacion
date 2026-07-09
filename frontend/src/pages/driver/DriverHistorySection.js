@@ -174,6 +174,13 @@ export default function DriverHistorySection() {
                     </div>
                   </div>
                 )}
+                {selectedTrip.trip_type === "no_clinico" && (
+                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                    <div>
+                      <span className="font-bold text-slate-500">Cantidad de Funcionarios:</span> {selectedTrip.staff_count || "No especificado"}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="bg-white p-3 rounded-xl border shadow-sm">

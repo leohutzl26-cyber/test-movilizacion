@@ -120,6 +120,14 @@ export default function TripDetailDialog({ trip, open, onOpenChange, onRefresh }
                     </div>
                   </div>
                 )}
+                {trip.trip_type === "no_clinico" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Cantidad de Funcionarios</p>
+                      <p className="text-sm font-black text-slate-900">{trip.staff_count || "No especificado"}</p>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Motivo / Diagnóstico</p>
                   <p className="text-sm font-bold text-slate-800">{trip.diagnosis || trip.transfer_reason || "-"}</p>

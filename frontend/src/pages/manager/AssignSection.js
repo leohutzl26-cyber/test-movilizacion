@@ -147,6 +147,11 @@ export default function AssignSection() {
             <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm`}>{(t.status || "").replace(/_/g, " ")}</Badge>
             <Badge className={`${pColors[t.priority] || pColors.normal} border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm`}>{t.priority}</Badge>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+            {t.trip_type === "no_clinico" && t.staff_count && (
+              <Badge className="bg-indigo-100 text-indigo-700 border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm">
+                👤 {t.staff_count} {parseInt(t.staff_count) === 1 ? "Funcionario" : "Funcionarios"}
+              </Badge>
+            )}
           </div>
           <h4 className="text-sm font-black text-slate-900 uppercase truncate mb-2">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h4>
           <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">

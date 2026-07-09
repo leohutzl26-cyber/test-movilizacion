@@ -333,7 +333,8 @@ export default function DispatchSection() {
         age: editDialog.age || "",
         diagnosis: editDialog.diagnosis || "",
         weight: editDialog.weight || "",
-        transfer_reason: editDialog.transfer_reason || ""
+        transfer_reason: editDialog.transfer_reason || "",
+        staff_count: editDialog.staff_count || ""
       });
       setEditStaffRows(editDialog.assigned_clinical_staff || []);
       setEditRequirements(editDialog.patient_requirements || []);
@@ -650,6 +651,11 @@ export default function DispatchSection() {
               {t.transfer_reason || "Gral."}
             </p>
             <p className={`text-[9px] font-bold px-1.5 rounded uppercase ${t.trip_type === "clinico" ? "text-teal-600 bg-teal-50" : "text-indigo-600 bg-indigo-50"}`}>{t.trip_type}</p>
+            {t.trip_type === "no_clinico" && t.staff_count && (
+              <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full shrink-0">
+                👤 {t.staff_count} {parseInt(t.staff_count) === 1 ? "Funcionario" : "Funcionarios"}
+              </span>
+            )}
           </div>
         </div>
 
@@ -1226,6 +1232,19 @@ export default function DispatchSection() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {editDialog?.trip_type === "no_clinico" && (
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Cantidad de Funcionarios</Label>
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      value={editForm.staff_count || ""} 
+                      onChange={(e) => handleEditFormChange("staff_count", e.target.value)} 
+                      className="h-9 text-xs font-semibold" 
+                    />
+                  </div>
+                )}
 
                 {editDialog?.trip_type === "clinico" && (
                   <>
