@@ -189,13 +189,14 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
     const finalPatientUnit = (form.patient_unit || "").trim();
     const finalTransferReason = (form.transfer_reason || "").trim();
 
+    const missingFields = [];
+    if (!finalOrigin) missingFields.push("Origen");
+    if (!finalDest) missingFields.push("Destino");
+    if (!finalPatientUnit) missingFields.push("Servicio Solicitante");
+
     if (tripType === "clinico") {
-      const missingFields = [];
       if (!finalPatientName) missingFields.push("Nombre Paciente");
-      if (!finalPatientUnit) missingFields.push("Servicio Solicitante");
       if (!finalTransferReason) missingFields.push("Motivo Traslado");
-      if (!finalOrigin) missingFields.push("Origen");
-      if (!finalDest) missingFields.push("Destino");
 
       if (missingFields.length > 0) {
         toast.error(`Complete todos los campos obligatorios del traslado clínico. Faltan: ${missingFields.join(", ")}`);
@@ -214,8 +215,10 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
         return;
       }
     } else {
-      if (!finalOrigin || !finalDest || !form.task_details) {
-        toast.error("Complete Origen, Destino y Cometido");
+      if (!form.task_details) missingFields.push("Cometido");
+
+      if (missingFields.length > 0) {
+        toast.error(`Complete todos los campos obligatorios del traslado no clínico. Faltan: ${missingFields.join(", ")}`);
         return;
       }
     }
@@ -527,51 +530,50 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Servicio Solicitante *</Label>
+                  {!useCustomService ? (
+                    <Select
+                      value={form.patient_unit || undefined}
+                      onValueChange={(v) => {
+                        if (v === "otro") {
+                          setUseCustomService(true);
+                          if (!form.patient_unit) setForm({ ...form, patient_unit: "" });
+                        } else {
+                          setForm({ ...form, patient_unit: v });
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione servicio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {originServices.map((s) => (
+                          <SelectItem key={s.id} value={s.name}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                        {form.patient_unit && !originServices.find((s) => s.name === form.patient_unit) && (
+                          <SelectItem value={form.patient_unit}>{form.patient_unit} (Personalizado)</SelectItem>
+                        )}
+                        <SelectItem value="otro">Otro (escribir)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      placeholder="Escriba servicio"
+                      value={form.patient_unit || ""}
+                      onChange={(e) => setForm({ ...form, patient_unit: e.target.value })}
+                      onDoubleClick={() => setUseCustomService(false)}
+                    />
+                  )}
+                </div>
+
                 {tripType === "clinico" && (
-                  <>
-                    <div className="space-y-1">
-                      <Label>Servicio Solicitante *</Label>
-                      {!useCustomService ? (
-                        <Select
-                          value={form.patient_unit || undefined}
-                          onValueChange={(v) => {
-                            if (v === "otro") {
-                              setUseCustomService(true);
-                              if (!form.patient_unit) setForm({ ...form, patient_unit: "" });
-                            } else {
-                              setForm({ ...form, patient_unit: v });
-                            }
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione servicio" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {originServices.map((s) => (
-                              <SelectItem key={s.id} value={s.name}>
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                            {form.patient_unit && !originServices.find((s) => s.name === form.patient_unit) && (
-                              <SelectItem value={form.patient_unit}>{form.patient_unit} (Personalizado)</SelectItem>
-                            )}
-                            <SelectItem value="otro">Otro (escribir)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          placeholder="Escriba servicio"
-                          value={form.patient_unit || ""}
-                          onChange={(e) => setForm({ ...form, patient_unit: e.target.value })}
-                          onDoubleClick={() => setUseCustomService(false)}
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Cama</Label>
-                      <Input value={form.bed} onChange={(e) => setForm({ ...form, bed: e.target.value })} />
-                    </div>
-                  </>
+                  <div className="space-y-1">
+                    <Label>Cama</Label>
+                    <Input value={form.bed} onChange={(e) => setForm({ ...form, bed: e.target.value })} />
+                  </div>
                 )}
                 <div className="space-y-1">
                   <Label>Fecha del Traslado</Label>
