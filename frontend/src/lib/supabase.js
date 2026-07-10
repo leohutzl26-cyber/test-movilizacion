@@ -43,13 +43,24 @@ export const customFetch = (url, options) => {
         }
       }
 
+      const responseHeaders = {};
+      const headersString = xhr.getAllResponseHeaders();
+      if (headersString) {
+        headersString.trim().split(/[\r\n]+/).forEach(line => {
+          const parts = line.split(': ');
+          const header = parts.shift();
+          const value = parts.join(': ');
+          if (header) {
+            responseHeaders[header.toLowerCase()] = value;
+          }
+        });
+      }
+
       const hasNoBody = [204, 205, 304].includes(xhr.status);
       resolve(new Response(hasNoBody ? null : bodyText, {
         status: xhr.status,
         statusText: xhr.statusText,
-        headers: {
-          'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json'
-        }
+        headers: responseHeaders
       }));
     };
 
