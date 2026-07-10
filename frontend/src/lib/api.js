@@ -156,10 +156,16 @@ const api = {
         case "/trips/v2/history": {
           const session = await getCurrentUserSession();
           const driverId = session.user.id;
-          const historyTrips = await supabaseApi.trips.getTrips({
+          const params = {
             driver_id: driverId,
-            status: ['completado', 'cancelado']
-          });
+            status: ['completado', 'cancelado'],
+            ...queryParams,
+            ...config.params
+          };
+          const historyTrips = await supabaseApi.trips.getTrips(params);
+          if (params.page && params.limit) {
+            return { data: { trips: historyTrips.trips, total: historyTrips.total } };
+          }
           return { data: { trips: historyTrips || [] } };
         }
 
@@ -278,7 +284,14 @@ const api = {
         }
 
         case "/trips/history": {
-          const historyTrips = await supabaseApi.trips.getTripHistory(config.params || {});
+          const params = {
+            ...queryParams,
+            ...config.params
+          };
+          const historyTrips = await supabaseApi.trips.getTripHistory(params);
+          if (params.page && params.limit) {
+            return { data: { trips: historyTrips.trips, total: historyTrips.total } };
+          }
           return { data: historyTrips };
         }
 

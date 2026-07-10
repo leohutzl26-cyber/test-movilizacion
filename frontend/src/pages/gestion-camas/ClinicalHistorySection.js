@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Download, Search, Filter, MapPin, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, User, Map, Ambulance, Truck, Activity, RefreshCw } from "lucide-react";
+import { Download, Search, Filter, MapPin, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, User, Map, Ambulance, Truck, Activity, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { formatScheduledDate, sColors } from "@/lib/tripUtils";
 
@@ -23,17 +23,36 @@ export default function ClinicalHistorySection() {
   const [sortField, setSortField] = useState("scheduled_date");
   const [sortDirection, setSortDirection] = useState("desc");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/trips/history");
-      setHistory(res.data.filter(t => t.trip_type === "clinico"));
+      const params = new URLSearchParams();
+      params.append("trip_type", "clinico");
+      if (searchTerm) params.append("search", searchTerm);
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (dateFrom) params.append("startDate", dateFrom);
+      if (dateTo) params.append("endDate", dateTo);
+      
+      params.append("page", currentPage);
+      params.append("limit", pageSize);
+
+      const res = await api.get(`/trips/history?${params.toString()}`);
+      setHistory(res.data.trips || []);
+      setTotalCount(res.data.total || 0);
     } catch (e) {
       toast.error("Error al cargar el historial");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchTerm, statusFilter, dateFrom, dateTo, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
@@ -46,24 +65,7 @@ export default function ClinicalHistorySection() {
     }
   };
 
-  const filteredHistory = history.filter(t => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch =
-      (t.patient_name || "").toLowerCase().includes(term) ||
-      (t.tracking_number || "").toLowerCase().includes(term) ||
-      (t.origin || "").toLowerCase().includes(term) ||
-      (t.destination || "").toLowerCase().includes(term);
-
-    const matchesStatus = statusFilter === "all" || t.status === statusFilter;
-
-    const tripDate = new Date(t.scheduled_date || t.created_at);
-    const matchesDateFrom = dateFrom ? tripDate >= new Date(dateFrom) : true;
-    const matchesDateTo = dateTo ? tripDate <= new Date(dateTo + "T23:59:59") : true;
-
-    return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
-  });
-
-  const sortedHistory = [...filteredHistory].sort((a, b) => {
+  const sortedHistory = [...history].sort((a, b) => {
     let valA, valB;
 
     if (sortField === "scheduled_date") {
@@ -92,38 +94,89 @@ export default function ClinicalHistorySection() {
     return sortDirection === "asc" ? comp : -comp;
   });
 
-  const handleExportExcel = () => {
-    if (sortedHistory.length === 0) {
-      toast.error("No hay datos para exportar con estos filtros.");
-      return;
+  const handleExportExcel = async () => {
+    setLoading(true);
+    const toastId = toast.loading("Preparando exportación...");
+    try {
+      const params = new URLSearchParams();
+      params.append("trip_type", "clinico");
+      if (searchTerm) params.append("search", searchTerm);
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (dateFrom) params.append("startDate", dateFrom);
+      if (dateTo) params.append("endDate", dateTo);
+
+      const res = await api.get(`/trips/history?${params.toString()}`);
+      const allTrips = res.data || [];
+
+      if (allTrips.length === 0) {
+        toast.dismiss(toastId);
+        toast.error("No hay datos para exportar con estos filtros.");
+        return;
+      }
+
+      // Ordenar todos los datos igual que la tabla
+      const sortedAll = [...allTrips].sort((a, b) => {
+        let valA, valB;
+        if (sortField === "scheduled_date") {
+          valA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
+          valB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
+          return sortDirection === "asc" ? valA - valB : valB - valA;
+        }
+
+        if (sortField === "patient_name") {
+          valA = a.patient_name || "";
+          valB = b.patient_name || "";
+        } else if (sortField === "origin") {
+          valA = a.origin || "";
+          valB = b.origin || "";
+        } else if (sortField === "clinical_team") {
+          valA = a.clinical_team || "";
+          valB = b.clinical_team || "";
+        } else if (sortField === "status") {
+          valA = a.status || "";
+          valB = b.status || "";
+        } else {
+          return 0;
+        }
+
+        const comp = valA.localeCompare(valB, "es", { sensitivity: "base" });
+        return sortDirection === "asc" ? comp : -comp;
+      });
+
+      const headers = ["Folio", "Fecha Programada", "Paciente", "RUT", "Origen", "Destino", "Motivo", "Personal Acompañante", "Conductor", "Patente Vehiculo", "Estado"];
+
+      const csvRows = sortedAll.map(t => [
+        t.tracking_number || "",
+        t.scheduled_date || "",
+        `"${(t.patient_name || "").replace(/"/g, '""')}"`,
+        t.rut || "",
+        `"${(t.origin || "").replace(/"/g, '""')}"`,
+        `"${(t.destination || "").replace(/"/g, '""')}"`,
+        `"${(t.transfer_reason || "").replace(/"/g, '""')}"`,
+        `"${(t.clinical_team || "No asignado").replace(/"/g, '""')}"`,
+        `"${(t.driver_name || "Sin conductor").replace(/"/g, '""')}"`,
+        t.vehicle_plate || "Sin vehículo",
+        t.status || ""
+      ].join(";"));
+
+      const csvContent = [headers.join(";"), ...csvRows].join("\n");
+      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Reporte_Traslados_Clinicos_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.dismiss(toastId);
+      toast.success("CSV exportado con éxito");
+    } catch (e) {
+      console.error(e);
+      toast.dismiss(toastId);
+      toast.error("Error al exportar los datos");
+    } finally {
+      setLoading(false);
     }
-
-    const headers = ["Folio", "Fecha Programada", "Paciente", "RUT", "Origen", "Destino", "Motivo", "Personal Acompañante", "Conductor", "Patente Vehiculo", "Estado"];
-
-    const csvRows = sortedHistory.map(t => [
-      t.tracking_number || "",
-      t.scheduled_date || "",
-      `"${(t.patient_name || "").replace(/"/g, '""')}"`,
-      t.rut || "",
-      `"${(t.origin || "").replace(/"/g, '""')}"`,
-      `"${(t.destination || "").replace(/"/g, '""')}"`,
-      `"${(t.transfer_reason || "").replace(/"/g, '""')}"`,
-      `"${(t.clinical_team || "No asignado").replace(/"/g, '""')}"`,
-      `"${(t.driver_name || "Sin conductor").replace(/"/g, '""')}"`,
-      t.vehicle_plate || "Sin vehículo",
-      t.status || ""
-    ].join(";")); // Usamos punto y coma para que Excel en español lo separe bien por columnas
-
-    const csvContent = [headers.join(";"), ...csvRows].join("\n");
-    // Añadimos BOM (\uFEFF) para que Excel lea perfectamente los tildes y acentos (UTF-8)
-    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Traslados_Clinicos_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const renderSortHeader = (field, label, className = "", centered = false) => {
@@ -244,11 +297,106 @@ export default function ClinicalHistorySection() {
         </CardContent>
       </Card>
 
-      <div className="mt-4 text-right">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-full">
-          Mostrando {sortedHistory.length} registros
-        </span>
-      </div>
+      {/* Controles de Paginación */}
+      {totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-sm border border-slate-200/80 p-5 rounded-3xl shadow-sm mt-4">
+          <div className="flex items-center gap-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
+            <span>Mostrar:</span>
+            <Select 
+              value={String(pageSize)} 
+              onValueChange={v => {
+                setPageSize(Number(v));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-20 text-xs font-black rounded-lg border-slate-200 bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-slate-400">|</span>
+            <span>
+              Mostrando {Math.min(totalCount, (currentPage - 1) * pageSize + 1)} - {Math.min(totalCount, currentPage * pageSize)} de {totalCount} registros
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-100/60 p-1.5 rounded-2xl border border-slate-200/60">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            {/* Páginas numéricas */}
+            {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
+              const totalPages = Math.ceil(totalCount / pageSize);
+              let pageNum = currentPage;
+              if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              
+              if (pageNum < 1 || pageNum > totalPages) return null;
+
+              const isActive = pageNum === currentPage;
+              return (
+                <Button 
+                  key={pageNum}
+                  variant={isActive ? "default" : "ghost"}
+                  className={`h-8 w-8 text-xs font-black rounded-lg ${
+                    isActive 
+                      ? "bg-teal-600 hover:bg-teal-700 text-white shadow-sm" 
+                      : "text-slate-600 hover:bg-white hover:text-slate-900"
+                  }`}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
+              disabled={currentPage === Math.ceil(totalCount / pageSize) || Math.ceil(totalCount / pageSize) === 0}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+              onClick={() => setCurrentPage(Math.ceil(totalCount / pageSize))}
+              disabled={currentPage === Math.ceil(totalCount / pageSize) || Math.ceil(totalCount / pageSize) === 0}
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* DIÁLOGO DE DETALLE DEL TRASLADO */}
       <Dialog open={!!detailTrip} onOpenChange={() => setDetailTrip(null)}>

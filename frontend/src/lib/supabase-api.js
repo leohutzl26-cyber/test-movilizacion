@@ -131,7 +131,10 @@ export const authApi = {
 export const tripsApi = {
   // Get trips based on user role
   getTrips: async (filters = {}) => {
-    let query = supabase.from('trips').select('*').order('created_at', { ascending: false });
+    const usePagination = filters.page !== undefined && filters.limit !== undefined;
+    const selectOptions = usePagination ? { count: 'exact' } : {};
+    
+    let query = supabase.from('trips').select('*', selectOptions).order('created_at', { ascending: false });
     
     if (filters.status) {
       query = query.in('status', filters.status);
@@ -145,9 +148,22 @@ export const tripsApi = {
       query = query.eq('driver_id', filters.driver_id);
     }
     
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data || []).map(parseTrip);
+    if (usePagination) {
+      const from = (parseInt(filters.page) - 1) * parseInt(filters.limit);
+      const to = from + parseInt(filters.limit) - 1;
+      query = query.range(from, to);
+      
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return {
+        trips: (data || []).map(parseTrip),
+        total: count || 0
+      };
+    } else {
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []).map(parseTrip);
+    }
   },
 
   // Create new trip
@@ -234,7 +250,10 @@ export const tripsApi = {
 
   // Get trip history
   getTripHistory: async (filters = {}) => {
-    let query = supabase.from('trips').select('*').order('created_at', { ascending: false });
+    const usePagination = filters.page !== undefined && filters.limit !== undefined;
+    const selectOptions = usePagination ? { count: 'exact' } : {};
+    
+    let query = supabase.from('trips').select('*', selectOptions).order('created_at', { ascending: false });
     
     if (filters.folio) {
       query = query.ilike('tracking_number', `%${filters.folio}%`);
@@ -252,13 +271,39 @@ export const tripsApi = {
       query = query.eq('vehicle_id', filters.vehicle_id);
     }
 
-    if (filters.status) {
+    if (filters.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
     }
+
+    if (filters.trip_type && filters.trip_type !== 'all') {
+      query = query.eq('trip_type', filters.trip_type);
+    }
+
+    if (filters.patient_name) {
+      query = query.ilike('patient_name', `%${filters.patient_name}%`);
+    }
+
+    if (filters.search) {
+      const term = `%${filters.search}%`;
+      query = query.or(`patient_name.ilike.${term},tracking_number.ilike.${term},origin.ilike.${term},destination.ilike.${term}`);
+    }
     
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data || []).map(parseTrip);
+    if (usePagination) {
+      const from = (parseInt(filters.page) - 1) * parseInt(filters.limit);
+      const to = from + parseInt(filters.limit) - 1;
+      query = query.range(from, to);
+      
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return {
+        trips: (data || []).map(parseTrip),
+        total: count || 0
+      };
+    } else {
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []).map(parseTrip);
+    }
   },
 
   // Delete trip

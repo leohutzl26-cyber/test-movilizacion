@@ -16,6 +16,10 @@ export default function DriverHistorySection() {
   const [historyNotesEdit, setHistoryNotesEdit] = useState("");
   const [savingHistoryNotes, setSavingHistoryNotes] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [totalCount, setTotalCount] = useState(0);
+
   const handleOpenHistoryDetails = (trip) => {
     setSelectedTrip(trip);
     setHistoryNotesEdit(trip.driver_notes || "");
@@ -41,13 +45,15 @@ export default function DriverHistorySection() {
   const fetchHistory = useCallback(async () => {
     try {
       console.log("[DEBUG] Fetching History V2...");
-      const r = await api.get("/trips/v2/history");
+      const r = await api.get(`/trips/v2/history?page=${currentPage}&limit=${pageSize}`);
       console.log("[DEBUG] History r.data:", r.data);
       if (r.data && Array.isArray(r.data.trips)) {
         setTrips(r.data.trips);
+        setTotalCount(r.data.total || 0);
       } else {
         console.warn("[DEBUG] Unrecognized history format or null:", r.data);
         setTrips([]);
+        setTotalCount(0);
       }
     } catch (err) {
       console.error("Error fetching history:", err.response?.status, err.response?.data);
@@ -55,7 +61,7 @@ export default function DriverHistorySection() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, pageSize]);
 
   useEffect(() => {
     fetchHistory();
@@ -77,7 +83,7 @@ export default function DriverHistorySection() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Historial de Viajes</h1>
         <Badge variant="outline" className="text-sm bg-white shadow-sm border-slate-200 text-slate-600 px-3 py-1">
-          {trips.length} viajes
+          {totalCount} viajes
         </Badge>
       </div>
       <div className="space-y-4">
@@ -134,6 +140,74 @@ export default function DriverHistorySection() {
           </div>
         )}
       </div>
+
+      {/* Controles de Paginación */}
+      {totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm mt-4">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <span>Resultados:</span>
+            <select 
+              value={pageSize} 
+              onChange={e => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="h-7 w-16 text-xs font-bold rounded border border-slate-200 bg-white px-1 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </select>
+            <span>
+              ({Math.min(totalCount, (currentPage - 1) * pageSize + 1)}-{Math.min(totalCount, currentPage * pageSize)} de {totalCount})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg border-slate-200 hover:bg-slate-50"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+            >
+              &lt;&lt;
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg border-slate-200 hover:bg-slate-50"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              &lt;
+            </Button>
+            
+            <span className="text-xs font-bold px-3 text-slate-700">
+              Pág. {currentPage} de {Math.ceil(totalCount / pageSize) || 1}
+            </span>
+
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg border-slate-200 hover:bg-slate-50"
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
+              disabled={currentPage === Math.ceil(totalCount / pageSize) || Math.ceil(totalCount / pageSize) === 0}
+            >
+              &gt;
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg border-slate-200 hover:bg-slate-50"
+              onClick={() => setCurrentPage(Math.ceil(totalCount / pageSize))}
+              disabled={currentPage === Math.ceil(totalCount / pageSize) || Math.ceil(totalCount / pageSize) === 0}
+            >
+              &gt;&gt;
+            </Button>
+          </div>
+        </div>
+      )}
 
       {selectedTrip && (
         <Dialog open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>

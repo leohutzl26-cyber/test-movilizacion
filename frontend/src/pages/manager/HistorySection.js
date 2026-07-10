@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { History, FileDown, Search, User, Filter, Ambulance, CalendarDays, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, ArrowRight, Siren, Bus, Car, Eye, ClipboardList, RefreshCw } from "lucide-react";
+import { History, FileDown, Search, User, Filter, Ambulance, CalendarDays, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, ArrowRight, Siren, Bus, Car, Eye, ClipboardList, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { formatScheduledDate } from "@/lib/tripUtils";
 import TripAuditDetailDialog from "./TripAuditDetailDialog";
 
@@ -29,6 +29,10 @@ export default function HistorySection() {
         end_date: ""
     });
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [totalCount, setTotalCount] = useState(0);
+
     const fetchHistory = useCallback(async () => {
         setLoading(true);
         try {
@@ -39,14 +43,22 @@ export default function HistorySection() {
             if (filters.trip_type !== "all") params.append("trip_type", filters.trip_type);
             if (filters.start_date) params.append("start_date", filters.start_date);
             if (filters.end_date) params.append("end_date", filters.end_date);
+            
+            params.append("page", currentPage);
+            params.append("limit", pageSize);
 
             const res = await api.get(`/trips/history?${params.toString()}`);
-            setTrips(res.data || []);
+            setTrips(res.data.trips || []);
+            setTotalCount(res.data.total || 0);
         } catch (e) { 
             toast.error("Error al cargar historial"); 
         } finally { 
             setLoading(false); 
         }
+    }, [filters, currentPage, pageSize]);
+
+    useEffect(() => {
+        setCurrentPage(1);
     }, [filters]);
 
     useEffect(() => {
@@ -93,36 +105,91 @@ export default function HistorySection() {
         return sortDirection === "asc" ? comp : -comp;
     });
 
-    const handleExportExcel = () => {
-        if (sortedTrips.length === 0) {
-            toast.error("No hay datos para exportar");
-            return;
+    const handleExportExcel = async () => {
+        setLoading(true);
+        const toastId = toast.loading("Preparando exportación de todos los registros coincidentes...");
+        try {
+            const params = new URLSearchParams();
+            if (filters.folio) params.append("folio", filters.folio);
+            if (filters.patient) params.append("patient_name", filters.patient);
+            if (filters.status !== "all") params.append("status", filters.status);
+            if (filters.trip_type !== "all") params.append("trip_type", filters.trip_type);
+            if (filters.start_date) params.append("start_date", filters.start_date);
+            if (filters.end_date) params.append("end_date", filters.end_date);
+
+            const res = await api.get(`/trips/history?${params.toString()}`);
+            const allTrips = res.data || [];
+
+            if (allTrips.length === 0) {
+                toast.dismiss(toastId);
+                toast.error("No hay datos para exportar");
+                return;
+            }
+
+            // Ordenar todos los datos igual que la tabla
+            const sortedAll = [...allTrips].sort((a, b) => {
+                let valA, valB;
+                if (sortField === "scheduled_date") {
+                    valA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+                    valB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+                    return sortDirection === "asc" ? valA - valB : valB - valA;
+                }
+
+                if (sortField === "tracking_number") {
+                    valA = a.tracking_number || "";
+                    valB = b.tracking_number || "";
+                } else if (sortField === "patient_name") {
+                    valA = (a.trip_type === "clinico" ? a.patient_name : a.task_details) || "";
+                    valB = (b.trip_type === "clinico" ? b.patient_name : b.task_details) || "";
+                } else if (sortField === "origin") {
+                    valA = a.origin || "";
+                    valB = b.origin || "";
+                } else if (sortField === "driver_name") {
+                    valA = a.driver_name || "";
+                    valB = b.driver_name || "";
+                } else if (sortField === "status") {
+                    valA = a.status || "";
+                    valB = b.status || "";
+                } else {
+                    return 0;
+                }
+
+                const comp = valA.localeCompare(valB, "es", { sensitivity: "base" });
+                return sortDirection === "asc" ? comp : -comp;
+            });
+
+            const dataToExport = sortedAll.map(t => ({
+                "Folio": t.tracking_number,
+                "Tipo": t.trip_type === "clinico" ? "Clínico" : "No Clínico",
+                "Paciente/Cometido": t.trip_type === "clinico" ? t.patient_name : t.task_details,
+                "RUT": t.rut || "N/A",
+                "Origen": t.origin,
+                "Destino": t.destination,
+                "Servicio Solicitante": t.patient_unit || "N/A",
+                "Estado": (t.status || "").replace(/_/g, " ").toUpperCase(),
+                "Conductor": t.driver_name || "No asignado",
+                "Móvil": t.vehicle_plate || "N/A",
+                "Fecha Programada": t.scheduled_date,
+                "KM Inicial": t.start_mileage || 0,
+                "KM Final": t.end_mileage || 0,
+                "Distancia (KM)": (t.end_mileage && t.start_mileage) ? (t.end_mileage - t.start_mileage) : 0,
+                "Creado el": new Date(t.created_at).toLocaleString(),
+                "Finalizado el": t.completed_at ? new Date(t.completed_at).toLocaleString() : "N/A"
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Historial Traslados");
+            XLSX.writeFile(wb, `Historial_Traslados_${new Date().toISOString().split('T')[0]}.xlsx`);
+            toast.dismiss(toastId);
+            toast.success("Excel generado con éxito");
+        } catch (error) {
+            console.error("Export error", error);
+            toast.dismiss(toastId);
+            toast.error("Error al exportar a Excel");
+        } finally {
+            setLoading(false);
         }
-
-        const dataToExport = sortedTrips.map(t => ({
-            "Folio": t.tracking_number,
-            "Tipo": t.trip_type === "clinico" ? "Clínico" : "No Clínico",
-            "Paciente/Cometido": t.trip_type === "clinico" ? t.patient_name : t.task_details,
-            "RUT": t.rut || "N/A",
-            "Origen": t.origin,
-            "Destino": t.destination,
-            "Servicio Solicitante": t.patient_unit || "N/A",
-            "Estado": (t.status || "").replace(/_/g, " ").toUpperCase(),
-            "Conductor": t.driver_name || "No asignado",
-            "Móvil": t.vehicle_plate || "N/A",
-            "Fecha Programada": t.scheduled_date,
-            "KM Inicial": t.start_mileage || 0,
-            "KM Final": t.end_mileage || 0,
-            "Distancia (KM)": (t.end_mileage && t.start_mileage) ? (t.end_mileage - t.start_mileage) : 0,
-            "Creado el": new Date(t.created_at).toLocaleString(),
-            "Finalizado el": t.completed_at ? new Date(t.completed_at).toLocaleString() : "N/A"
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(dataToExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Historial Traslados");
-        XLSX.writeFile(wb, `Historial_Traslados_${new Date().toISOString().split('T')[0]}.xlsx`);
-        toast.success("Excel generado con éxito");
     };
 
     const clearFilters = () => {
@@ -171,7 +238,7 @@ export default function HistorySection() {
                     </Button>
                     <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm hidden sm:block">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Registros Encontrados</p>
-                        <p className="text-lg font-black text-slate-900">{sortedTrips.length}</p>
+                        <p className="text-lg font-black text-slate-900">{totalCount}</p>
                     </div>
                 </div>
             </div>
