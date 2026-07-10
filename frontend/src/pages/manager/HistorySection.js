@@ -397,6 +397,107 @@ export default function HistorySection() {
                 open={auditOpen} 
                 onOpenChange={setAuditOpen} 
             />
+
+            {/* Controles de Paginación */}
+            {totalCount > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-sm border border-slate-200/80 p-5 rounded-3xl shadow-sm mt-4">
+                    <div className="flex items-center gap-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        <span>Mostrar:</span>
+                        <Select 
+                            value={String(pageSize)} 
+                            onValueChange={v => {
+                                setPageSize(Number(v));
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="h-8 w-20 text-xs font-black rounded-lg border-slate-200 bg-white">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="10">10</SelectItem>
+                                <SelectItem value="20">20</SelectItem>
+                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="100">100</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <span className="text-slate-400">|</span>
+                        <span>
+                            Mostrando {Math.min(totalCount, (currentPage - 1) * pageSize + 1)} - {Math.min(totalCount, currentPage * pageSize)} de {totalCount} registros
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-slate-100/60 p-1.5 rounded-2xl border border-slate-200/60">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronsLeft className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </Button>
+
+                        {/* Páginas numéricas */}
+                        {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
+                            const totalPages = Math.ceil(totalCount / pageSize);
+                            let pageNum = currentPage;
+                            if (currentPage <= 3) {
+                                pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                                pageNum = totalPages - 4 + i;
+                            } else {
+                                pageNum = currentPage - 2 + i;
+                            }
+                            
+                            if (pageNum < 1 || pageNum > totalPages) return null;
+
+                            const isActive = pageNum === currentPage;
+                            return (
+                                <Button 
+                                    key={pageNum}
+                                    variant={isActive ? "default" : "ghost"}
+                                    className={`h-8 w-8 text-xs font-black rounded-lg ${
+                                        isActive 
+                                            ? "bg-teal-600 hover:bg-teal-700 text-white shadow-sm" 
+                                            : "text-slate-600 hover:bg-white hover:text-slate-900"
+                                    }`}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                >
+                                    {pageNum}
+                                </Button>
+                            );
+                        })}
+
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+                            onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
+                            disabled={currentPage === Math.ceil(totalCount / pageSize) || Math.ceil(totalCount / pageSize) === 0}
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-lg text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-transparent"
+                            onClick={() => setCurrentPage(Math.ceil(totalCount / pageSize))}
+                            disabled={currentPage === Math.ceil(totalCount / pageSize) || Math.ceil(totalCount / pageSize) === 0}
+                        >
+                            <ChevronsRight className="w-4 h-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
