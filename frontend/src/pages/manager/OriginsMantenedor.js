@@ -6,9 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Upload, Plus, Pencil, Trash2, FileDown, MapPin, Map } from "lucide-react";
+import { Upload, Plus, Pencil, Trash2, FileDown, MapPin, ExternalLink } from "lucide-react";
 import BulkUploader from "@/components/BulkUploader";
-import MapAddressSelector from "@/components/MapAddressSelector";
 import * as XLSX from "xlsx";
 
 export default function OriginsMantenedor() {
@@ -19,9 +18,14 @@ export default function OriginsMantenedor() {
   const [formData, setFormData] = useState({ name: "", address: "", maps_url: "", is_active: true });
   const [loading, setLoading] = useState(true);
 
-  const [showFormMap, setShowFormMap] = useState(false);
-  const [showDirectMap, setShowDirectMap] = useState(false);
-  const [mapDirectItem, setMapDirectItem] = useState(null);
+  const handleOpenGoogleMaps = () => {
+    if (!formData.address || !formData.address.trim()) {
+      toast.error("Por favor escriba una dirección primero");
+      return;
+    }
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}`;
+    window.open(url, "_blank");
+  };
 
   const fetchOrigins = useCallback(async () => {
     try { const r = await api.get("/origins"); setOrigins(r.data || []); } catch { } finally { setLoading(false); }
@@ -45,29 +49,7 @@ export default function OriginsMantenedor() {
     try { await api.delete(`/origins/${id}`); toast.success("Origen eliminado"); fetchOrigins(); } catch { toast.error("Error"); }
   };
 
-  const openMapSelectorDirect = (o) => {
-    setMapDirectItem(o);
-    setShowDirectMap(true);
-  };
 
-  const handleDirectMapSelect = async ({ address, mapsUrl }) => {
-    if (!mapDirectItem) return;
-    try {
-      const updatedData = {
-        name: mapDirectItem.name,
-        address: address,
-        maps_url: mapsUrl,
-        is_active: mapDirectItem.is_active !== false
-      };
-      await api.put(`/origins/${mapDirectItem.id}`, updatedData);
-      toast.success("Ubicación de origen actualizada");
-      fetchOrigins();
-    } catch (e) {
-      toast.error("Error al actualizar la ubicación");
-    } finally {
-      setMapDirectItem(null);
-    }
-  };
 
   const handleExportExcel = () => {
     if (origins.length === 0) {
@@ -110,38 +92,23 @@ export default function OriginsMantenedor() {
               {origins.map(o => (
                 <tr key={o.id} className="hover:bg-slate-50">
                   <td className="p-4 font-bold text-slate-900">{o.name}</td>
-                  <td className="p-4 text-slate-600 font-medium">
-                    <div className="flex flex-col gap-1.5">
-                      <span>{o.address || "-"}</span>
-                      {o.address ? (
-                        <div className="flex gap-2 items-center">
-                          <a 
-                            href={o.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.address)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-0.5 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
-                          >
-                            <MapPin className="w-3 h-3 text-teal-500" /> Ver en Google Maps
-                          </a>
-                          <button 
-                            type="button"
-                            onClick={() => openMapSelectorDirect(o)} 
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-teal-700 hover:underline mt-0.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 transition-colors"
-                          >
-                            <Map className="w-3 h-3 text-slate-400" /> Cambiar ubicación
-                          </button>
-                        </div>
-                      ) : (
-                        <button 
-                          type="button"
-                          onClick={() => openMapSelectorDirect(o)} 
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-teal-700 hover:underline mt-0.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 w-fit transition-colors"
-                        >
-                          <Map className="w-3 h-3 text-slate-400" /> Asignar ubicación
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                    <td className="p-4 text-slate-600 font-medium">
+                      <div className="flex flex-col gap-1.5">
+                        <span>{o.address || "-"}</span>
+                        {o.address && (
+                          <div className="flex gap-2 items-center">
+                            <a 
+                              href={o.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.address)}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-0.5 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 w-fit"
+                            >
+                              <MapPin className="w-3 h-3 text-teal-500" /> Ver en Google Maps
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </td>
                   <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(o)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(o.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>
                 </tr>
               ))}
@@ -161,10 +128,11 @@ export default function OriginsMantenedor() {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => setShowFormMap(true)} 
-                  className="border-slate-200 text-slate-600 hover:bg-slate-100 px-3 shadow-sm shrink-0"
+                  onClick={handleOpenGoogleMaps} 
+                  className="border-slate-200 text-slate-600 hover:bg-slate-100 px-3 shadow-sm shrink-0 flex items-center gap-1"
                 >
-                  <Map className="w-4 h-4 text-teal-600" />
+                  <ExternalLink className="w-4 h-4 text-teal-600" />
+                  <span className="text-xs font-bold">G-Maps</span>
                 </Button>
               </div>
             </div>
@@ -189,18 +157,7 @@ export default function OriginsMantenedor() {
         }}
         exampleRows={[["Hospital Central", "Av. Principal 123"], ["Bodega Central", "Sector Industrial 45"]]}
       />
-      <MapAddressSelector
-        open={showFormMap}
-        onClose={() => setShowFormMap(false)}
-        onSelect={({ address, mapsUrl }) => setFormData(prev => ({ ...prev, address, maps_url: mapsUrl }))}
-        title="Seleccionar Ubicación del Origen"
-      />
-      <MapAddressSelector
-        open={showDirectMap}
-        onClose={() => { setShowDirectMap(false); setMapDirectItem(null); }}
-        onSelect={handleDirectMapSelect}
-        title={`Ubicación para: ${mapDirectItem?.name || 'Origen'}`}
-      />
+
     </div>
   );
 }
