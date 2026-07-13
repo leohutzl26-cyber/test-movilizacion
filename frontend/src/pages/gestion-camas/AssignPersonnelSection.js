@@ -140,7 +140,7 @@ export default function AssignPersonnelSection() {
     }
 
     const isRevision = rejectDialog?.status === "revision_gestor";
-    const targetStatus = isRevision ? "rechazado" : "cancelado";
+    const targetStatus = "cancelado";
 
     try {
       await api.put(`/trips/${rejectDialog.id}/status`, {

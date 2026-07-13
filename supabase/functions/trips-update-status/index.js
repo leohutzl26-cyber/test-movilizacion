@@ -39,6 +39,7 @@ exports.handler = async (event, context) => {
     if (status) {
       // Check permissions based on status change
       const statusTransitions = {
+        'revision_gestor': ['pendiente', 'cancelado'],
         'pendiente': ['asignado', 'cancelado'],
         'asignado': ['en_curso', 'cancelado', 'pendiente'],
         'en_curso': ['completado', 'cancelado'],
@@ -46,7 +47,8 @@ exports.handler = async (event, context) => {
         'cancelado': []
       };
 
-      if (!statusTransitions[currentTrip.status].includes(status)) {
+      const transitions = statusTransitions[currentTrip.status];
+      if (!transitions || !transitions.includes(status)) {
         return {
           statusCode: 400,
           body: JSON.stringify({ error: `Cannot change status from ${currentTrip.status} to ${status}` })
