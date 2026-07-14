@@ -54,6 +54,13 @@ export default function TripAuditDetailDialog({ trip, open, onOpenChange }) {
                         </div>
                     )}
 
+                    {trip.cancel_reason && (
+                        <div className="bg-rose-50/60 p-4 rounded-2xl border border-rose-200 shadow-3xs">
+                            <p className="text-[10px] font-black text-rose-800 uppercase tracking-widest leading-none mb-1">Motivo de Cancelación / Rechazo</p>
+                            <p className="text-sm font-bold text-rose-900 whitespace-pre-line">{trip.cancel_reason}</p>
+                        </div>
+                    )}
+
                     <div 
                         className="bg-slate-50 rounded-3xl border border-slate-100 p-6 custom-scrollbar"
                         style={{ 

@@ -649,6 +649,12 @@ export default function AssignPersonnelSection() {
                       <p className="text-xs font-bold text-amber-900 whitespace-pre-line">{editData.driver_notes}</p>
                     </div>
                   )}
+                  {editData.cancel_reason && (
+                    <div className="md:col-span-2 space-y-1 bg-rose-50/60 p-3 rounded-xl border border-rose-200 mt-2">
+                      <Label className="text-[10px] font-black text-rose-800 uppercase tracking-widest">Motivo de Cancelación / Rechazo</Label>
+                      <p className="text-xs font-bold text-rose-900 whitespace-pre-line">{editData.cancel_reason}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

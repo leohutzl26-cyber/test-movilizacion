@@ -466,6 +466,15 @@ export default function MyTripsSection() {
 
               {detailsDialog.notes && (<div className="border-t border-slate-200 pt-5"><p className="text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">Notas Adicionales</p><p className="bg-amber-50 p-4 rounded-xl text-slate-800 font-medium border border-amber-200">{detailsDialog.notes}</p></div>)}
 
+              {detailsDialog.cancel_reason && (
+                <div className="border-t border-slate-200 pt-5">
+                  <p className="text-xs text-rose-500 font-bold mb-2 uppercase tracking-widest">Motivo de Cancelación / Rechazo</p>
+                  <p className="bg-rose-50 p-4 rounded-xl text-rose-900 font-medium border border-rose-200">
+                    {detailsDialog.cancel_reason}
+                  </p>
+                </div>
+              )}
+
               <div className="border-t border-slate-200 pt-5 space-y-2">
                 <Label className="text-xs text-slate-500 font-bold uppercase tracking-widest">Observaciones del Conductor</Label>
                 <textarea

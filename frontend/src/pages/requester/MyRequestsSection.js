@@ -467,6 +467,13 @@ export default function MyRequestsSection({ onEdit }) {
                   </div>
                 )}
 
+                {selectedReq.cancel_reason && (
+                  <div className="border-t border-slate-200 pt-4">
+                    <p className="text-[10px] font-bold text-rose-800 tracking-widest uppercase mb-2">Motivo de Cancelación / Rechazo</p>
+                    <p className="bg-rose-50 p-3 rounded-xl border border-rose-200 text-rose-900 whitespace-pre-line">{selectedReq.cancel_reason}</p>
+                  </div>
+                )}
+
                 {(selectedReq.status === "revision_gestor" || selectedReq.status === "pendiente") && (
                   <div className="border-t border-slate-200 pt-4 flex gap-3 mt-4">
                     <Button

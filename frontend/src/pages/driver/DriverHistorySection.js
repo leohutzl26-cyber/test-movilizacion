@@ -317,6 +317,13 @@ export default function DriverHistorySection() {
                 </div>
               )}
 
+              {selectedTrip.cancel_reason && (
+                <div className="bg-rose-50 p-3 rounded-xl border border-rose-200">
+                  <p className="text-[10px] font-bold text-rose-700 uppercase mb-1">Motivo de Cancelación / Rechazo</p>
+                  <p className="text-rose-900 font-bold text-xs whitespace-pre-line">{selectedTrip.cancel_reason}</p>
+                </div>
+              )}
+
               <div className="border-t border-slate-200 pt-4 space-y-2">
                 <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observaciones del Conductor</Label>
                 <textarea

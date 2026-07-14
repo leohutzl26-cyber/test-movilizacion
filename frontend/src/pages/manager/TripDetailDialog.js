@@ -144,6 +144,12 @@ export default function TripDetailDialog({ trip, open, onOpenChange, onRefresh }
                     <p className="text-xs font-bold text-teal-900 leading-relaxed">{trip.driver_notes}</p>
                   </div>
                 )}
+                {trip.cancel_reason && (
+                  <div className="bg-rose-50 p-3 rounded-xl border border-rose-100/50 mt-2">
+                    <p className="text-[10px] uppercase font-black text-rose-600 tracking-wider mb-1">Motivo de Cancelación / Rechazo</p>
+                    <p className="text-xs font-bold text-rose-900 leading-relaxed">{trip.cancel_reason}</p>
+                  </div>
+                )}
               </div>
 
               {/* Ruta y Tiempos */}

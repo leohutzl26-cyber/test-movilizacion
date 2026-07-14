@@ -533,6 +533,13 @@ export default function ClinicalHistorySection() {
                   </div>
                 )}
 
+                {detailTrip.cancel_reason && (
+                  <div className="bg-rose-50/60 p-4 rounded-xl border border-rose-200 space-y-1">
+                    <p className="text-[10px] font-black text-rose-800 uppercase tracking-widest leading-none">Motivo de Cancelación / Rechazo</p>
+                    <p className="text-xs font-bold text-rose-900 whitespace-pre-line">{detailTrip.cancel_reason}</p>
+                  </div>
+                )}
+
                 {/* EVOLUCIÓN CRONOLÓGICA DEL TRASLADO */}
                 <TripEvolutionLog tripId={detailTrip.id} />
 
