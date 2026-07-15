@@ -40,8 +40,8 @@ exports.handler = async (event, context) => {
       // Check permissions based on status change
       const statusTransitions = {
         'revision_gestor': ['pendiente', 'cancelado'],
-        'pendiente': ['asignado', 'cancelado'],
-        'asignado': ['en_curso', 'cancelado', 'pendiente'],
+        'pendiente': ['asignado', 'cancelado', 'revision_gestor'],
+        'asignado': ['en_curso', 'cancelado', 'pendiente', 'revision_gestor'],
         'en_curso': ['completado', 'cancelado'],
         'completado': [],
         'cancelado': []
