@@ -1,9 +1,17 @@
--- Script para corregir políticas de Row Level Security (RLS)
--- Corrección: Personal Clínico, Servicios/Unidades y Modificación/Desasignación de Traslados (soportando tokens personalizados)
+-- Script para corregir políticas de Row Level Security (RLS) y Columnas Faltantes
+-- Corrección: Personal Clínico, Servicios/Unidades, Modificación de Traslados y Columnas de Orden
 -- Ejecuta este código en el SQL Editor de tu panel de Supabase.
 
 -- ====================================================
--- 0. FUNCIÓN AUXILIAR DE AUTENTICACIÓN PERSONALIZADA
+-- 0. AGREGAR COLUMNAS FALTANTES EN LA TABLA TRIPS
+-- ====================================================
+ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS group_id TEXT;
+ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS order_in_group INTEGER DEFAULT 0;
+ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+
+
+-- ====================================================
+-- 1. FUNCIÓN AUXILIAR DE AUTENTICACIÓN PERSONALIZADA
 -- ====================================================
 
 -- Crear función auxiliar para extraer el ID de usuario del JWT (soportando sub y userId)
@@ -22,7 +30,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- ====================================================
--- 1. CORRECCIÓN PARA PERSONAL CLÍNICO Y SERVICIOS
+-- 2. CORRECCIÓN PARA PERSONAL CLÍNICO Y SERVICIOS
 -- ====================================================
 
 -- Asegurar que RLS esté activo en ambas tablas
@@ -77,7 +85,7 @@ FOR DELETE USING (
 
 
 -- ====================================================
--- 2. CORRECCIÓN PARA LA TABLA TRIPS (TRASLADOS)
+-- 3. CORRECCIÓN PARA LA TABLA TRIPS (TRASLADOS)
 -- ====================================================
 
 -- Asegurar que RLS esté activo en trips
