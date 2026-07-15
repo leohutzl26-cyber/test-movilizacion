@@ -19,7 +19,7 @@ exports.handler = async (event, context) => {
     }
 
     // 2. Validar tabla permitida
-    const allowedTables = ['origins', 'destinations', 'origin_services', 'clinical_staff', 'vehicles'];
+    const allowedTables = ['origins', 'destinations', 'origin_services', 'clinical_staff', 'vehicles', 'trips'];
     if (!allowedTables.includes(table)) {
       return {
         statusCode: 400,

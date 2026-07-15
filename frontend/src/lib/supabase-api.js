@@ -185,14 +185,12 @@ export const tripsApi = {
 
   // Update trip
   updateTrip: async (tripId, updateData) => {
-    const { data, error } = await supabase
-      .from('trips')
-      .update(serializeTrip(updateData))
-      .eq('id', tripId)
-      .select()
-      .single();
-    
-    if (error) throw error;
+    const data = await callSupabaseFunction('manage-catalogs', {
+      action: 'update',
+      table: 'trips',
+      id: tripId,
+      data: serializeTrip(updateData)
+    });
     return parseTrip(data);
   },
 
