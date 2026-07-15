@@ -413,10 +413,7 @@ const api = {
 
         if (tripId === "reorder") {
           const promises = (data.trip_ids || []).map((id, index) => 
-            supabase
-              .from('trips')
-              .update({ order_in_group: index })
-              .eq('id', id)
+            supabaseApi.trips.updateTrip(id, { order_in_group: index })
           );
           try {
             await Promise.all(promises);
