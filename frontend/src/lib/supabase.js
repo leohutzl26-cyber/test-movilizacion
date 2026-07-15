@@ -14,28 +14,17 @@ export const customFetch = (url, options) => {
     const xhr = new XMLHttpRequest();
     xhr.open(options.method || 'GET', url);
 
-    const headers = {};
     if (options.headers) {
       if (options.headers instanceof Headers || (typeof options.headers.forEach === 'function' && typeof options.headers.entries === 'function')) {
         options.headers.forEach((value, key) => {
-          headers[key.toLowerCase()] = value;
+          xhr.setRequestHeader(key, value);
         });
       } else {
         Object.entries(options.headers).forEach(([key, value]) => {
-          headers[key.toLowerCase()] = value;
+          xhr.setRequestHeader(key, value);
         });
       }
     }
-
-    // Inyectar el token personalizado si existe en localStorage
-    const token = localStorage.getItem('supabase.auth.token');
-    if (token) {
-      headers['authorization'] = `Bearer ${token}`;
-    }
-
-    Object.entries(headers).forEach(([key, value]) => {
-      xhr.setRequestHeader(key, value);
-    });
     
     // Removed Cache-Control headers because they cause CORS preflight failures on Supabase
 
