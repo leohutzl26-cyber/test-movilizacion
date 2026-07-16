@@ -278,6 +278,7 @@ export default function DispatchSection() {
       const { data, error } = await supabase
         .from('audit_logs')
         .select('*')
+        .eq('entity_type', 'trips')
         .order('timestamp', { ascending: false })
         .limit(20);
       if (!error && data) {
@@ -299,7 +300,9 @@ export default function DispatchSection() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'audit_logs' },
         (payload) => {
-          setActivityLogs((prev) => [payload.new, ...prev.slice(0, 19)]);
+          if (payload.new && payload.new.entity_type === 'trips') {
+            setActivityLogs((prev) => [payload.new, ...prev.slice(0, 19)]);
+          }
         }
       )
       .subscribe();
