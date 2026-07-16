@@ -92,13 +92,13 @@ export const formatZonalNumber = (zonal) => {
 };
 
 // ========== STATUS COLOR MAPS ==========
-export const COLORS = { pendiente: '#f59e0b', asignado: '#6366f1', en_curso: '#3b82f6', completado: '#10b981', cancelado: '#f43f5e', revision_gestor: '#8b5cf6' };
+export const COLORS = { pendiente: '#f59e0b', asignado: '#6366f1', en_curso: '#06b6d4', completado: '#10b981', cancelado: '#f43f5e', revision_gestor: '#8b5cf6' };
 
 export const statusColorsSolid = {
   pendiente: "bg-amber-500 text-white shadow-amber-100",
   revision_gestor: "bg-purple-600 text-white shadow-purple-100",
   asignado: "bg-indigo-600 text-white shadow-indigo-100",
-  en_curso: "bg-blue-600 text-white shadow-blue-100",
+  en_curso: "bg-cyan-500 text-white shadow-cyan-100",
   completado: "bg-emerald-600 text-white shadow-emerald-100",
   cancelado: "bg-rose-600 text-white shadow-rose-100",
   devuelto: "bg-rose-600 text-white shadow-rose-100"
@@ -108,7 +108,7 @@ export const statusBorders = {
   pendiente: "border-l-amber-500",
   revision_gestor: "border-l-purple-500",
   asignado: "border-l-indigo-500",
-  en_curso: "border-l-blue-500",
+  en_curso: "border-l-cyan-500",
   completado: "border-l-emerald-500",
   cancelado: "border-l-rose-500",
   devuelto: "border-l-rose-500"
@@ -118,7 +118,7 @@ export const statusHeaderStyles = {
   pendiente: { bg: "bg-amber-600", text: "text-white", iconBg: "bg-amber-700/40", iconText: "text-amber-100", badge: "bg-amber-800 text-white" },
   revision_gestor: { bg: "bg-purple-600", text: "text-white", iconBg: "bg-purple-700/40", iconText: "text-purple-100", badge: "bg-purple-800 text-white" },
   asignado: { bg: "bg-indigo-600", text: "text-white", iconBg: "bg-indigo-700/40", iconText: "text-indigo-100", badge: "bg-indigo-800 text-white" },
-  en_curso: { bg: "bg-blue-600", text: "text-white", iconBg: "bg-blue-700/40", iconText: "text-blue-100", badge: "bg-blue-800 text-white" },
+  en_curso: { bg: "bg-cyan-600", text: "text-white", iconBg: "bg-cyan-700/40", iconText: "text-cyan-100", badge: "bg-cyan-800 text-white" },
   completado: { bg: "bg-emerald-600", text: "text-white", iconBg: "bg-emerald-700/40", iconText: "text-emerald-100", badge: "bg-emerald-800 text-white" },
   cancelado: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" },
   devuelto: { bg: "bg-rose-600", text: "text-white", iconBg: "bg-rose-700/40", iconText: "text-rose-100", badge: "bg-rose-800 text-white" }
@@ -133,13 +133,13 @@ export const pColors = {
 export const sColors = {
   pendiente: "bg-amber-100 text-amber-800 border border-amber-200",
   asignado: "bg-indigo-100 text-indigo-800 border border-indigo-200",
-  en_curso: "bg-blue-100 text-blue-800 border border-blue-200",
+  en_curso: "bg-cyan-50 text-cyan-800 border border-cyan-200",
   completado: "bg-emerald-100 text-emerald-800 border border-emerald-200",
   cancelado: "bg-rose-100 text-rose-800 border border-rose-200",
   revision_gestor: "bg-purple-100 text-purple-800 border border-purple-200"
 };
 
-export const COLORS_STATUS = { "Pendiente": "#f59e0b", "Por Visar": "#a855f7", "Asignado": "#3b82f6", "En Curso": "#0d9488", "Completado": "#22c55e", "Cancelado": "#ef4444" };
+export const COLORS_STATUS = { "Pendiente": "#f59e0b", "Por Visar": "#a855f7", "Asignado": "#6366f1", "En Curso": "#06b6d4", "Completado": "#22c55e", "Cancelado": "#ef4444" };
 export const COLORS_PIE = ["#0d9488", "#f59e0b", "#6366f1", "#ef4444", "#22c55e", "#8b5cf6"];
 
 // ========== VEHICLE ICONS ==========

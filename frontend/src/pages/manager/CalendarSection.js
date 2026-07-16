@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw } from "lucide-react";
-import { sColors } from "@/lib/tripUtils";
+import { sColors, statusBorders } from "@/lib/tripUtils";
 import TripDetailDialog from "./TripDetailDialog";
 
 export default function CalendarSection() {
@@ -200,7 +200,7 @@ export default function CalendarSection() {
                                     <p className="text-xl font-bold text-slate-400">No hay traslados programados</p>
                                 </div>
                             ) : dailyTrips.map(t => (
-                                <Card key={t.id} onClick={() => setDetailTrip(t)} className="card-hover border-l-4 border-l-teal-500 shadow-sm cursor-pointer group bg-white">
+                                <Card key={t.id} onClick={() => setDetailTrip(t)} className={`card-hover border-l-4 ${statusBorders[t.status] || "border-l-slate-400"} shadow-sm cursor-pointer group bg-white`}>
                                     <CardContent className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex items-center gap-4">
                                             <div className="bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl text-center min-w-[80px] group-hover:bg-teal-600 transition-colors">
@@ -264,7 +264,7 @@ export default function CalendarSection() {
                                                 onDragStart={(e) => { e.stopPropagation(); setDraggedTripId(t.id); setDraggedTrip(t); }}
                                                 onDragEnd={(e) => { e.stopPropagation(); setDraggedTripId(null); setDraggedTrip(null); handleDragLeaveNavigate(); }}
                                                 onClick={(e) => { e.stopPropagation(); setDetailTrip(t); }} 
-                                                className={`p-2 rounded-lg border-l-4 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${
+                                                className={`p-2 rounded-lg border-l-4 mb-1 text-[10px] cursor-pointer transition-all duration-200 ${statusBorders[t.status] || "border-l-slate-400"} ${
                                                     sColors[t.status] || "bg-slate-50 text-slate-800 border-slate-200"
                                                 } ${
                                                     draggedTripId === t.id 
@@ -302,7 +302,14 @@ export default function CalendarSection() {
                                         {dayTrips.length > 0 && (
                                             <div className="space-y-1">
                                                 {dayTrips.slice(0, 3).map(t => (
-                                                    <div key={t.id} className={`h-1.5 w-full rounded-full transition-all group-hover:scale-110 ${t.status === "completado" ? "bg-emerald-400" : ["pendiente", "revision_gestor"].includes(t.status) ? "bg-amber-400" : "bg-blue-400"}`} />
+                                                    <div key={t.id} className={`h-1.5 w-full rounded-full transition-all group-hover:scale-110 ${
+                                                        t.status === "completado" ? "bg-emerald-400" :
+                                                        t.status === "pendiente" ? "bg-amber-400" :
+                                                        t.status === "revision_gestor" ? "bg-purple-400" :
+                                                        t.status === "asignado" ? "bg-indigo-400" :
+                                                        t.status === "en_curso" ? "bg-cyan-400" :
+                                                        "bg-rose-400"
+                                                    }`} />
                                                 ))}
                                                 {dayTrips.length > 3 && <p className="text-[9px] font-black text-slate-400">+{dayTrips.length - 3} más</p>}
                                             </div>

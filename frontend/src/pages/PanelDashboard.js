@@ -90,7 +90,7 @@ export default function PanelDashboard() {
                 return { label: "Disponible", color: "text-emerald-400 bg-emerald-950/30 border-emerald-900/50" };
             case "en_viaje":
             case "en_curso":
-                return { label: "En Ruta", color: "text-blue-400 bg-blue-950/30 border-blue-900/50" };
+                return { label: "En Ruta", color: "text-cyan-400 bg-cyan-950/30 border-cyan-900/50" };
             case "en_mantenimiento":
                 return { label: "Mantención", color: "text-amber-400 bg-amber-950/30 border-amber-900/50" };
             default:
@@ -213,12 +213,16 @@ export default function PanelDashboard() {
 
                     <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                         {activeTrips.map(t => (
-                            <div key={t.id} className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg shadow-sm">
+                            <div key={t.id} className={`p-2.5 bg-slate-900 border border-slate-800 border-l-4 rounded-lg shadow-sm ${t.status === 'en_curso' ? 'border-l-cyan-500' : 'border-l-indigo-500'}`}>
                                 <div className="flex items-center justify-between mb-1.5">
                                     <span className="bg-slate-800 text-slate-300 border border-slate-700/50 font-mono px-1.5 py-0.2 rounded text-[8px] font-black">
                                         #{t.tracking_number}
                                     </span>
-                                    <span className="text-[8px] font-black px-1.5 py-0.2 uppercase rounded-full border border-blue-900 text-blue-400 bg-blue-950/40">
+                                    <span className={`text-[8px] font-black px-1.5 py-0.2 uppercase rounded-full border ${
+                                        t.status === 'en_curso' 
+                                            ? 'border-cyan-900 text-cyan-400 bg-cyan-950/40' 
+                                            : 'border-indigo-900 text-indigo-400 bg-indigo-950/40'
+                                    }`}>
                                         {t.status}
                                     </span>
                                 </div>
@@ -295,20 +299,20 @@ export default function PanelDashboard() {
 
                         {/* Subsección 2: En Ruta */}
                         <div>
-                            <h3 className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1.5 flex items-center gap-1 border-b border-blue-950 pb-0.5">
+                            <h3 className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mb-1.5 flex items-center gap-1 border-b border-cyan-950 pb-0.5">
                                 En Ruta ({busyDrivers.length})
                             </h3>
                             <div className="space-y-1.5">
                                 {busyDrivers.map(d => (
-                                    <div key={d.id} className="p-1.5 bg-slate-900 border border-blue-950/40 rounded-lg">
+                                    <div key={d.id} className="p-1.5 bg-slate-900 border border-cyan-950/40 rounded-lg">
                                         <div className="flex items-center justify-between mb-0.5">
                                             <div className="flex items-center gap-1.5 min-w-0">
-                                                <div className="w-5 h-5 rounded bg-blue-950 text-blue-400 flex items-center justify-center text-[9px] font-black uppercase shrink-0">
+                                                <div className="w-5 h-5 rounded bg-cyan-950 text-cyan-400 flex items-center justify-center text-[9px] font-black uppercase shrink-0">
                                                     {d.name.substring(0, 2)}
                                                 </div>
                                                 <span className="text-[10px] font-black uppercase text-slate-300 truncate">{d.name}</span>
                                             </div>
-                                            <span className="text-[8px] font-black text-blue-400 bg-blue-950 border border-blue-900/30 px-1.5 py-0.2 rounded font-mono shrink-0">
+                                            <span className="text-[8px] font-black text-cyan-400 bg-cyan-950 border border-cyan-900/30 px-1.5 py-0.2 rounded font-mono shrink-0">
                                                 {d.vehicle_plate}
                                             </span>
                                         </div>
