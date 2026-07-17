@@ -7,7 +7,7 @@ import MyRequestsSection from "./requester/MyRequestsSection";
 
 export default function RequesterDashboard() {
   const [section, setSection] = useState(() => {
-    return localStorage.getItem("movilizacion.solicitante.section") || "new";
+    return localStorage.getItem("movilizacion.solicitante.section") || "list";
   });
 
   useEffect(() => {
