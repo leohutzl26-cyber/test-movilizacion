@@ -5,6 +5,7 @@ import api from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Componentes modulares del conductor
 import TripPoolSection from "./driver/TripPoolSection";
@@ -15,6 +16,7 @@ import DriverHistorySection from "./driver/DriverHistorySection";
 import DriverStatsSection from "./driver/DriverStatsSection";
 
 export default function DriverDashboard() {
+  const { user } = useAuth();
   const [section, setSection] = useState(() => {
     return localStorage.getItem("movilizacion.conductor.section") || "dashboard";
   });
@@ -62,6 +64,7 @@ export default function DriverDashboard() {
       const vehicleId = nextState ? selectedVehicle : null;
       
       const r = await api.post("/drivers/status", {
+        driver_id: user?.id,
         is_working: nextState,
         current_vehicle_id: vehicleId || null
       });
@@ -83,6 +86,7 @@ export default function DriverDashboard() {
     if (isWorking) {
       try {
         await api.post("/drivers/status", {
+          driver_id: user?.id,
           is_working: true,
           current_vehicle_id: vehicleId || null
         });
