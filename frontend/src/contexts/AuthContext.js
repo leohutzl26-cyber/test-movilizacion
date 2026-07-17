@@ -34,7 +34,17 @@ export function AuthProvider({ children }) {
         if (token) {
           const currentUser = await authApi.getCurrentUser();
           if (currentUser) {
-            setUser(currentUser);
+            const profile = await fetchProfile(currentUser.id);
+            setUser(profile ? {
+              id: profile.id,
+              email: profile.email,
+              username: profile.username,
+              name: profile.name,
+              role: profile.role,
+              department: profile.department,
+              status: profile.status,
+              must_change_password: profile.must_change_password
+            } : currentUser);
             setLoading(false);
             return;
           }
