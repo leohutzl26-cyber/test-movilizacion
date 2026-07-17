@@ -112,7 +112,7 @@ export const authApi = {
 
       // Reconstruir el objeto de usuario esperado por la aplicación
       return {
-        id: payload.userId,
+        id: payload.userId || payload.id || payload.sub,
         email: payload.email,
         username: payload.username,
         name: payload.name,

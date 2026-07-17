@@ -32,7 +32,7 @@ const getCurrentUserSession = async () => {
 
         return {
           user: {
-            id: payload.userId,
+            id: payload.userId || payload.id || payload.sub,
             email: payload.email,
             name: payload.name || payload.email
           }
