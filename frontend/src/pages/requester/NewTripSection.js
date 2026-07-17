@@ -382,9 +382,9 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                       <Input id="attending_physician" name="attending_physician" value={form.attending_physician} onChange={(e) => setForm({ ...form, attending_physician: e.target.value })} />
                     </div>
                     <div className="space-y-1">
-                      <Label>Motivo Traslado *</Label>
+                      <Label htmlFor="transfer_reason">Motivo Traslado *</Label>
                       <Select value={form.transfer_reason} onValueChange={(v) => setForm({ ...form, transfer_reason: v })}>
-                        <SelectTrigger>
+                        <SelectTrigger id="transfer_reason">
                           <SelectValue placeholder="Seleccione..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -409,16 +409,18 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1 md:col-span-2">
-                    <Label>Cometido (Motivo) *</Label>
+                    <Label htmlFor="task_details">Cometido (Motivo) *</Label>
                     <Input
+                      id="task_details"
+                      name="task_details"
                       value={form.task_details}
                       onChange={(e) => setForm({ ...form, task_details: e.target.value })}
                       placeholder="Ej: Búsqueda de insumos"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>Cantidad de Funcionarios</Label>
-                    <Input type="number" min="0" value={form.staff_count} onChange={(e) => setForm({ ...form, staff_count: e.target.value })} />
+                    <Label htmlFor="staff_count">Cantidad de Funcionarios</Label>
+                    <Input id="staff_count" name="staff_count" type="number" min="0" value={form.staff_count} onChange={(e) => setForm({ ...form, staff_count: e.target.value })} />
                   </div>
                 </div>
               </div>
@@ -433,10 +435,10 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                 {/* FILA DE ORIGEN */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   <div className="space-y-1 md:col-span-4">
-                    <Label>Origen *</Label>
+                    <Label htmlFor="origin">Origen *</Label>
                     {!useCustomOrigin ? (
                       <Select value={form.origin} onValueChange={handleOriginChange}>
-                        <SelectTrigger>
+                        <SelectTrigger id="origin">
                           <SelectValue placeholder="Seleccione" />
                         </SelectTrigger>
                         <SelectContent>
@@ -453,6 +455,8 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                       </Select>
                     ) : (
                       <Input
+                        id="origin"
+                        name="origin"
                         placeholder="Escriba origen"
                         value={form.origin}
                         onChange={(e) => setForm({ ...form, origin: e.target.value })}
@@ -462,9 +466,11 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                   </div>
 
                   <div className="space-y-1 md:col-span-8">
-                    <Label className="text-slate-500 text-xs">Dirección de Origen</Label>
+                    <Label htmlFor="origin_address" className="text-slate-500 text-xs">Dirección de Origen</Label>
                     <div className="flex gap-2">
                       <Input
+                        id="origin_address"
+                        name="origin_address"
                         placeholder="Ej: Av. Principal 123 o Referencia"
                         value={form.origin_address || ""}
                         onChange={(e) => setForm({ ...form, origin_address: e.target.value, origin_maps_url: "" })}
@@ -493,10 +499,10 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                 {/* FILA DE DESTINO */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   <div className="space-y-1 md:col-span-4">
-                    <Label>Destino *</Label>
+                    <Label htmlFor="destination">Destino *</Label>
                     {!useCustomDest ? (
                       <Select value={form.destination} onValueChange={handleDestChange}>
-                        <SelectTrigger>
+                        <SelectTrigger id="destination">
                           <SelectValue placeholder="Seleccione" />
                         </SelectTrigger>
                         <SelectContent>
@@ -513,6 +519,8 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                       </Select>
                     ) : (
                       <Input
+                        id="destination"
+                        name="destination"
                         placeholder="Escriba destino"
                         value={form.destination}
                         onChange={(e) => setForm({ ...form, destination: e.target.value })}
@@ -522,9 +530,11 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                   </div>
 
                   <div className="space-y-1 md:col-span-8">
-                    <Label className="text-slate-500 text-xs">Dirección de Destino</Label>
+                    <Label htmlFor="destination_address" className="text-slate-500 text-xs">Dirección de Destino</Label>
                     <div className="flex gap-2">
                       <Input
+                        id="destination_address"
+                        name="destination_address"
                         placeholder="Ej: Lo Fontecilla 441 o Referencia"
                         value={form.destination_address || ""}
                         onChange={(e) => setForm({ ...form, destination_address: e.target.value, destination_maps_url: "" })}
@@ -553,7 +563,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <Label>Servicio Solicitante *</Label>
+                  <Label htmlFor="patient_unit">Servicio Solicitante *</Label>
                   {!useCustomService ? (
                     <Select
                       value={form.patient_unit}
@@ -566,7 +576,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                         }
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="patient_unit">
                         <SelectValue placeholder="Seleccione servicio" />
                       </SelectTrigger>
                       <SelectContent>
@@ -583,6 +593,8 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                     </Select>
                   ) : (
                     <Input
+                      id="patient_unit"
+                      name="patient_unit"
                       placeholder="Escriba servicio"
                       value={form.patient_unit || ""}
                       onChange={(e) => setForm({ ...form, patient_unit: e.target.value })}
@@ -593,21 +605,21 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
 
                 {tripType === "clinico" && (
                   <div className="space-y-1">
-                    <Label>Cama</Label>
-                    <Input value={form.bed} onChange={(e) => setForm({ ...form, bed: e.target.value })} />
+                    <Label htmlFor="bed">Cama</Label>
+                    <Input id="bed" name="bed" value={form.bed} onChange={(e) => setForm({ ...form, bed: e.target.value })} />
                   </div>
                 )}
                 <div className="space-y-1">
-                  <Label>Fecha del Traslado</Label>
-                  <Input type="date" value={form.scheduled_date} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
+                  <Label htmlFor="scheduled_date">Fecha del Traslado</Label>
+                  <Input id="scheduled_date" name="scheduled_date" type="date" value={form.scheduled_date} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Hora de Citación</Label>
-                  <Input type="time" value={form.appointment_time} onChange={(e) => setForm({ ...form, appointment_time: e.target.value })} />
+                  <Label htmlFor="appointment_time">Hora de Citación</Label>
+                  <Input id="appointment_time" name="appointment_time" type="time" value={form.appointment_time} onChange={(e) => setForm({ ...form, appointment_time: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Hora de Salida</Label>
-                  <Input type="time" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} />
+                  <Label htmlFor="departure_time">Hora de Salida</Label>
+                  <Input id="departure_time" name="departure_time" type="time" value={form.departure_time} onChange={(e) => setForm({ ...form, departure_time: e.target.value })} />
                 </div>
               </div>
             </div>
@@ -716,9 +728,11 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                       <label key={o} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
                         <input
                           type="checkbox"
+                          name="patient_requirements"
+                          value={o}
                           checked={form.patient_requirements.includes(o)}
                           onChange={() => handleCheckbox("patient_requirements", o)}
-                          className="w-4 h-4 text-teal-600 rounded border-slate-300"
+                          className="rounded text-teal-600 focus:ring-teal-500 h-4 w-4"
                         />{" "}
                         {o}
                       </label>
