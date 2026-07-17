@@ -66,6 +66,8 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
       setUseCustomDest(false);
       setUseCustomService(false);
     }
+    console.log("DEBUG [NewTripSection] User context loaded:", user);
+    console.log("DEBUG [NewTripSection] Department from user:", user?.department);
   }, [editingTrip, user]);
 
   useEffect(() => {
@@ -317,13 +319,15 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <Label>Nombre Paciente *</Label>
-                      <Input value={form.patient_name} onChange={(e) => setForm({ ...form, patient_name: e.target.value })} />
+                      <Label htmlFor="patient_name">Nombre Paciente *</Label>
+                      <Input id="patient_name" name="patient_name" value={form.patient_name} onChange={(e) => setForm({ ...form, patient_name: e.target.value })} />
                     </div>
                     <div className="space-y-1">
-                      <Label>RUT</Label>
+                      <Label htmlFor="rut">RUT</Label>
                       <div className="relative">
                         <Input
+                          id="rut"
+                          name="rut"
                           value={form.rut}
                           onChange={(e) => handleRutChange(e.target.value)}
                           placeholder="Ej: 12345678-9"
@@ -341,16 +345,16 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                       {rutStatus && rutStatus.valid && <p className="text-xs text-emerald-600 font-medium mt-0.5">✓ RUT válido: {rutStatus.formatted}</p>}
                     </div>
                     <div className="space-y-1">
-                      <Label>Edad</Label>
-                      <Input value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
+                      <Label htmlFor="age">Edad</Label>
+                      <Input id="age" name="age" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
                     </div>
                     <div className="space-y-1">
-                      <Label>Peso</Label>
-                      <Input value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} />
+                      <Label htmlFor="weight">Peso</Label>
+                      <Input id="weight" name="weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} />
                     </div>
                     <div className="space-y-1 md:col-span-2">
-                      <Label>Diagnóstico</Label>
-                      <Input value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} />
+                      <Label htmlFor="diagnosis">Diagnóstico</Label>
+                      <Input id="diagnosis" name="diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} />
                     </div>
                   </div>
                 </div>
@@ -361,8 +365,8 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <Label>Médico Tratante</Label>
-                      <Input value={form.attending_physician} onChange={(e) => setForm({ ...form, attending_physician: e.target.value })} />
+                      <Label htmlFor="attending_physician">Médico Tratante</Label>
+                      <Input id="attending_physician" name="attending_physician" value={form.attending_physician} onChange={(e) => setForm({ ...form, attending_physician: e.target.value })} />
                     </div>
                     <div className="space-y-1">
                       <Label>Motivo Traslado *</Label>
