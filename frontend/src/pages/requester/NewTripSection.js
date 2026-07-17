@@ -418,7 +418,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                   <div className="space-y-1 md:col-span-4">
                     <Label>Origen *</Label>
                     {!useCustomOrigin ? (
-                      <Select value={form.origin || undefined} onValueChange={handleOriginChange}>
+                      <Select value={form.origin} onValueChange={handleOriginChange}>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccione" />
                         </SelectTrigger>
@@ -478,7 +478,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                   <div className="space-y-1 md:col-span-4">
                     <Label>Destino *</Label>
                     {!useCustomDest ? (
-                      <Select value={form.destination || undefined} onValueChange={handleDestChange}>
+                      <Select value={form.destination} onValueChange={handleDestChange}>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccione" />
                         </SelectTrigger>
@@ -539,7 +539,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                   <Label>Servicio Solicitante *</Label>
                   {!useCustomService ? (
                     <Select
-                      value={form.patient_unit || undefined}
+                      value={form.patient_unit}
                       onValueChange={(v) => {
                         if (v === "otro") {
                           setUseCustomService(true);
