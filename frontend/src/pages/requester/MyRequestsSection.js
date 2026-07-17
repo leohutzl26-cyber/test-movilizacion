@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ClipboardList, MapPin, ArrowRight, Ambulance, Clock, Truck, Trash2, Filter, Map } from "lucide-react";
+import { ClipboardList, MapPin, ArrowRight, Ambulance, Clock, Truck, Trash2, Filter, Map, FileSpreadsheet } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { statusColorsSolid, statusBorders, statusHeaderStyles } from "@/lib/tripUtils";
+import * as XLSX from "xlsx";
 
 export default function MyRequestsSection({ onEdit }) {
   const [requests, setRequests] = useState([]);
@@ -27,6 +28,61 @@ export default function MyRequestsSection({ onEdit }) {
       setLoading(false);
     }
   }, []);
+
+  const exportToExcel = () => {
+    if (filteredRequests.length === 0) {
+      toast.error("No hay registros para exportar");
+      return;
+    }
+
+    try {
+      const dataToExport = filteredRequests.map((req) => ({
+        "Folio": req.tracking_number || req.id.substring(0, 6).toUpperCase(),
+        "Tipo de Traslado": req.trip_type === "clinico" ? "Clínico" : "No Clínico",
+        "Paciente / Detalle": req.trip_type === "clinico" ? req.patient_name : req.task_details,
+        "Origen": req.origin || "-",
+        "Dirección Origen": req.origin_address || "-",
+        "Destino": req.destination || "-",
+        "Dirección Destino": req.destination_address || "-",
+        "Servicio / Unidad": req.patient_unit || "-",
+        "Cama": req.bed || "-",
+        "RUT Paciente": req.rut || "-",
+        "Edad": req.age || "-",
+        "Diagnóstico": req.diagnosis || "-",
+        "Prioridad": req.priority || "normal",
+        "Fecha Solicitud": formatDateTime(req.created_at),
+        "Fecha Programada": formatDate(req.scheduled_date),
+        "Hora Citación": req.appointment_time || "-",
+        "Hora Salida": req.departure_time || "-",
+        "Estado": (req.status || "").replace(/_/g, " ").toUpperCase(),
+        "Notas": req.notes || "-",
+        "Conductor": req.driver_name || "Sin asignar",
+        "Patente Vehículo": req.vehicle_plate || "Sin asignar"
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Solicitudes");
+
+      // Autoajustar el ancho de las columnas
+      const maxLen = {};
+      dataToExport.forEach((row) => {
+        Object.keys(row).forEach((key) => {
+          const val = row[key] ? String(row[key]) : "";
+          maxLen[key] = Math.max(maxLen[key] || key.length, val.length);
+        });
+      });
+      worksheet["!cols"] = Object.keys(maxLen).map((key) => ({
+        wch: maxLen[key] + 3
+      }));
+
+      XLSX.writeFile(workbook, `Historico_Solicitudes_${new Date().toISOString().split("T")[0]}.xlsx`);
+      toast.success("Archivo Excel generado con éxito");
+    } catch (error) {
+      console.error("Error al exportar a Excel:", error);
+      toast.error("Error al exportar a Excel");
+    }
+  };
 
   useEffect(() => {
     fetchReqs();
@@ -120,6 +176,14 @@ export default function MyRequestsSection({ onEdit }) {
               </SelectContent>
             </Select>
           </div>
+
+          <Button
+            onClick={exportToExcel}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-4 rounded-xl flex items-center gap-2 shrink-0 shadow-sm w-full sm:w-auto border-none"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Exportar Excel</span>
+          </Button>
         </div>
       </div>
 
