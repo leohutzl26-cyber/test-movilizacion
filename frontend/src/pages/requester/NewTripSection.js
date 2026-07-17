@@ -84,6 +84,19 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
   }, [editingTrip, originServices]);
 
   useEffect(() => {
+    if (!editingTrip && user?.department && originServices.length > 0) {
+      const match = originServices.find(s => s.name.trim().toLowerCase() === user.department.trim().toLowerCase());
+      if (match) {
+        setForm(prev => ({ ...prev, patient_unit: match.name }));
+        setUseCustomService(false);
+      } else {
+        setForm(prev => ({ ...prev, patient_unit: user.department }));
+        setUseCustomService(true);
+      }
+    }
+  }, [user, originServices, editingTrip]);
+
+  useEffect(() => {
     api.get("/origins").then((r) => setOrigins((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
     api.get("/destinations").then((r) => setDestinations((r.data || []).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
     api.get("/clinical-staff").then((r) => setClinicalStaffOptions((r.data || []).filter((s) => s.is_active))).catch(() => {});
