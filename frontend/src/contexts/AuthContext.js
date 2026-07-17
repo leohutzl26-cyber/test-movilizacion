@@ -94,14 +94,15 @@ export function AuthProvider({ children }) {
           status: profile.status,
           must_change_password: profile.must_change_password
         } : session.user);
+        setLoading(false);
       } else {
         // Solo deslogueamos si no hay un token de la API personalizada guardado en localStorage
         const hasCustomToken = localStorage.getItem('supabase.auth.token');
         if (!hasCustomToken) {
           setUser(null);
+          setLoading(false);
         }
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
