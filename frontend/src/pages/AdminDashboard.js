@@ -11,6 +11,7 @@ import AuditLogs from "./admin/AuditLogs";
 import TripsManager from "./admin/TripsManager";
 import VehiclesManager from "./admin/VehiclesManager";
 import DriversManager from "./admin/DriversManager";
+import OriginServicesMantenedor from "./manager/OriginServicesMantenedor";
 
 export default function AdminDashboard() {
   const [section, setSection] = useState(() => {
@@ -33,6 +34,7 @@ export default function AdminDashboard() {
         {section === "trips" && <TripsManager />}
         {section === "vehicles" && <VehiclesManager />}
         {section === "drivers" && <DriversManager />}
+        {section === "services" && <OriginServicesMantenedor />}
         {section === "reports" && <LogbookReport />}
       </main>
     </div>

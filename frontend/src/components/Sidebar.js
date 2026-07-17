@@ -26,6 +26,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "vehicles", label: "Flota", icon: Truck },
       { id: "origins", label: "Orígenes", icon: MapPin },
       { id: "destinations", label: "Destinos", icon: MapPin },
+      { id: "services", label: "Servicios / Unidades", icon: MapPin },
       { id: "drivers", label: "Conductores", icon: ClipboardList },
       { id: "audit", label: "Auditoría", icon: Shield },
       { id: "reports", label: "Libro de Recorrido", icon: BookOpen },
