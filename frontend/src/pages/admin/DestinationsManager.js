@@ -13,6 +13,12 @@ export default function DestinationsManager() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredDests = dests.filter(d =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d.address && d.address.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const handleOpenGoogleMaps = () => {
     if (!address.trim()) {
@@ -122,8 +128,24 @@ export default function DestinationsManager() {
           </form>
         </CardContent>
       </Card>
+      
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Total: {filteredDests.length} {filteredDests.length === 1 ? 'registro' : 'registros'}
+        </span>
+        <div className="w-full sm:max-w-xs">
+          <Input
+            type="text"
+            placeholder="Buscar por nombre o dirección..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-10 text-xs font-semibold rounded-xl border-slate-200 shadow-sm"
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {dests.map((d) => (
+        {filteredDests.map((d) => (
           <div
             key={d.id}
             className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col group hover:border-teal-300 transition-colors relative"

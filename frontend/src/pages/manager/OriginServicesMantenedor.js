@@ -16,6 +16,11 @@ export default function OriginServicesMantenedor() {
   const [editingService, setEditingService] = useState(null);
   const [formData, setFormData] = useState({ name: "", is_active: true });
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredServices = services.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const fetchServices = useCallback(async () => {
     try { const r = await api.get("/origin-services"); setServices(r.data || []); } catch { } finally { setLoading(false); }
@@ -48,12 +53,28 @@ export default function OriginServicesMantenedor() {
           <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-10 shadow-md"><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
         </div>
       </div>
+
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Total: {filteredServices.length} {filteredServices.length === 1 ? 'servicio' : 'servicios'}
+        </span>
+        <div className="w-full sm:max-w-xs">
+          <Input
+            type="text"
+            placeholder="Buscar por nombre..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-10 text-xs font-semibold rounded-xl border-slate-200 shadow-sm"
+          />
+        </div>
+      </div>
+
       <Card className="shadow-sm">
         <CardContent className="p-0">
           <table className="w-full text-sm">
             <thead className="bg-slate-100"><tr><th className="p-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre del Servicio</th><th className="p-4 text-center w-32">Acciones</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {services.map(s => (
+              {filteredServices.map(s => (
                 <tr key={s.id} className="hover:bg-slate-50">
                   <td className="p-4 font-bold text-slate-900">{s.name}</td>
                   <td className="p-4 text-center"><Button variant="ghost" size="icon" onClick={() => openEdit(s)} className="h-8 w-8 text-slate-500 hover:text-teal-600"><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="h-8 w-8 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button></td>

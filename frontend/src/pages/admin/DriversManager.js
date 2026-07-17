@@ -15,6 +15,15 @@ export default function DriversManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [licenseDate, setLicenseDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredDrivers = drivers.filter(d =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d.rut && d.rut.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (d.username && d.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (d.email && d.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (d.vehicle_plate && d.vehicle_plate.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const fetchDrivers = useCallback(async () => {
     try {
@@ -51,6 +60,22 @@ export default function DriversManager() {
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
       <h1 className="text-2xl font-bold text-slate-900 mb-6">Conductores Registrados</h1>
+      
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Total: {filteredDrivers.length} {filteredDrivers.length === 1 ? 'conductor' : 'conductores'}
+        </span>
+        <div className="w-full sm:max-w-xs">
+          <Input
+            type="text"
+            placeholder="Buscar por nombre, rut, patente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-10 text-xs font-semibold rounded-xl border-slate-200 shadow-sm"
+          />
+        </div>
+      </div>
+
       {loading ? (
         <p className="text-slate-500">Cargando...</p>
       ) : (
@@ -67,7 +92,7 @@ export default function DriversManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {drivers.map((d) => (
+                {filteredDrivers.map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50">
                     <td className="p-4">
                       <p className="font-bold text-slate-900">{d.name}</p>

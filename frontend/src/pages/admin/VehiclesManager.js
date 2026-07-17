@@ -19,6 +19,15 @@ export default function VehiclesManager() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ plate: "", zonal_number: "", brand: "", model: "", type: "Auto/SUV", year: 2024, mileage: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredVehicles = vehicles.filter(v =>
+    v.plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (v.brand && v.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.model && v.model.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.zonal_number && v.zonal_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.type && v.type.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const fetchVehicles = useCallback(async () => {
     try {
@@ -111,6 +120,21 @@ export default function VehiclesManager() {
         </div>
       </div>
 
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm mt-4">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Total: {filteredVehicles.length} {filteredVehicles.length === 1 ? 'vehículo' : 'vehículos'}
+        </span>
+        <div className="w-full sm:max-w-xs">
+          <Input
+            type="text"
+            placeholder="Buscar por patente, marca, zonal..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-10 text-xs font-semibold rounded-xl border-slate-200 shadow-sm"
+          />
+        </div>
+      </div>
+
       {loading ? (
         <p className="text-slate-500">Cargando...</p>
       ) : (
@@ -130,7 +154,7 @@ export default function VehiclesManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {vehicles.map((v) => (
+                {filteredVehicles.map((v) => (
                   <tr key={v.id} className="hover:bg-slate-50">
                     <td className="p-4">{VEHICLE_ICONS[v.type] || <Car className="w-4 h-4" />}</td>
                     <td className="p-4 font-bold text-teal-700">{v.zonal_number ? formatZonalNumber(v.zonal_number) : "-"}</td>

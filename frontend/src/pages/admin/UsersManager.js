@@ -18,6 +18,16 @@ export default function UsersManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: "", rut: "", username: "", role: "solicitante", department: "", is_active: true });
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.rut && u.rut.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (u.role && u.role.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (u.department && u.department.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -142,6 +152,21 @@ export default function UsersManager() {
         </Button>
       </div>
 
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm mt-4">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Total: {filteredUsers.length} {filteredUsers.length === 1 ? 'usuario' : 'usuarios'}
+        </span>
+        <div className="w-full sm:max-w-xs">
+          <Input
+            type="text"
+            placeholder="Buscar por nombre, rut, rol, servicio..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-10 text-xs font-semibold rounded-xl border-slate-200 shadow-sm"
+          />
+        </div>
+      </div>
+
       {loading ? <p className="text-slate-500 text-center py-10">Cargando usuarios...</p> : (
         <Card className="shadow-sm">
           <CardContent className="p-0 overflow-x-auto">
@@ -156,7 +181,7 @@ export default function UsersManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {users.map(u => (
+                {filteredUsers.map(u => (
                   <tr key={u.id} className="hover:bg-slate-50">
                     <td className="p-4">
                       <p className="font-bold text-slate-900">{u.name}</p>
