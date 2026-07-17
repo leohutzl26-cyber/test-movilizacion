@@ -66,8 +66,6 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
       setUseCustomDest(false);
       setUseCustomService(false);
     }
-    console.log("DEBUG [NewTripSection] User context loaded:", user);
-    console.log("DEBUG [NewTripSection] Department from user:", user?.department);
   }, [editingTrip, user]);
 
   useEffect(() => {
