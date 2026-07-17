@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import ByDriverSection from "./ByDriverSection";
 import LogbookReport from "@/components/LogbookReport";
+import ActiveDriversPanel from "@/components/ActiveDriversPanel";
 
 // Imports de subcomponentes extraídos en pages/manager/
 import DispatchSection from "./manager/DispatchSection";
@@ -47,9 +48,27 @@ export default function ShiftManagerDashboard() {
             <Sidebar activeSection={section} onSectionChange={setSection} />
             <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
                 <div className="max-w-7xl mx-auto">
-                    {section === "dispatch" && <DispatchSection />}
+                    {section === "dispatch" && (
+                        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                            <div className="xl:col-span-3">
+                                <DispatchSection />
+                            </div>
+                            <div className="xl:col-span-1">
+                                <ActiveDriversPanel />
+                            </div>
+                        </div>
+                    )}
                     {section === "new" && <NewTripSection onNavigate={setSection} />}
-                    {section === "assign" && <AssignSection />}
+                    {section === "assign" && (
+                        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                            <div className="xl:col-span-3">
+                                <AssignSection />
+                            </div>
+                            <div className="xl:col-span-1">
+                                <ActiveDriversPanel />
+                            </div>
+                        </div>
+                    )}
                     {section === "calendar" && <CalendarSection />}
                     {section === "by_driver" && <ByDriverSection />}
                     {section === "vehicles" && <VehiclesSection />}

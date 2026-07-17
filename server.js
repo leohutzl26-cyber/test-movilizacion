@@ -119,6 +119,127 @@ const authenticateToken = (req, res, next) => {
 
 app.use(authenticateToken);
 
+// Instancia de cliente de Supabase con bypass para lógica del servidor
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Endpoint para actualizar estado de turno del conductor
+app.post('/api/drivers/status', async (req, res) => {
+  try {
+    const userRole = req.context.user?.role;
+    const userId = req.context.user?.id;
+
+    if (userRole !== 'conductor' && userRole !== 'admin') {
+      return res.status(403).json({ error: 'Acceso denegado: Se requiere perfil de Conductor' });
+    }
+
+    const { is_working, current_vehicle_id } = req.body;
+    const targetUserId = userId || req.body.driver_id;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ 
+        is_working: is_working !== undefined ? is_working : false,
+        current_vehicle_id: current_vehicle_id || null 
+      })
+      .eq('id', targetUserId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    res.json({ message: 'Estado de turno actualizado', profile: data });
+  } catch (e) {
+    console.error("Error updating driver status:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Endpoint para consultar conductores y vehículos activos
+app.get('/api/drivers/active', async (req, res) => {
+  try {
+    // 1. Obtener todos los perfiles de conductor activos
+    const { data: drivers, error: driversError } = await supabase
+      .from('profiles')
+      .select('id, name, username, email, phone, is_working, current_vehicle_id, vehicle_plate')
+      .eq('role', 'conductor')
+      .eq('is_active', true);
+      
+    if (driversError) throw driversError;
+    
+    // 2. Obtener traslados en curso
+    const { data: activeTrips, error: tripsError } = await supabase
+      .from('trips')
+      .select('id, driver_id, status, tracking_number')
+      .eq('status', 'en_curso');
+      
+    if (tripsError) throw tripsError;
+    
+    // 3. Obtener catálogo de vehículos
+    const { data: vehicles, error: vehiclesError } = await supabase
+      .from('vehicles')
+      .select('id, plate, brand, model, zonal_number, type, status');
+      
+    if (vehiclesError) throw vehiclesError;
+    
+    // 4. Mapear conductores en base a turno y viajes activos
+    const activeDrivers = drivers.map(d => {
+      const trip = activeTrips.find(t => t.driver_id === d.id);
+      const vehicle = vehicles.find(v => v.id === d.current_vehicle_id);
+      
+      let status = 'fuera_de_turno';
+      if (d.is_working) {
+        status = trip ? 'en_ruta' : 'disponible';
+      }
+      
+      return {
+        id: d.id,
+        name: d.name,
+        username: d.username,
+        email: d.email,
+        phone: d.phone,
+        is_working: d.is_working,
+        current_vehicle_id: d.current_vehicle_id,
+        vehicle: vehicle ? {
+          id: vehicle.id,
+          plate: vehicle.plate,
+          brand: vehicle.brand,
+          model: vehicle.model,
+          zonal_number: vehicle.zonal_number,
+          type: vehicle.type
+        } : null,
+        active_trip: trip ? {
+          id: trip.id,
+          tracking_number: trip.tracking_number
+        } : null,
+        status // 'fuera_de_turno' | 'disponible' | 'en_ruta'
+      };
+    });
+    
+    res.json({
+      drivers: activeDrivers,
+      vehicles: vehicles.map(v => {
+        const driverUsing = drivers.find(d => d.is_working && d.current_vehicle_id === v.id);
+        return {
+          id: v.id,
+          plate: v.plate,
+          brand: v.brand,
+          model: v.model,
+          zonal_number: v.zonal_number,
+          type: v.type,
+          status: v.status,
+          assigned_driver: driverUsing ? {
+            id: driverUsing.id,
+            name: driverUsing.name
+          } : null
+        };
+      })
+    });
+  } catch (e) {
+    console.error("Error fetching active drivers:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Create API routes for each function
 Object.keys(functions).forEach(funcName => {
   app.post(`/api/${funcName}`, async (req, res) => {

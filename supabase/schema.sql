@@ -33,7 +33,9 @@ CREATE TABLE profiles (
     phone TEXT,
     department TEXT,
     rut TEXT,
-    is_active BOOLEAN DEFAULT true
+    is_active BOOLEAN DEFAULT true,
+    is_working BOOLEAN DEFAULT false,
+    current_vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL
 );
 
 -- Create vehicles table
