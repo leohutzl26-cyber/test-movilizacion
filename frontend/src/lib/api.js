@@ -355,6 +355,93 @@ const api = {
           return { data: userTrips || [] };
         }
 
+        case "/drivers/active": {
+          try {
+            // 1. Obtener todos los perfiles de conductor
+            const { data: drivers, error: driversError } = await supabase
+              .from('profiles')
+              .select('id, name, username, email, phone, is_working, current_vehicle_id, vehicle_plate, is_active')
+              .eq('role', 'conductor');
+              
+            if (driversError) throw driversError;
+            
+            // 2. Obtener traslados en curso
+            const { data: activeTrips, error: tripsError } = await supabase
+              .from('trips')
+              .select('id, driver_id, status, tracking_number')
+              .eq('status', 'en_curso');
+              
+            if (tripsError) throw tripsError;
+            
+            // 3. Obtener catálogo de vehículos
+            const { data: vehicles, error: vehiclesError } = await supabase
+              .from('vehicles')
+              .select('id, plate, brand, model, zonal_number, type, status');
+              
+            if (vehiclesError) throw vehiclesError;
+            
+            // Mapear conductores en base a turno y viajes activos
+            const activeDriversList = (drivers || []).filter(d => d.is_active !== false);
+            const mappedDrivers = activeDriversList.map(d => {
+              const trip = (activeTrips || []).find(t => t.driver_id === d.id);
+              const vehicle = (vehicles || []).find(v => v.id === d.current_vehicle_id);
+              
+              let status = 'fuera_de_turno';
+              if (d.is_working) {
+                status = trip ? 'en_ruta' : 'disponible';
+              }
+              
+              return {
+                id: d.id,
+                name: d.name,
+                username: d.username,
+                email: d.email,
+                phone: d.phone,
+                is_working: d.is_working,
+                current_vehicle_id: d.current_vehicle_id,
+                vehicle: vehicle ? {
+                  id: vehicle.id,
+                  plate: vehicle.plate,
+                  brand: vehicle.brand,
+                  model: vehicle.model,
+                  zonal_number: vehicle.zonal_number,
+                  type: vehicle.type
+                } : null,
+                active_trip: trip ? {
+                  id: trip.id,
+                  tracking_number: trip.tracking_number
+                } : null,
+                status
+              };
+            });
+            
+            return {
+              data: {
+                drivers: mappedDrivers,
+                vehicles: (vehicles || []).map(v => {
+                  const driverUsing = activeDriversList.find(d => d.is_working && d.current_vehicle_id === v.id);
+                  return {
+                    id: v.id,
+                    plate: v.plate,
+                    brand: v.brand,
+                    model: v.model,
+                    zonal_number: v.zonal_number,
+                    type: v.type,
+                    status: v.status,
+                    assigned_driver: driverUsing ? {
+                      id: driverUsing.id,
+                      name: driverUsing.name
+                    } : null
+                  };
+                })
+              }
+            };
+          } catch (e) {
+            console.error("Error in mock api /drivers/active:", e);
+            return { data: { drivers: [], vehicles: [] } };
+          }
+        }
+
         default: {
           // Rutas dinámicas como /trips/:id/logs
           if (baseUrl.startsWith("/trips/") && (baseUrl.endsWith("/logs") || baseUrl.endsWith("/audit"))) {
@@ -423,6 +510,32 @@ const api = {
 
         case "/auth/login":
           return { data: await supabaseApi.auth.login(data) };
+
+        case "/drivers/status": {
+          let currentUserId = null;
+          try {
+            const session = await getCurrentUserSession();
+            currentUserId = session.user.id;
+          } catch (e) {
+            console.error("Error getting session in /drivers/status POST", e);
+          }
+          
+          const targetUserId = currentUserId || data.driver_id;
+          if (!targetUserId) throw new Error("No driver user session or ID provided");
+          
+          const { data: updatedProfile, error } = await supabase
+            .from('profiles')
+            .update({ 
+              is_working: data.is_working !== undefined ? data.is_working : false,
+              current_vehicle_id: data.current_vehicle_id || null 
+            })
+            .eq('id', targetUserId)
+            .select()
+            .single();
+            
+          if (error) throw error;
+          return { data: { message: 'Estado de turno actualizado', profile: updatedProfile } };
+        }
 
         default:
           return { data: { success: true } };
