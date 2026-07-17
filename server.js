@@ -157,32 +157,63 @@ app.post('/api/drivers/status', async (req, res) => {
 // Endpoint para consultar conductores y vehículos activos
 app.get('/api/drivers/active', async (req, res) => {
   try {
-    // 1. Obtener todos los perfiles de conductor activos
-    const { data: drivers, error: driversError } = await supabase
-      .from('profiles')
-      .select('id, name, username, email, phone, is_working, current_vehicle_id, vehicle_plate')
-      .eq('role', 'conductor')
-      .eq('is_active', true);
+    let drivers = [];
+    
+    // 1. Obtener todos los perfiles de conductor
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, username, email, phone, is_working, current_vehicle_id, vehicle_plate, is_active')
+        .eq('role', 'conductor');
       
-    if (driversError) throw driversError;
+      if (error) throw error;
+      drivers = data || [];
+    } catch (dbErr) {
+      console.warn("Advertencia: No se pudo consultar esquema completo de profiles (posiblemente faltan columnas is_working/current_vehicle_id en Supabase). Reintentando con esquema basico.", dbErr.message);
+      // Fallback: si falla por columnas nuevas no migradas, consultamos el esquema anterior
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, username, email, phone, vehicle_plate, is_active')
+        .eq('role', 'conductor');
+        
+      if (error) throw error;
+      drivers = (data || []).map(d => ({
+        ...d,
+        is_working: false,
+        current_vehicle_id: null
+      }));
+    }
+
+    // Filtrar conductores que estén explícitamente inactivos (si is_active es null o true, se consideran activos)
+    const activeDriversList = drivers.filter(d => d.is_active !== false);
     
     // 2. Obtener traslados en curso
-    const { data: activeTrips, error: tripsError } = await supabase
-      .from('trips')
-      .select('id, driver_id, status, tracking_number')
-      .eq('status', 'en_curso');
-      
-    if (tripsError) throw tripsError;
+    let activeTrips = [];
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('id, driver_id, status, tracking_number')
+        .eq('status', 'en_curso');
+      if (error) throw error;
+      activeTrips = data || [];
+    } catch (e) {
+      console.error("Error fetching active trips for drivers panel:", e.message);
+    }
     
     // 3. Obtener catálogo de vehículos
-    const { data: vehicles, error: vehiclesError } = await supabase
-      .from('vehicles')
-      .select('id, plate, brand, model, zonal_number, type, status');
-      
-    if (vehiclesError) throw vehiclesError;
+    let vehicles = [];
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('id, plate, brand, model, zonal_number, type, status');
+      if (error) throw error;
+      vehicles = data || [];
+    } catch (e) {
+      console.error("Error fetching vehicles for drivers panel:", e.message);
+    }
     
     // 4. Mapear conductores en base a turno y viajes activos
-    const activeDrivers = drivers.map(d => {
+    const mappedDrivers = activeDriversList.map(d => {
       const trip = activeTrips.find(t => t.driver_id === d.id);
       const vehicle = vehicles.find(v => v.id === d.current_vehicle_id);
       
@@ -216,9 +247,9 @@ app.get('/api/drivers/active', async (req, res) => {
     });
     
     res.json({
-      drivers: activeDrivers,
+      drivers: mappedDrivers,
       vehicles: vehicles.map(v => {
-        const driverUsing = drivers.find(d => d.is_working && d.current_vehicle_id === v.id);
+        const driverUsing = activeDriversList.find(d => d.is_working && d.current_vehicle_id === v.id);
         return {
           id: v.id,
           plate: v.plate,
