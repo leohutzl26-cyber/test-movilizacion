@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
     };
 
     if (action === 'create') {
-      const { name, rut, username, role } = payload;
+      const { name, rut, username, role, department } = payload;
 
       if (!name || !username || !role) {
         return {
@@ -75,6 +75,7 @@ exports.handler = async (event, context) => {
           rut: rut || null,
           username,
           role,
+          department: department || null,
           status: 'approved',
           encrypted_password: encryptedPassword,
           must_change_password: true,
@@ -113,7 +114,7 @@ exports.handler = async (event, context) => {
     }
 
     if (action === 'update') {
-      const { id, name, rut, username, role, is_active } = payload;
+      const { id, name, rut, username, role, is_active, department } = payload;
 
       if (!id || !name || !username || !role) {
         return {
@@ -159,6 +160,7 @@ exports.handler = async (event, context) => {
           rut: rut || null,
           username,
           role,
+          department: department !== undefined ? department : null,
           is_active: is_active !== undefined ? is_active : true
         })
         .eq('id', id)

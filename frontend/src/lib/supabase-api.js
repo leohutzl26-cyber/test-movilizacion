@@ -117,6 +117,7 @@ export const authApi = {
         username: payload.username,
         name: payload.name,
         role: payload.role,
+        department: payload.department,
         must_change_password: payload.must_change_password,
         status: 'approved'
       };
@@ -140,7 +141,9 @@ export const tripsApi = {
       query = query.in('status', filters.status);
     }
     
-    if (filters.requester_id) {
+    if (filters.requester_ids) {
+      query = query.in('requester_id', filters.requester_ids);
+    } else if (filters.requester_id) {
       query = query.eq('requester_id', filters.requester_id);
     }
     

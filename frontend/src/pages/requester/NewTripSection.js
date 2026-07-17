@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ const defaultForm = {
 };
 
 export default function NewTripSection({ editingTrip, setEditingTrip, onSaved }) {
+  const { user } = useAuth();
   const [origins, setOrigins] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [originServices, setOriginServices] = useState([]);
@@ -54,14 +56,17 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
         setRutStatus(validateRut(editingTrip.rut));
       }
     } else {
-      setForm(defaultForm);
+      setForm({
+        ...defaultForm,
+        patient_unit: user?.department || ""
+      });
       setStaffRows([]);
       setRutStatus(null);
       setUseCustomOrigin(false);
       setUseCustomDest(false);
       setUseCustomService(false);
     }
-  }, [editingTrip]);
+  }, [editingTrip, user]);
 
   useEffect(() => {
     if (editingTrip) {

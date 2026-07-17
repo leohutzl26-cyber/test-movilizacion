@@ -143,7 +143,20 @@ const api = {
 
         case "/trips/user": {
           const session = await getCurrentUserSession();
-          const userTrips = await supabaseApi.trips.getTrips({ requester_id: session.user.id });
+          const { data: profile } = await supabase.from('profiles').select('role, department').eq('id', session.user.id).single();
+          
+          let userTrips;
+          if (profile && profile.role === 'solicitante' && profile.department) {
+            const { data: deptUsers } = await supabase.from('profiles').select('id').eq('department', profile.department);
+            const userIds = (deptUsers || []).map(u => u.id);
+            if (userIds.length > 0) {
+              userTrips = await supabaseApi.trips.getTrips({ requester_ids: userIds });
+            } else {
+              userTrips = await supabaseApi.trips.getTrips({ requester_id: session.user.id });
+            }
+          } else {
+            userTrips = await supabaseApi.trips.getTrips({ requester_id: session.user.id });
+          }
           return { data: userTrips };
         }
 
@@ -322,7 +335,23 @@ const api = {
             console.error("Error getting session in /trips GET", e);
           }
           
-          const userTrips = await supabaseApi.trips.getTrips(currentUserId ? { requester_id: currentUserId } : {});
+          let userTrips;
+          if (currentUserId) {
+            const { data: profile } = await supabase.from('profiles').select('role, department').eq('id', currentUserId).single();
+            if (profile && profile.role === 'solicitante' && profile.department) {
+              const { data: deptUsers } = await supabase.from('profiles').select('id').eq('department', profile.department);
+              const userIds = (deptUsers || []).map(u => u.id);
+              if (userIds.length > 0) {
+                userTrips = await supabaseApi.trips.getTrips({ requester_ids: userIds });
+              } else {
+                userTrips = await supabaseApi.trips.getTrips({ requester_id: currentUserId });
+              }
+            } else {
+              userTrips = await supabaseApi.trips.getTrips({ requester_id: currentUserId });
+            }
+          } else {
+            userTrips = await supabaseApi.trips.getTrips({});
+          }
           return { data: userTrips || [] };
         }
 

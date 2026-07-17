@@ -13,10 +13,11 @@ import { authApi } from "@/lib/supabase-api";
 
 export default function UsersManager() {
   const [users, setUsers] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: "", rut: "", username: "", role: "solicitante", is_active: true });
+  const [formData, setFormData] = useState({ name: "", rut: "", username: "", role: "solicitante", department: "", is_active: true });
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -33,10 +34,22 @@ export default function UsersManager() {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const { data, error } = await supabase.from('origin_services').select('*').order('name');
+        if (!error) setServices(data || []);
+      } catch (e) {
+        console.error("Error al cargar servicios", e);
+      }
+    };
+    fetchServices();
+  }, []);
+
   const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingId(null);
-    setFormData({ name: "", rut: "", username: "", role: "solicitante", is_active: true });
+    setFormData({ name: "", rut: "", username: "", role: "solicitante", department: "", is_active: true });
   };
 
   const handleEdit = (u) => {
@@ -46,6 +59,7 @@ export default function UsersManager() {
       rut: u.rut || "",
       username: u.username || "",
       role: u.role || "solicitante",
+      department: u.department || "",
       is_active: u.is_active !== undefined ? u.is_active : true
     });
     setIsDialogOpen(true);
@@ -68,6 +82,7 @@ export default function UsersManager() {
           rut: formData.rut,
           username: formData.username,
           role: formData.role,
+          department: formData.department,
           is_active: formData.is_active
         });
         toast.success(response.message || "Usuario actualizado exitosamente");
@@ -77,7 +92,8 @@ export default function UsersManager() {
           name: formData.name,
           rut: formData.rut,
           username: formData.username,
-          role: formData.role
+          role: formData.role,
+          department: formData.department
         });
         toast.success(response.message || "Usuario creado exitosamente");
       }
@@ -121,7 +137,7 @@ export default function UsersManager() {
     <div className="max-w-6xl mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Gestión de Usuarios</h1>
-        <Button onClick={() => { setEditingId(null); setFormData({ name: "", rut: "", username: "", role: "solicitante", is_active: true }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
+        <Button onClick={() => { setEditingId(null); setFormData({ name: "", rut: "", username: "", role: "solicitante", department: "", is_active: true }); setIsDialogOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white font-bold h-11">
           <Plus className="w-4 h-4 mr-2" /> Crear Usuario
         </Button>
       </div>
@@ -145,6 +161,9 @@ export default function UsersManager() {
                     <td className="p-4">
                       <p className="font-bold text-slate-900">{u.name}</p>
                       <p className="text-xs text-slate-500">{u.rut || "Sin RUT"}</p>
+                      {u.department && (
+                        <p className="text-[10px] text-teal-600 font-semibold uppercase mt-0.5">{u.department}</p>
+                      )}
                     </td>
                     <td className="p-4 font-mono text-xs text-slate-600">{u.username || u.email}</td>
                     <td className="p-4">
@@ -225,6 +244,19 @@ export default function UsersManager() {
                   </Select>
                 </div>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="user-department">Servicio / Departamento (Opcional)</Label>
+              <Select value={formData.department || "none"} onValueChange={v => setFormData({...formData, department: v === "none" ? "" : v})}>
+                <SelectTrigger id="user-department"><SelectValue placeholder="Seleccione Servicio" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin Servicio</SelectItem>
+                  {services.map(s => (
+                    <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {!editingId && (

@@ -75,6 +75,7 @@ exports.handler = async (event, context) => {
         username: profile.username,
         name: profile.name,
         role: profile.role,
+        department: profile.department,
         must_change_password: profile.must_change_password
       },
       process.env.JWT_SECRET,
@@ -103,6 +104,7 @@ exports.handler = async (event, context) => {
           username: profile.username,
           name: profile.name,
           role: profile.role,
+          department: profile.department,
           status: profile.status,
           must_change_password: profile.must_change_password
         }

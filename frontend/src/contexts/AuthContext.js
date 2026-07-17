@@ -54,6 +54,7 @@ export function AuthProvider({ children }) {
             username: profile.username,
             name: profile.name,
             role: profile.role,
+            department: profile.department,
             status: profile.status,
             must_change_password: profile.must_change_password
           } : session.user);
@@ -79,6 +80,7 @@ export function AuthProvider({ children }) {
           username: profile.username,
           name: profile.name,
           role: profile.role,
+          department: profile.department,
           status: profile.status,
           must_change_password: profile.must_change_password
         } : session.user);
