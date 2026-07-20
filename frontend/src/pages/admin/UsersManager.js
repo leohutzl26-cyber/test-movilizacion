@@ -193,7 +193,7 @@ export default function UsersManager() {
                     <td className="p-4 font-mono text-xs text-slate-600">{u.username || u.email}</td>
                     <td className="p-4">
                       <Badge variant="outline" className="text-xs capitalize">
-                        {(u.role || "solicitante").replace(/_/g, " ")}
+                        {u.role === "personal_clinico" ? "Acompañamiento Clínico" : (u.role || "solicitante").replace(/_/g, " ")}
                       </Badge>
                     </td>
                     <td className="p-4 text-center">
@@ -251,6 +251,7 @@ export default function UsersManager() {
                     <SelectItem value="conductor">Conductor</SelectItem>
                     <SelectItem value="coordinador">Coordinador</SelectItem>
                     <SelectItem value="gestion_camas">Gestión de Camas</SelectItem>
+                    <SelectItem value="personal_clinico">Acompañamiento Clínico</SelectItem>
                     <SelectItem value="panel">Pantalla TV (Panel)</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
                   </SelectContent>
