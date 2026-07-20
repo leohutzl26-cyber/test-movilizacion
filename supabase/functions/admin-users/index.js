@@ -85,9 +85,13 @@ exports.handler = async (event, context) => {
         .single();
 
       if (createError) {
+        let errorMsg = createError.message;
+        if (errorMsg.includes('profiles_role_check')) {
+          errorMsg = "Error de restricción de base de datos: Ejecute el script SQL 'add-personal-clinico-role-constraint.sql' en el SQL Editor de Supabase para habilitar el rol 'personal_clinico'.";
+        }
         return {
           statusCode: 400,
-          body: JSON.stringify({ error: createError.message })
+          body: JSON.stringify({ error: errorMsg })
         };
       }
 
