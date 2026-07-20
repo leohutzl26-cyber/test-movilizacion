@@ -35,6 +35,7 @@ export default function LoginPage() {
         solicitante: "/requester", 
         conductor: "/driver",
         gestion_camas: "/gestion-camas",
+        personal_clinico: "/clinical",
         panel: "/panel"
       };
       

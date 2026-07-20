@@ -166,6 +166,38 @@ const api = {
           return { data: driverTrips };
         }
 
+        case "/trips/clinical": {
+          const session = await getCurrentUserSession();
+          const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          const allTrips = await supabaseApi.trips.getTrips({});
+          
+          const userName = (userProfile?.name || '').toLowerCase();
+          const userId = session.user.id;
+
+          const filtered = (allTrips || []).filter(t => {
+            if (t.trip_type !== 'clinico') return false;
+            if (!t.assigned_clinical_staff) return false;
+            
+            let staffArr = t.assigned_clinical_staff;
+            if (typeof staffArr === 'string') {
+              try { staffArr = JSON.parse(staffArr); } catch(e) { return false; }
+            }
+            if (!Array.isArray(staffArr)) return false;
+
+            return staffArr.some(staff => {
+              let item = staff;
+              if (typeof staff === 'string') {
+                try { item = JSON.parse(staff); } catch(e) {}
+              }
+              const sId = item?.staff_id || item?.id;
+              const sName = (item?.staff_name || item?.name || item?.nombre || '').toLowerCase();
+              return (sId && sId === userId) || (userName && (sName.includes(userName) || userName.includes(sName)));
+            });
+          });
+
+          return { data: filtered };
+        }
+
         case "/trips/v2/history": {
           const session = await getCurrentUserSession();
           const driverId = session.user.id;
@@ -201,8 +233,31 @@ const api = {
         case "/origin-services":
           return { data: await supabaseApi.originServicesApi.getOriginServices() };
 
-        case "/clinical-staff":
-          return { data: await supabaseApi.clinicalStaff.getClinicalStaff() };
+        case "/clinical-staff": {
+          const catalog = await supabaseApi.clinicalStaff.getClinicalStaff();
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, name, role, is_working, department, is_active')
+            .eq('role', 'personal_clinico');
+          
+          const profileStaff = (profiles || []).map(p => ({
+            id: p.id,
+            staff_id: p.id,
+            name: p.name,
+            role: p.department || 'Acompañante Clínico',
+            is_active: p.is_active !== false,
+            is_working: !!p.is_working,
+            is_registered_user: true
+          }));
+
+          const combinedMap = new Map();
+          (catalog || []).forEach(c => combinedMap.set(c.id, c));
+          profileStaff.forEach(p => {
+            if (!combinedMap.has(p.id)) combinedMap.set(p.id, p);
+          });
+
+          return { data: Array.from(combinedMap.values()) };
+        }
 
         case "/vehicles":
           return { data: await supabaseApi.vehicles.getVehicles() };

@@ -20,7 +20,7 @@ CREATE TABLE profiles (
     email TEXT UNIQUE,
     encrypted_password TEXT,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('admin', 'solicitante', 'conductor', 'coordinador', 'gestion_camas', 'panel')),
+    role TEXT NOT NULL CHECK (role IN ('admin', 'solicitante', 'conductor', 'coordinador', 'gestion_camas', 'personal_clinico', 'panel')),
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     must_change_password BOOLEAN DEFAULT false,
     avatar_url TEXT,

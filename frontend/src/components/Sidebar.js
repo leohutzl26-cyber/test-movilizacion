@@ -91,6 +91,12 @@ export default function Sidebar({ activeSection, onSectionChange }) {
           { id: "services", label: "Servicios / Unidades", icon: MapPin },
         ]
       },
+    ],
+    personal_clinico: [
+      { id: "dashboard", label: "Mi Resumen", icon: TrendingUp },
+      { id: "assignments", label: "Mis Asignaciones", icon: ClipboardList },
+      { id: "calendar", label: "Calendario Clínico", icon: CalendarDays },
+      { id: "history", label: "Histórico Asistencias", icon: History },
     ]
   };
 

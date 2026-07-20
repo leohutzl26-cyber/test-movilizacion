@@ -5,6 +5,7 @@ import ShiftManagerDashboard from "@/pages/ShiftManagerDashboard";
 import DriverDashboard from "@/pages/DriverDashboard";
 import RequesterDashboard from "@/pages/RequesterDashboard";
 import GestionCamasDashboard from "@/pages/GestionCamasDashboard"; // NUEVA IMPORTACIÓN
+import ClinicalStaffDashboard from "@/pages/ClinicalStaffDashboard";
 import PanelDashboard from "@/pages/PanelDashboard";
 import ChangePasswordForceScreen from "@/components/ChangePasswordForceScreen";
 import { Toaster } from "@/components/ui/sonner";
@@ -45,7 +46,8 @@ function App() {
           <Route path="/manager/*" element={<ProtectedRoute roles={["coordinador", "admin"]}><ShiftManagerDashboard /></ProtectedRoute>} />
           <Route path="/driver/*" element={<ProtectedRoute roles={["conductor"]}><DriverDashboard /></ProtectedRoute>} />
           <Route path="/requester/*" element={<ProtectedRoute roles={["solicitante", "coordinador", "admin"]}><RequesterDashboard /></ProtectedRoute>} />
-          <Route path="/gestion-camas/*" element={<ProtectedRoute roles={["gestion_camas", "admin"]}><GestionCamasDashboard /></ProtectedRoute>} /> {/* NUEVA RUTA */}
+          <Route path="/gestion-camas/*" element={<ProtectedRoute roles={["gestion_camas", "admin"]}><GestionCamasDashboard /></ProtectedRoute>} />
+          <Route path="/clinical/*" element={<ProtectedRoute roles={["personal_clinico", "admin"]}><ClinicalStaffDashboard /></ProtectedRoute>} />
           <Route path="/panel/*" element={<ProtectedRoute roles={["panel"]}><PanelDashboard /></ProtectedRoute>} />
         </Routes>
         <Toaster />

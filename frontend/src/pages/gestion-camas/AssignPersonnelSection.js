@@ -700,9 +700,13 @@ export default function AssignPersonnelSection() {
                                  </SelectTrigger>
                                  <SelectContent>
                                    <SelectItem value="none">Sin identificar...</SelectItem>
-                                   {clinicalStaffOptions.filter(s => s.role === row.type).map(s => (
-                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                   ))}
+                                   {clinicalStaffOptions
+                                     .filter(s => !row.type || s.role === row.type || (s.role || '').toLowerCase().includes((row.type || '').toLowerCase()) || (row.type || '').toLowerCase().includes((s.role || '').toLowerCase()))
+                                     .map(s => (
+                                       <SelectItem key={s.id} value={s.id}>
+                                         {s.name} {s.is_working ? "🟢 [En Turno]" : "⚪ [Fuera de Turno]"}
+                                       </SelectItem>
+                                     ))}
                                  </SelectContent>
                                </Select>
                              </td>
