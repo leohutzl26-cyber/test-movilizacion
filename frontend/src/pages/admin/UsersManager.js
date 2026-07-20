@@ -63,13 +63,22 @@ export default function UsersManager() {
     setFormData({ name: "", rut: "", username: "", role: "solicitante", department: "", is_active: true });
   };
 
+  const normalizeRole = (r) => {
+    if (!r) return "solicitante";
+    const clean = r.toLowerCase().trim();
+    if (clean === "personal_clinico" || clean.includes("clinico") || clean.includes("clínico") || clean.includes("acompañam")) {
+      return "personal_clinico";
+    }
+    return clean;
+  };
+
   const handleEdit = (u) => {
     setEditingId(u.id);
     setFormData({
       name: u.name || "",
       rut: u.rut || "",
       username: u.username || "",
-      role: u.role || "solicitante",
+      role: normalizeRole(u.role),
       department: u.department || "",
       is_active: u.is_active !== undefined ? u.is_active : true
     });

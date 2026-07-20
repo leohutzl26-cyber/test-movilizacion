@@ -53,7 +53,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         label: "Mantenedores", 
         icon: Settings,
         subItems: [
-          { id: "staff", label: "Personal Clínico", icon: Users },
           { id: "origins", label: "Orígenes", icon: MapPin },
           { id: "destinations", label: "Destinos", icon: MapPin },
           { id: "services", label: "Servicios / Unidades", icon: MapPin },
@@ -85,7 +84,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         label: "Mantenedores", 
         icon: Settings,
         subItems: [
-          { id: "staff", label: "Personal Clínico", icon: Users },
           { id: "origins", label: "Orígenes", icon: MapPin },
           { id: "destinations", label: "Destinos", icon: MapPin },
           { id: "services", label: "Servicios / Unidades", icon: MapPin },
