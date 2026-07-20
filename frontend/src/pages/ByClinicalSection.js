@@ -68,9 +68,24 @@ export default function ByClinicalSection() {
     const fetchBoard = useCallback(async () => {
         try {
             const res = await api.get(`/trips/by-clinical?date=${date}&role=${user?.role || ''}`);
-            setData(res.data || []);
+            if (res && Array.isArray(res.data)) {
+                setData(res.data);
+            } else {
+                setData([
+                    {
+                        staff: { id: "unassigned", name: "Sin Personal Asignado", profession: "Pendiente", is_working: false },
+                        trips: []
+                    }
+                ]);
+            }
         } catch (e) {
-            toast.error("Error al cargar la pizarra gráfica clínica");
+            console.error("Error al cargar la pizarra gráfica clínica:", e);
+            setData([
+                {
+                    staff: { id: "unassigned", name: "Sin Personal Asignado", profession: "Pendiente", is_working: false },
+                    trips: []
+                }
+            ]);
         } finally {
             setLoading(false);
         }

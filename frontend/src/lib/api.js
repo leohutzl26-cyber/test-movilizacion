@@ -365,132 +365,143 @@ const api = {
         }
 
         case "/trips/by-clinical": {
-          const targetDate = queryParams.date || new Date().toISOString().split('T')[0];
-          let userRole = queryParams.role || null;
-          
-          if (!userRole) {
-            try {
-              const session = await getCurrentUserSession();
-              if (session?.user?.id) {
-                const { data: prof } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
-                if (prof) userRole = prof.role;
-              }
-            } catch(e) {}
-          }
-          
-          const { data: clinicalStaff, error: staffError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('role', 'personal_clinico');
-          
-          if (staffError) throw staffError;
-          
-          let tripQuery = supabase
-            .from('trips')
-            .select('*')
-            .eq('scheduled_date', targetDate)
-            .eq('trip_type', 'clinico')
-            .neq('status', 'cancelado')
-            .order('created_at', { ascending: true });
-
-          if (userRole === 'coordinador') {
-            tripQuery = tripQuery.neq('status', 'revision_gestor');
-          }
-
-          const { data: rawTrips, error: tripsError } = await tripQuery;
-          if (tripsError) throw tripsError;
-          
-          const trips = (rawTrips || []).map(t => {
-            const parsed = { ...t };
-            ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
-              let val = parsed[field];
-              if (typeof val === 'string') {
-                try { val = JSON.parse(val); } catch(e) {}
-              }
-              if (Array.isArray(val)) {
-                parsed[field] = val.map(item => {
-                  if (typeof item === 'string') {
-                    try { return JSON.parse(item); } catch(e) { return item; }
-                  }
-                  return item;
-                });
-              } else {
-                parsed[field] = val;
-              }
-            });
-            return parsed;
-          });
-          
-          const isTripAssignedTo = (trip, staffId, staffName) => {
-            if (!trip.assigned_clinical_staff) return false;
-            let staffArr = trip.assigned_clinical_staff;
-            if (typeof staffArr === 'string') {
-              try { staffArr = JSON.parse(staffArr); } catch(e){}
+          try {
+            const targetDate = queryParams.date || new Date().toISOString().split('T')[0];
+            let userRole = queryParams.role || null;
+            
+            if (!userRole) {
+              try {
+                const session = await getCurrentUserSession();
+                if (session?.user?.id) {
+                  const { data: prof } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
+                  if (prof) userRole = prof.role;
+                }
+              } catch(e) {}
             }
-            if (!Array.isArray(staffArr)) {
+            
+            const { data: clinicalStaff, error: staffError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('role', 'personal_clinico');
+            
+            if (staffError) console.warn("Error fetching clinical staff profiles:", staffError);
+            
+            let tripQuery = supabase
+              .from('trips')
+              .select('*')
+              .eq('scheduled_date', targetDate)
+              .eq('trip_type', 'clinico')
+              .neq('status', 'cancelado');
+
+            if (userRole === 'coordinador') {
+              tripQuery = tripQuery.neq('status', 'revision_gestor');
+            }
+
+            const { data: rawTrips, error: tripsError } = await tripQuery;
+            if (tripsError) console.warn("Error fetching clinical trips:", tripsError);
+            
+            const trips = (rawTrips || []).map(t => {
+              const parsed = { ...t };
+              ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
+                let val = parsed[field];
+                if (typeof val === 'string') {
+                  try { val = JSON.parse(val); } catch(e) {}
+                }
+                if (Array.isArray(val)) {
+                  parsed[field] = val.map(item => {
+                    if (typeof item === 'string') {
+                      try { return JSON.parse(item); } catch(e) { return item; }
+                    }
+                    return item;
+                  });
+                } else {
+                  parsed[field] = val;
+                }
+              });
+              return parsed;
+            });
+            
+            const isTripAssignedTo = (trip, staffId, staffName) => {
+              if (!trip.assigned_clinical_staff) return false;
+              let staffArr = trip.assigned_clinical_staff;
               if (typeof staffArr === 'string') {
-                return (staffId && staffArr === staffId) || (staffName && staffArr.includes(staffName));
+                try { staffArr = JSON.parse(staffArr); } catch(e){}
               }
-              return false;
-            }
-            return staffArr.some(s => {
-              if (typeof s === 'object' && s !== null) {
-                return (s.id && s.id === staffId) || (s.staff_id && s.staff_id === staffId) || (s.name && s.name === staffName) || (s.staff_name && s.staff_name === staffName);
+              if (!Array.isArray(staffArr)) {
+                if (typeof staffArr === 'string') {
+                  return (staffId && staffArr === staffId) || (staffName && staffArr.includes(staffName));
+                }
+                return false;
               }
-              if (typeof s === 'string') {
-                return (staffId && s === staffId) || (staffName && (s === staffName || s.includes(staffName)));
-              }
-              return false;
-            });
-          };
-
-          const staffCols = [];
-          const assignedTripIds = new Set();
-
-          (clinicalStaff || []).forEach(c => {
-            const cInfo = {
-              id: c.id,
-              name: c.name || "Sin nombre",
-              profession: c.department || 'Acompañante Clínico',
-              is_working: !!c.is_working,
-              is_active: c.is_active !== false
+              return staffArr.some(s => {
+                if (typeof s === 'object' && s !== null) {
+                  return (s.id && s.id === staffId) || (s.staff_id && s.staff_id === staffId) || (s.name && s.name === staffName) || (s.staff_name && s.staff_name === staffName);
+                }
+                if (typeof s === 'string') {
+                  return (staffId && s === staffId) || (staffName && (s === staffName || s.includes(staffName)));
+                }
+                return false;
+              });
             };
-            
-            const cTrips = trips.filter(t => {
-              const matches = isTripAssignedTo(t, c.id, c.name);
-              if (matches) assignedTripIds.add(t.id);
-              return matches;
+
+            const staffCols = [];
+            const assignedTripIds = new Set();
+
+            (clinicalStaff || []).forEach(c => {
+              const cInfo = {
+                id: c.id,
+                name: c.name || "Sin nombre",
+                profession: c.department || 'Acompañante Clínico',
+                is_working: !!c.is_working,
+                is_active: c.is_active !== false
+              };
+              
+              const cTrips = trips.filter(t => {
+                const matches = isTripAssignedTo(t, c.id, c.name);
+                if (matches) assignedTripIds.add(t.id);
+                return matches;
+              });
+              
+              staffCols.push({
+                staff: cInfo,
+                trips: cTrips
+              });
+            });
+
+            staffCols.sort((a, b) => {
+              if (a.staff.is_working && !b.staff.is_working) return -1;
+              if (!a.staff.is_working && b.staff.is_working) return 1;
+              const nameA = a.staff.name || "";
+              const nameB = b.staff.name || "";
+              return nameA.localeCompare(nameB);
             });
             
-            staffCols.push({
-              staff: cInfo,
-              trips: cTrips
+            const unassignedTrips = trips.filter(t => {
+              if (assignedTripIds.has(t.id)) return false;
+              if (!t.assigned_clinical_staff || (Array.isArray(t.assigned_clinical_staff) && t.assigned_clinical_staff.length === 0)) return true;
+              return false;
             });
-          });
 
-          staffCols.sort((a, b) => {
-            if (a.staff.is_working && !b.staff.is_working) return -1;
-            if (!a.staff.is_working && b.staff.is_working) return 1;
-            const nameA = a.staff.name || "";
-            const nameB = b.staff.name || "";
-            return nameA.localeCompare(nameB);
-          });
-          
-          const unassignedTrips = trips.filter(t => {
-            if (assignedTripIds.has(t.id)) return false;
-            if (!t.assigned_clinical_staff || (Array.isArray(t.assigned_clinical_staff) && t.assigned_clinical_staff.length === 0)) return true;
-            return false;
-          });
-
-          return {
-            data: [
-              {
-                staff: { id: "unassigned", name: "Sin Personal Asignado", profession: "Pendiente", is_working: false },
-                trips: unassignedTrips
-              },
-              ...staffCols
-            ]
-          };
+            return {
+              data: [
+                {
+                  staff: { id: "unassigned", name: "Sin Personal Asignado", profession: "Pendiente", is_working: false },
+                  trips: unassignedTrips
+                },
+                ...staffCols
+              ]
+            };
+          } catch(err) {
+            console.error("Error in /trips/by-clinical endpoint:", err);
+            return {
+              data: [
+                {
+                  staff: { id: "unassigned", name: "Sin Personal Asignado", profession: "Pendiente", is_working: false },
+                  trips: []
+                }
+              ]
+            };
+          }
         }
 
         case "/trips/history": {
