@@ -17,26 +17,34 @@ export default function VehiclesSection() {
     const [selectedTrip, setSelectedTrip] = useState(null);
     const fetchVehicles = useCallback(async () => { 
         try { 
-            const [vRes, tRes] = await Promise.all([
+            const [vRes, tRes, dRes] = await Promise.all([
                 api.get("/vehicles"),
-                api.get("/trips/active")
+                api.get("/trips/active"),
+                api.get("/drivers/active")
             ]);
             const vehList = vRes.data || [];
             const activeTrips = tRes.data || [];
+            const activeDriversData = dRes.data || {};
+            const activeDriversVehicles = activeDriversData.vehicles || [];
             
-            // Map active trip details directly onto vehicle objects
+            // Map active trip details and assigned driver directly onto vehicle objects
             const mapped = vehList.map(veh => {
                 const matchingTrip = activeTrips.find(t => t.vehicle_plate === veh.plate && t.status === "en_curso");
+                const driverInfo = activeDriversVehicles.find(v => v.id === veh.id)?.assigned_driver;
                 if (matchingTrip) {
                     return {
                         ...veh,
                         current_driver: matchingTrip.driver_name,
                         current_destination: matchingTrip.destination,
                         current_clinical_team: matchingTrip.clinical_team,
-                        current_trip: matchingTrip
+                        current_trip: matchingTrip,
+                        assigned_driver: driverInfo || null
                     };
                 }
-                return veh;
+                return {
+                    ...veh,
+                    assigned_driver: driverInfo || null
+                };
             });
             setVehicles(mapped); 
         } catch { } 
@@ -59,47 +67,57 @@ export default function VehiclesSection() {
         } catch (e) { toast.error("Error al actualizar estado"); }
     };
 
-    const statusConfig = {
-        disponible: { 
-            bg: "bg-emerald-50", 
-            border: "border-emerald-200", 
-            text: "text-emerald-700", 
-            badge: "bg-emerald-100 text-emerald-800 border-emerald-200",
-            label: "Disponible",
-            icon: <CheckCircle className="w-4 h-4" />
-        },
-        fuera_de_servicio: { 
-            bg: "bg-rose-50", 
-            border: "border-rose-200", 
-            text: "text-rose-700", 
-            badge: "bg-rose-100 text-rose-800 border-rose-200",
-            label: "Fuera de Servicio",
-            icon: <AlertTriangle className="w-4 h-4" />
-        },
-        no_disponible: { 
-            bg: "bg-rose-50", 
-            border: "border-rose-200", 
-            text: "text-rose-700", 
-            badge: "bg-rose-100 text-rose-800 border-rose-200",
-            label: "Fuera de Servicio",
-            icon: <AlertTriangle className="w-4 h-4" />
-        },
-        en_mantenimiento: { 
-            bg: "bg-amber-50", 
-            border: "border-amber-200", 
-            text: "text-amber-700", 
-            badge: "bg-amber-100 text-amber-800 border-amber-200",
-            label: "Mantenimiento",
-            icon: <AlertTriangle className="w-4 h-4" />
-        },
-        en_curso: { 
-            bg: "bg-blue-50/70", 
-            border: "border-blue-300", 
-            text: "text-blue-700", 
-            badge: "bg-blue-100 text-blue-800 border-blue-200",
-            label: "En Ruta",
-            icon: <Activity className="w-4 h-4" />
+    const getVehicleConfig = (v) => {
+        if (v.status === "en_curso") {
+            return { 
+                bg: "bg-blue-50/70", 
+                border: "border-blue-300", 
+                text: "text-blue-700", 
+                badge: "bg-blue-100 text-blue-800 border-blue-200 font-bold",
+                label: "En Ruta",
+                dot: "bg-blue-500"
+            };
         }
+        if (v.status === "fuera_de_servicio" || v.status === "no_disponible") {
+            return { 
+                bg: "bg-rose-50", 
+                border: "border-rose-200", 
+                text: "text-rose-700", 
+                badge: "bg-rose-100 text-rose-800 border-rose-200",
+                label: "Fuera de Servicio",
+                dot: "bg-rose-500"
+            };
+        }
+        if (v.status === "en_mantenimiento") {
+            return { 
+                bg: "bg-orange-50", 
+                border: "border-orange-200", 
+                text: "text-orange-700", 
+                badge: "bg-orange-100 text-orange-800 border-orange-200",
+                label: "Mantenimiento",
+                dot: "bg-orange-500"
+            };
+        }
+        // Vehículo disponible con Conductor en turno asignado (Verde)
+        if (v.assigned_driver) {
+            return { 
+                bg: "bg-emerald-50/90", 
+                border: "border-emerald-300", 
+                text: "text-emerald-800", 
+                badge: "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold shadow-2xs",
+                label: "En Turno",
+                dot: "bg-emerald-500"
+            };
+        }
+        // Vehículo disponible en Reserva (Sin conductor asignado) (Amarillo)
+        return { 
+            bg: "bg-amber-50/70", 
+            border: "border-amber-200", 
+            text: "text-amber-800", 
+            badge: "bg-amber-100 text-amber-800 border-amber-200 font-semibold",
+            label: "En Reserva",
+            dot: "bg-amber-400"
+        };
     };
 
     if (loading && vehicles.length === 0) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
@@ -108,7 +126,7 @@ export default function VehiclesSection() {
     const supportVehicles = vehicles.filter(v => (v.type || "").toLowerCase() !== "ambulancia");
 
     const renderVehicleCard = (v) => {
-        const cfg = statusConfig[v.status] || statusConfig.disponible;
+        const cfg = getVehicleConfig(v);
         const isAmbulance = (v.type || "").toLowerCase() === "ambulancia";
         const isEnCurso = v.status === "en_curso";
         
@@ -150,7 +168,7 @@ export default function VehiclesSection() {
                                 {isEnCurso && (
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                 )}
-                                <div className={`w-1.5 h-1.5 rounded-full ${v.status === 'disponible' ? 'bg-emerald-500' : isEnCurso ? 'bg-blue-500' : 'bg-rose-500'} shadow-sm`}></div>
+                                <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} shadow-sm`}></div>
                             </div>
                         </div>
                     </div>
@@ -178,9 +196,20 @@ export default function VehiclesSection() {
                                     </div>
                                 )}
                             </div>
+                        ) : v.assigned_driver ? (
+                            <div className="bg-white/90 rounded-lg p-2 border border-emerald-200 shadow-3xs">
+                                <div className="flex items-center gap-1.5 text-emerald-800">
+                                    <User className="w-3 h-3 shrink-0 text-emerald-600" />
+                                    <div className="min-w-0">
+                                        <p className="text-[8px] font-extrabold text-emerald-600 uppercase tracking-widest leading-none mb-0.5">En Turno Con</p>
+                                        <p className="text-[9px] font-black text-emerald-950 truncate uppercase leading-tight">{v.assigned_driver.name}</p>
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
-                            <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-inherit rounded-lg opacity-40 bg-white/20">
-                                <p className="text-[8px] font-black uppercase text-inherit tracking-tighter">En reserva</p>
+                            <div className="flex flex-col justify-center h-[42px] text-center border border-dashed border-amber-200/80 rounded-lg bg-amber-100/40">
+                                <p className="text-[8px] font-black uppercase text-amber-800 tracking-tighter">En reserva</p>
+                                <p className="text-[7px] font-bold text-amber-600/90 leading-none mt-0.5">Sin conductor asignado</p>
                             </div>
                         )}
 

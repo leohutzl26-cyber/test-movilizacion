@@ -203,24 +203,24 @@ export default function ActiveDriversPanel() {
                     </div>
 
                     {v.assigned_driver ? (
-                      <div className="text-[10px] text-teal-600 font-bold flex items-center gap-1">
-                        <Circle className="w-2 h-2 fill-teal-500 text-teal-500" /> A cargo: {v.assigned_driver.name}
+                      <div className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                        <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500" /> Turno: {v.assigned_driver.name}
                       </div>
                     ) : (
-                      <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                        <Circle className="w-2 h-2 fill-slate-300 text-slate-300" /> Móvil libre
+                      <div className="text-[10px] text-amber-600 font-medium flex items-center gap-1">
+                        <Circle className="w-2 h-2 fill-amber-400 text-amber-400" /> En reserva (Sin conductor)
                       </div>
                     )}
                   </div>
 
                   <Badge className={`text-[9px] font-black tracking-widest px-2 py-0.5 rounded-full border shadow-none ${
                     v.assigned_driver
-                      ? "bg-teal-50 border-teal-200 text-teal-700"
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                       : v.status === 'en_mantenimiento' 
-                      ? "bg-red-50 border-red-200 text-red-700"
-                      : "bg-slate-50 border-slate-200 text-slate-500"
+                      ? "bg-rose-50 border-rose-200 text-rose-700"
+                      : "bg-amber-50 border-amber-200 text-amber-700"
                   }`}>
-                    {v.assigned_driver ? "EN USO" : v.status === 'en_mantenimiento' ? "TALLER" : "DISPONIBLE"}
+                    {v.assigned_driver ? "EN TURNO" : v.status === 'en_mantenimiento' ? "TALLER" : "EN RESERVA"}
                   </Badge>
                 </div>
               ))}
