@@ -218,15 +218,17 @@ const api = {
           
           if (driversError) throw driversError;
           
-          // 2. Obtener todos los vehículos para saber el tipo (vehicle_type) usando la patente
+          // 2. Obtener todos los vehículos para saber el tipo (vehicle_type) usando la patente o id
           const { data: vehicles, error: vehiclesError } = await supabase
             .from('vehicles')
             .select('*');
             
           if (vehiclesError) throw vehiclesError;
           const vMap = {};
+          const vIdMap = {};
           (vehicles || []).forEach(v => {
             if (v.plate) vMap[v.plate.toLowerCase()] = v;
+            if (v.id) vIdMap[v.id] = v;
           });
           
           // 3. Obtener todos los viajes para esa fecha (no cancelados)
@@ -256,15 +258,19 @@ const api = {
           });
           
           // 4. Agrupar viajes por conductor
-          const res = [];
+          const driverCols = [];
           
-          // Mapear cada conductor
           (drivers || []).forEach(d => {
-            const dVeh = d.vehicle_plate ? vMap[d.vehicle_plate.toLowerCase()] : null;
+            const dVeh = d.current_vehicle_id 
+              ? vIdMap[d.current_vehicle_id] 
+              : (d.vehicle_plate ? vMap[d.vehicle_plate.toLowerCase()] : null);
+
             const driverInfo = {
               id: d.id,
               name: d.name,
-              vehicle_plate: d.vehicle_plate || null,
+              is_working: !!d.is_working,
+              current_vehicle_id: d.current_vehicle_id || null,
+              vehicle_plate: dVeh ? dVeh.plate : (d.vehicle_plate || null),
               vehicle_type: dVeh ? dVeh.type : 'Auto/SUV'
             };
             
@@ -274,10 +280,17 @@ const api = {
               t.vehicle_type = tVeh ? tVeh.type : 'Auto/SUV';
             });
             
-            res.push({
+            driverCols.push({
               driver: driverInfo,
               trips: driverTrips
             });
+          });
+
+          // Ordenar conductores: primero los que están EN TURNO (is_working === true), luego fuera de turno
+          driverCols.sort((a, b) => {
+            if (a.driver.is_working && !b.driver.is_working) return -1;
+            if (!a.driver.is_working && b.driver.is_working) return 1;
+            return a.driver.name.localeCompare(b.driver.name);
           });
           
           // Mapear los no asignados
@@ -288,12 +301,12 @@ const api = {
           });
           
           // Agregar la columna "Sin Conductor" al principio del listado de forma permanente
-          res.unshift({
-            driver: { id: "unassigned", name: "Sin Conductor" },
+          driverCols.unshift({
+            driver: { id: "unassigned", name: "Sin Conductor", is_working: false },
             trips: unassignedTrips
           });
           
-          return { data: res };
+          return { data: driverCols };
         }
 
         case "/trips/history": {
