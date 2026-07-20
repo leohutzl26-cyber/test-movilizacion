@@ -241,10 +241,12 @@ export default function DispatchSection() {
   const [cancelDialog, setCancelDialog] = useState(null);
   const [returnDialog, setReturnDialog] = useState(null);
   const [editDialog, setEditDialog] = useState(null);
-  const [detailTrip, setDetailTrip] = useState(null);
-  const [driverSearch, setDriverSearch] = useState("");
   const [activityLogs, setActivityLogs] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
+
+  // Estados de filtro por categoría y búsqueda
+  const [activeCategory, setActiveCategory] = useState("todos"); // "todos" | "clinicos" | "no_clinicos" | "actividad"
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Estados de ordenamiento multi-criterio
   const [sortPrimary, setSortPrimary] = useState("scheduled_date");
@@ -616,55 +618,83 @@ export default function DispatchSection() {
   const clinicalTrips = sortedTrips.filter((t) => t.trip_type === "clinico");
   const nonClinicalTrips = sortedTrips.filter((t) => t.trip_type !== "clinico");
 
+  const displayedTrips = sortedTrips.filter((t) => {
+    if (activeCategory === "clinicos") return t.trip_type === "clinico";
+    if (activeCategory === "no_clinicos") return t.trip_type !== "clinico";
+    return true;
+  }).filter((t) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (t.patient_name || "").toLowerCase().includes(q) ||
+      (t.task_details || "").toLowerCase().includes(q) ||
+      (t.origin || "").toLowerCase().includes(q) ||
+      (t.destination || "").toLowerCase().includes(q) ||
+      (t.tracking_number || "").toString().includes(q) ||
+      (t.driver_name || "").toLowerCase().includes(q)
+    );
+  });
+
   if (loading) return <div className="flex justify-center py-20 text-teal-600"><RefreshCw className="w-10 h-10 animate-spin" /></div>;
 
   const StatusCard = ({ id, label, count, color, activeColor }) => (
     <button
       onClick={() => setFilterStatus(id)}
-      className={`flex-1 text-left p-4 rounded-2xl border-l-4 transition-all hover:scale-[1.01] shadow-sm 
+      className={`flex-1 text-left p-4 rounded-2xl border-l-4 transition-all hover:scale-[1.01] shadow-xs 
         ${filterStatus === id ? `${activeColor} ring-1 ring-slate-900/5` : "bg-white border-l-slate-200"}`}
       style={{ borderLeftColor: filterStatus === id ? color : undefined }}
     >
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
       <p className={`text-2xl font-black ${filterStatus === id ? "text-slate-900" : "text-slate-500"}`}>{count}</p>
     </button>
   );
 
   const renderTripCard = (t) => (
-    <Card key={t.id} className={`group overflow-hidden border-none shadow-md ring-1 ring-slate-200 hover:ring-teal-500 hover:shadow-lg transition-all duration-300 bg-white border-l-4 ${statusBorderColors[t.status] || "border-l-slate-400"}`}>
-      <CardContent className="p-4 space-y-3">
+    <Card key={t.id} className={`group overflow-hidden border-none shadow-sm hover:shadow-xl ring-1 ring-slate-200/80 hover:ring-teal-500 transition-all duration-300 bg-white rounded-2xl border-l-4 ${statusBorderColors[t.status] || "border-l-slate-400"}`}>
+      <CardContent className="p-4 sm:p-5 space-y-3.5">
         {/* Cabecera de la Tarjeta */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
-              className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-sm cursor-pointer hover:bg-teal-100 transition-colors"
+              className="bg-teal-50 text-teal-700 border border-teal-200 font-mono px-2.5 py-1 rounded-lg text-xs font-black cursor-pointer hover:bg-teal-100 transition-colors"
               onClick={() => setDetailTrip(t)}
             >
               #{t.tracking_number}
             </span>
-            <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm flex items-center gap-1 ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
+            <Badge className={`text-[10px] font-black px-2.5 py-0.5 uppercase rounded-full border-none shadow-xs flex items-center gap-1 ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
               {t.priority === "urgente" && "🚨"}
               {t.priority === "alta" && "⚠️"}
               {t.priority}
             </Badge>
-            <Badge className={`text-[9px] font-black px-2 py-0.5 uppercase rounded-full border-none shadow-sm ${statusColorsSolid[t.status] || "bg-slate-500 text-white"}`}>
+            <Badge className={`text-[10px] font-black px-2.5 py-0.5 uppercase rounded-full border-none shadow-xs ${statusColorsSolid[t.status] || "bg-slate-500 text-white"}`}>
               {(t.status || "").replace(/_/g, " ")}
             </Badge>
           </div>
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+            {t.appointment_time && (
+              <span className="bg-amber-50 text-amber-800 border border-amber-200 font-mono text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-600" />
+                {t.appointment_time}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Título / Paciente / Cometido */}
-        <div className="cursor-pointer" onClick={() => setDetailTrip(t)}>
-          <h3 className="text-sm font-black text-slate-900 leading-tight uppercase group-hover:text-teal-700 transition-colors truncate">{t.trip_type === "clinico" ? t.patient_name : t.task_details}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-              {t.trip_type === "clinico" ? <Ambulance className="w-2.5 h-2.5 text-teal-600" /> : <ClipboardList className="w-2.5 h-2.5 text-indigo-600" />}
-              {t.transfer_reason || "Gral."}
-            </p>
-            <p className={`text-[9px] font-bold px-1.5 rounded uppercase ${t.trip_type === "clinico" ? "text-teal-600 bg-teal-50" : "text-indigo-600 bg-indigo-50"}`}>{t.trip_type}</p>
+        {/* Título y Categoría */}
+        <div className="cursor-pointer space-y-1" onClick={() => setDetailTrip(t)}>
+          <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-teal-600 transition-colors">
+            {t.trip_type === "clinico" ? t.patient_name : t.task_details}
+          </h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${t.trip_type === "clinico" ? "text-teal-700 bg-teal-50 border border-teal-100" : "text-indigo-700 bg-indigo-50 border border-indigo-100"}`}>
+              {t.trip_type === "clinico" ? "🏥 Traslado Clínico" : "📋 No Clínico"}
+            </span>
+            <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+              • {t.transfer_reason || "General"}
+            </span>
             {t.trip_type === "no_clinico" && t.staff_count && (
-              <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full shrink-0">
+              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
                 👤 {t.staff_count} {parseInt(t.staff_count) === 1 ? "Funcionario" : "Funcionarios"}
               </span>
             )}
@@ -672,102 +702,90 @@ export default function DispatchSection() {
         </div>
 
         {/* Ruta (Origen -> Destino) */}
-        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-[10px] font-bold text-slate-600">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-              <span className="truncate uppercase text-slate-800">{t.origin}</span>
+        <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100 space-y-2 text-xs font-medium text-slate-700">
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 w-4 h-4 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 font-bold text-[10px]">A</div>
+            <div className="min-w-0 flex-1">
+              <p className="font-extrabold uppercase text-slate-800 leading-tight">{t.origin}</p>
+              {t.origin_address && <p className="text-[11px] text-slate-500 truncate mt-0.5">{t.origin_address}</p>}
+              {t.origin_maps_url && (
+                <a href={t.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:underline mt-0.5">
+                  <ExternalLink className="w-2.5 h-2.5" /> Ver en mapa
+                </a>
+              )}
             </div>
-            {t.origin_address && (
-              <p className="text-[9px] text-slate-500 font-medium pl-5 truncate leading-tight mt-0.5">{t.origin_address}</p>
-            )}
-            {t.origin_maps_url && (
-              <a
-                href={t.origin_maps_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-0.5 text-[9px] font-bold text-teal-600 hover:underline pl-5 mt-0.5"
-              >
-                Ver en mapa
-              </a>
-            )}
           </div>
-          <div className="pl-5 border-l border-dashed border-slate-300 mt-1">
-            <div className="flex items-center gap-1.5">
-              <ArrowRight className="w-3 h-3 text-blue-500 shrink-0" />
-              <span className="truncate uppercase text-slate-800">{t.destination}</span>
+
+          <div className="flex items-start gap-2 border-t border-slate-200/50 pt-2">
+            <div className="mt-0.5 w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[10px]">B</div>
+            <div className="min-w-0 flex-1">
+              <p className="font-extrabold uppercase text-slate-800 leading-tight">{t.destination}</p>
+              {t.destination_address && <p className="text-[11px] text-slate-500 truncate mt-0.5">{t.destination_address}</p>}
+              {t.destination_maps_url && (
+                <a href={t.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:underline mt-0.5">
+                  <ExternalLink className="w-2.5 h-2.5" /> Ver en mapa
+                </a>
+              )}
             </div>
-            {t.destination_address && (
-              <p className="text-[9px] text-slate-500 font-medium truncate leading-tight mt-0.5">{t.destination_address}</p>
-            )}
-            {t.destination_maps_url && (
-              <a
-                href={t.destination_maps_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-0.5 text-[9px] font-bold text-blue-600 hover:underline mt-0.5"
-              >
-                Ver en mapa
-              </a>
-            )}
           </div>
         </div>
 
-        {/* Estado Operativo / Cita */}
-        <div className="grid grid-cols-2 gap-2 text-[10px] font-bold border-t border-slate-100 pt-2.5">
+        {/* Estado del Conductor */}
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
-              {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-3.5 h-3.5 text-slate-400" />}
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${t.driver_name ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>
+              {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-4 h-4" />}
             </div>
             <div className="min-w-0">
-              <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Móvil / Cond.</p>
-              <p className="text-[10px] font-black text-slate-900 leading-none truncate uppercase">{t.driver_name ? t.driver_name.split(' ')[0] : "PDTE."}</p>
-              {t.vehicle_plate && <p className="text-[8px] font-bold text-teal-600 font-mono leading-none mt-0.5">{t.vehicle_plate}</p>}
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase leading-none mb-1">Móvil & Conductor</p>
+              <p className="text-xs font-black text-slate-900 leading-none uppercase truncate">
+                {t.driver_name ? t.driver_name : "Pendiente de Asignación"}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 justify-end">
-            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-0.5">Hora Cita</p>
-              <p className="text-[10px] font-black text-slate-900 leading-none">{t.appointment_time || "--:--"}</p>
-            </div>
-          </div>
+          {t.vehicle_plate && (
+            <Badge className="bg-teal-50 text-teal-800 border border-teal-200 font-mono font-black text-xs px-2 py-0.5">
+              {t.vehicle_plate}
+            </Badge>
+          )}
         </div>
 
         {/* Acciones */}
-        <div className="border-t border-slate-100 pt-2.5 flex flex-col gap-1.5">
+        <div className="pt-2 flex flex-col gap-2">
           {["pendiente", "asignado"].includes(t.status) && (
-            <>
-              <div className="flex gap-1.5 w-full">
-                <Button onClick={() => setAssignDialog(t)} className="flex-1 h-8 bg-teal-600 hover:bg-teal-700 text-white text-[9px] font-black uppercase shadow-sm rounded-xl">
-                  {t.driver_id ? "Reasignar" : "Asignar"}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => setAssignDialog(t)} className="flex-1 h-9 bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase shadow-md rounded-xl flex items-center justify-center gap-2">
+                <Truck className="w-4 h-4" />
+                {t.driver_id ? "Reasignar Conductor" : "Asignar Conductor"}
+              </Button>
+
+              {t.driver_id && t.status === "asignado" && (
+                <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-9 px-3 text-xs font-bold uppercase text-amber-600 border-amber-200 hover:bg-amber-50 rounded-xl" title="Desasignar Conductor">
+                  <RotateCcw className="w-3.5 h-3.5 mr-1" /> Quitar
                 </Button>
-                {t.driver_id && t.status === "asignado" && (
-                  <Button onClick={() => handleUnassign(t.id)} variant="ghost" className="flex-1 h-8 text-[9px] font-black uppercase text-amber-600 hover:bg-amber-50 shadow-sm border border-amber-100 italic rounded-xl">
-                    <RotateCcw className="w-3 h-3 mr-1" /> Quitar
-                  </Button>
-                )}
-              </div>
-              <div className="flex w-full gap-1">
-                <Button onClick={() => setEditDialog(t)} variant="outline" className="flex-1 h-7 text-[8px] font-black uppercase text-teal-600 border-teal-100 hover:bg-teal-50 rounded-lg" title="Editar Traslado">
-                  <Edit className="w-3 h-3 mr-1" /> Editar
+              )}
+
+              <Button onClick={() => setEditDialog(t)} variant="outline" className="h-9 px-3 text-xs font-bold uppercase text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl" title="Editar Traslado">
+                <Edit className="w-3.5 h-3.5 mr-1" /> Editar
+              </Button>
+
+              <Button onClick={() => setReturnDialog(t)} variant="outline" className="h-9 px-3 text-xs font-bold uppercase text-slate-600 border-slate-200 hover:bg-slate-50 rounded-xl" title="Devolver al Gestor de Camas">
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Devolver
+              </Button>
+
+              <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-9 w-9 p-0 text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl" title="Cancelar Traslado">
+                <XCircle className="w-4 h-4" />
+              </Button>
+
+              {user?.role === 'admin' && (
+                <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-9 w-9 p-0 text-red-700 border-red-300 bg-red-50 hover:bg-red-100 rounded-xl" title="ELIMINAR PERMANENTEMENTE">
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-                <Button onClick={() => setReturnDialog(t)} variant="outline" className="flex-1 h-7 text-[8px] font-black uppercase text-slate-600 border-slate-200 rounded-lg" title="Devolver al Gestor">
-                  <RotateCcw className="w-3 h-3 mr-1" /> Devolver
-                </Button>
-                <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-7 w-7 p-0 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700 rounded-lg" title="Cancelar Traslado">
-                  <XCircle className="w-3 h-3" />
-                </Button>
-                {user?.role === 'admin' && (
-                  <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-7 w-7 p-0 text-red-700 border-red-200 bg-red-50 hover:bg-red-100 rounded-lg" title="ELIMINAR PERMANENTEMENTE">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-              </div>
-            </>
+              )}
+            </div>
           )}
-          {t.status === "en_curso" && <Badge className="w-full justify-center bg-blue-100 text-blue-700 border-none font-black text-[9px] uppercase py-1 shadow-sm rounded-xl">En Ruta</Badge>}
-          {t.status === "completado" && <Badge className="w-full justify-center bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase py-1 shadow-sm rounded-xl">Finalizado</Badge>}
+          {t.status === "en_curso" && <Badge className="w-full justify-center bg-blue-100 text-blue-700 border-none font-black text-xs uppercase py-1.5 shadow-sm rounded-xl">En Ruta</Badge>}
+          {t.status === "completado" && <Badge className="w-full justify-center bg-emerald-100 text-emerald-700 border-none font-black text-xs uppercase py-1.5 shadow-sm rounded-xl">Finalizado</Badge>}
         </div>
       </CardContent>
     </Card>
@@ -786,6 +804,7 @@ export default function DispatchSection() {
         </div>
       </div>
 
+      {/* KPI Status Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatusCard id="pendiente" label="Por Despachar" count={stats.pendiente} color="#f59e0b" activeColor="bg-amber-50" />
         <StatusCard id="asignado" label="Con Conductor" count={stats.asignado} color="#0d9488" activeColor="bg-teal-50" />
@@ -793,202 +812,201 @@ export default function DispatchSection() {
         <StatusCard id="completado" label="Finalizados" count={stats.completado} color="#10b981" activeColor="bg-emerald-50" />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="xl:col-span-3 space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-b border-slate-200 pb-4 gap-4">
-          <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
-            <Activity className="w-6 h-6 text-teal-600" />
-            {filterStatus === "pendiente" ? "Traslados por Despachar" :
-             filterStatus === "asignado" ? "Traslados con Conductor" :
-             filterStatus === "en_curso" ? "Traslados en Ruta" : "Traslados Finalizados Hoy"}
-            <Badge className="bg-teal-100 text-teal-800 border-none font-bold text-xs px-2.5 py-1 rounded-full shadow-sm">{filteredTrips.length}</Badge>
-          </h2>
+      {/* Barra de Pestañas de Categoría y Controles */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+          <button
+            onClick={() => setActiveCategory("todos")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
+              activeCategory === "todos"
+                ? "bg-slate-900 text-white shadow-md"
+                : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <ClipboardList className="w-4 h-4" />
+            Todos
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeCategory === "todos" ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-700"
+            }`}>
+              {sortedTrips.length}
+            </span>
+          </button>
 
-          <div className="flex flex-wrap items-center gap-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-sm text-xs font-bold text-slate-600 self-start lg:self-auto">
-            <div className="flex items-center gap-1 pl-1 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
-              <ArrowUpDown className="w-3.5 h-3.5" />
-              <span>Ordenar por:</span>
-            </div>
-            
-            {/* Criterio Primario */}
-            <div className="flex items-center gap-1 bg-white p-1 rounded-xl shadow-xs border border-slate-200/30">
-              <Select value={sortPrimary} onValueChange={setSortPrimary}>
-                <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-black text-slate-800 rounded-lg w-[110px] hover:bg-slate-50 focus:ring-0">
-                  <SelectValue placeholder="Criterio 1" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-100 shadow-lg">
-                  <SelectItem value="appointment_time" className="text-xs font-bold">Hora Cita</SelectItem>
-                  <SelectItem value="priority" className="text-xs font-bold">Prioridad</SelectItem>
-                  <SelectItem value="scheduled_date" className="text-xs font-bold">Fecha</SelectItem>
-                  <SelectItem value="origin" className="text-xs font-bold">Origen</SelectItem>
-                  <SelectItem value="destination" className="text-xs font-bold">Destino</SelectItem>
-                  <SelectItem value="tracking_number" className="text-xs font-bold">N° Seguimiento</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSortPrimaryDir(p => p === "asc" ? "desc" : "asc")}
-                className="h-7 w-7 hover:bg-slate-100 rounded-lg text-slate-600"
-                title={sortPrimaryDir === "asc" ? "Ascendente" : "Descendente"}
-              >
-                <ArrowUpDown className={`w-3 h-3 transition-transform duration-300 ${sortPrimaryDir === "desc" ? "rotate-180 text-teal-600" : "text-indigo-600"}`} />
-              </Button>
-            </div>
+          <button
+            onClick={() => setActiveCategory("clinicos")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
+              activeCategory === "clinicos"
+                ? "bg-teal-600 text-white shadow-md"
+                : "bg-teal-50 text-teal-700 hover:bg-teal-100/70"
+            }`}
+          >
+            <Ambulance className="w-4 h-4" />
+            Clínicos
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeCategory === "clinicos" ? "bg-teal-700 text-white" : "bg-teal-100 text-teal-800"
+            }`}>
+              {clinicalTrips.length}
+            </span>
+          </button>
 
-            <div className="text-[10px] font-black uppercase text-slate-400 px-1">y luego</div>
+          <button
+            onClick={() => setActiveCategory("no_clinicos")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
+              activeCategory === "no_clinicos"
+                ? "bg-indigo-600 text-white shadow-md"
+                : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100/70"
+            }`}
+          >
+            <Truck className="w-4 h-4" />
+            No Clínicos
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeCategory === "no_clinicos" ? "bg-indigo-700 text-white" : "bg-indigo-100 text-indigo-800"
+            }`}>
+              {nonClinicalTrips.length}
+            </span>
+          </button>
 
-            {/* Criterio Secundario */}
-            <div className="flex items-center gap-1 bg-white p-1 rounded-xl shadow-xs border border-slate-200/30">
-              <Select value={sortSecondary} onValueChange={setSortSecondary}>
-                <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-black text-slate-800 rounded-lg w-[110px] hover:bg-slate-50 focus:ring-0">
-                  <SelectValue placeholder="Criterio 2" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-100 shadow-lg">
-                  <SelectItem value="none" className="text-xs font-bold text-slate-400 italic">Ninguno</SelectItem>
-                  <SelectItem value="appointment_time" className="text-xs font-bold">Hora Cita</SelectItem>
-                  <SelectItem value="priority" className="text-xs font-bold">Prioridad</SelectItem>
-                  <SelectItem value="scheduled_date" className="text-xs font-bold">Fecha</SelectItem>
-                  <SelectItem value="origin" className="text-xs font-bold">Origen</SelectItem>
-                  <SelectItem value="destination" className="text-xs font-bold">Destino</SelectItem>
-                  <SelectItem value="tracking_number" className="text-xs font-bold">N° Seguimiento</SelectItem>
-                </SelectContent>
-              </Select>
-              {sortSecondary !== "none" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSortSecondaryDir(p => p === "asc" ? "desc" : "asc")}
-                  className="h-7 w-7 hover:bg-slate-100 rounded-lg text-slate-600"
-                  title={sortSecondaryDir === "asc" ? "Ascendente" : "Descendente"}
-                >
-                  <ArrowUpDown className={`w-3 h-3 transition-transform duration-300 ${sortSecondaryDir === "desc" ? "rotate-180 text-teal-600" : "text-indigo-600"}`} />
-                </Button>
-              )}
-            </div>
-          </div>
+          <button
+            onClick={() => setActiveCategory("actividad")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
+              activeCategory === "actividad"
+                ? "bg-amber-600 text-white shadow-md"
+                : "bg-amber-50 text-amber-700 hover:bg-amber-100/70"
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Novedades
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Columna Traslados Clínicos */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b-2 border-teal-100 pb-2.5">
-              <h2 className="text-sm font-black text-teal-800 flex items-center gap-2 uppercase tracking-widest">
-                <Ambulance className="w-5 h-5 text-teal-600" /> Clínicos
-              </h2>
-              <Badge className="bg-teal-100 text-teal-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
-                {clinicalTrips.length} activos
-              </Badge>
-            </div>
-            <div className="space-y-3">
-              {clinicalTrips.map(renderTripCard)}
-              {clinicalTrips.length === 0 && (
-                <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Sin traslados clínicos activos
-                </div>
-              )}
-            </div>
+        {/* Buscador y Ordenamiento */}
+        <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
+          <div className="relative min-w-[200px] flex-1 lg:flex-initial">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              placeholder="Buscar folio, paciente..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold focus:ring-teal-500"
+            />
           </div>
 
-          {/* Columna Traslados No Clínicos */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-2.5">
-              <h2 className="text-sm font-black text-indigo-900 flex items-center gap-2 uppercase tracking-widest">
-                <ClipboardList className="w-5 h-5 text-indigo-600" /> No Clínicos
-              </h2>
-              <Badge className="bg-indigo-100 text-indigo-800 border-none font-black px-3 py-1 rounded-full text-xs shadow-sm">
-                {nonClinicalTrips.length} activos
-              </Badge>
-            </div>
-            <div className="space-y-3">
-              {nonClinicalTrips.map(renderTripCard)}
-              {nonClinicalTrips.length === 0 && (
-                <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Sin traslados no clínicos activos
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        </div>
-
-        {/* Panel de Actividad Reciente */}
-        <div className="xl:col-span-1 flex flex-col space-y-4 self-start">
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[700px]">
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                <Activity className="w-5 h-5 text-teal-600 animate-pulse shrink-0" /> Actividad Reciente
-              </h2>
-              <Badge className="bg-emerald-50 text-emerald-700 border-none font-black px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wide">
-                En vivo
-              </Badge>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto space-y-3.5 pr-1" style={{ maxHeight: "calc(700px - 75px)" }}>
-              {loadingActivity ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 py-20">
-                  <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
-                  <span className="text-[10px] font-black uppercase tracking-wider">Cargando novedades...</span>
-                </div>
-              ) : activityLogs.length === 0 ? (
-                <div className="text-center py-20 text-slate-300 italic text-xs">
-                  Sin novedades registradas hoy.
-                </div>
-              ) : (
-                activityLogs.map((log) => {
-                  const logDetail = formatActivityLog(log);
-                  const Icon = logDetail.Icon;
-                  return (
-                    <div 
-                      key={log.id} 
-                      className={`p-3 rounded-2xl border transition-all hover:shadow-sm flex items-start gap-3 ${logDetail.bg}`}
-                    >
-                      <div className={`p-2 rounded-xl bg-white border border-slate-100 shrink-0 shadow-sm ${logDetail.iconColor}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      
-                      <div className="min-w-0 flex-1">
-                        <div className="flex justify-between items-start gap-1.5 flex-wrap">
-                          <p className="text-xs font-black text-slate-900 leading-snug">{logDetail.title}</p>
-                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">
-                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        
-                        <p className="text-[10px] font-semibold text-slate-600 mt-1 leading-snug break-words">
-                          {logDetail.description}
-                        </p>
-                        
-                        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap border-t border-slate-100/50 pt-1.5">
-                          <p className="text-[9px] font-bold text-slate-400 truncate uppercase">
-                            por {log.user_name || "Sistema"}
-                          </p>
-                          {log.new_values?.tracking_number && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const foundTrip = trips.find(t => t.tracking_number === log.new_values.tracking_number);
-                                if (foundTrip) {
-                                  setDetailTrip(foundTrip);
-                                } else {
-                                  setDetailTrip(log.new_values);
-                                }
-                              }}
-                              className="text-[9px] font-mono font-black text-teal-600 hover:text-teal-700 bg-white hover:bg-teal-50/50 px-1.5 py-0.5 rounded border border-teal-100 shadow-sm transition-colors cursor-pointer"
-                            >
-                              #{log.new_values.tracking_number}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+            <Select value={sortPrimary} onValueChange={setSortPrimary}>
+              <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 rounded-lg w-[110px] focus:ring-0">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-100 shadow-lg">
+                <SelectItem value="appointment_time" className="text-xs font-bold">Hora Cita</SelectItem>
+                <SelectItem value="priority" className="text-xs font-bold">Prioridad</SelectItem>
+                <SelectItem value="scheduled_date" className="text-xs font-bold">Fecha</SelectItem>
+                <SelectItem value="origin" className="text-xs font-bold">Origen</SelectItem>
+                <SelectItem value="destination" className="text-xs font-bold">Destino</SelectItem>
+                <SelectItem value="tracking_number" className="text-xs font-bold">N° Seguimiento</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSortPrimaryDir(p => p === "asc" ? "desc" : "asc")}
+              className="h-7 w-7 hover:bg-slate-200/50 rounded-lg text-slate-600"
+              title={sortPrimaryDir === "asc" ? "Ascendente" : "Descendente"}
+            >
+              <ArrowUpDown className={`w-3.5 h-3.5 transition-transform duration-300 ${sortPrimaryDir === "desc" ? "rotate-180 text-teal-600" : "text-indigo-600"}`} />
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Vista de Novedades / Log en Vivo */}
+      {activeCategory === "actividad" ? (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h2 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+              <Activity className="w-5 h-5 text-amber-600 animate-pulse" /> Novedades y Auditoría en Vivo
+            </h2>
+            <Badge className="bg-emerald-50 text-emerald-700 border-none font-black px-2.5 py-1 rounded-full text-xs">
+              Live Stream
+            </Badge>
+          </div>
+          
+          <div className="space-y-3">
+            {loadingActivity ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
+                <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
+                <span className="text-xs font-black uppercase tracking-wider">Cargando novedades...</span>
+              </div>
+            ) : activityLogs.length === 0 ? (
+              <div className="text-center py-16 text-slate-400 italic text-xs">
+                Sin novedades registradas hoy.
+              </div>
+            ) : (
+              activityLogs.map((log) => {
+                const logDetail = formatActivityLog(log);
+                const Icon = logDetail.Icon;
+                return (
+                  <div key={log.id} className={`p-4 rounded-2xl border transition-all hover:shadow-md flex items-start gap-4 ${logDetail.bg}`}>
+                    <div className={`p-2.5 rounded-xl bg-white border border-slate-100 shrink-0 shadow-xs ${logDetail.iconColor}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex justify-between items-start gap-2 flex-wrap">
+                        <p className="text-sm font-black text-slate-900">{logDetail.title}</p>
+                        <span className="text-xs font-bold text-slate-400 uppercase">
+                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-600 mt-1 leading-relaxed">
+                        {logDetail.description}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100/50 pt-2">
+                        <p className="text-xs font-bold text-slate-400 uppercase">
+                          por {log.user_name || "Sistema"}
+                        </p>
+                        {log.new_values?.tracking_number && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const foundTrip = trips.find(t => t.tracking_number === log.new_values.tracking_number);
+                              if (foundTrip) {
+                                setDetailTrip(foundTrip);
+                              } else {
+                                setDetailTrip(log.new_values);
+                              }
+                            }}
+                            className="text-xs font-mono font-black text-teal-600 hover:text-teal-700 bg-white px-2 py-0.5 rounded border border-teal-200 shadow-xs transition-colors cursor-pointer"
+                          >
+                            #{log.new_values.tracking_number}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Grilla Principal de Traslados (Amplia y de 2 columnas) */
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {displayedTrips.map(renderTripCard)}
+          </div>
+
+          {displayedTrips.length === 0 && (
+            <div className="text-center py-20 bg-white border border-dashed border-slate-200 rounded-3xl p-8 space-y-3">
+              <ClipboardList className="w-12 h-12 text-slate-300 mx-auto" />
+              <p className="text-sm font-black text-slate-700 uppercase tracking-wide">
+                No hay traslados activos en esta categoría
+              </p>
+              <p className="text-xs text-slate-400 font-medium">
+                Prueba cambiando los filtros de estado o seleccionando la pestaña "Todos".
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchTrips} />
 
