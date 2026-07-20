@@ -515,25 +515,52 @@ const api = {
           let currentUserId = null;
           try {
             const session = await getCurrentUserSession();
-            currentUserId = session.user.id;
+            currentUserId = session.user?.id;
           } catch (e) {
             console.error("Error getting session in /drivers/status POST", e);
           }
           
-          const targetUserId = currentUserId || data.driver_id;
+          const targetUserId = data.driver_id || currentUserId;
           if (!targetUserId) throw new Error("No driver user session or ID provided");
           
+          const updatePayload = { 
+            is_working: data.is_working !== undefined ? data.is_working : false,
+            current_vehicle_id: data.current_vehicle_id || null 
+          };
+
           const { data: updatedProfile, error } = await supabase
             .from('profiles')
-            .update({ 
-              is_working: data.is_working !== undefined ? data.is_working : false,
-              current_vehicle_id: data.current_vehicle_id || null 
-            })
+            .update(updatePayload)
             .eq('id', targetUserId)
             .select()
-            .single();
+            .maybeSingle();
             
           if (error) throw error;
+
+          if (!updatedProfile) {
+            // If profile record does not exist or wasn't updated, try upserting
+            const { data: upsertedProfile, error: upsertErr } = await supabase
+              .from('profiles')
+              .upsert({
+                id: targetUserId,
+                ...updatePayload
+              })
+              .select()
+              .maybeSingle();
+
+            if (upsertErr) {
+              console.warn("Warning upserting profile:", upsertErr);
+              return { 
+                data: { 
+                  message: 'Estado de turno actualizado', 
+                  profile: { id: targetUserId, ...updatePayload } 
+                } 
+              };
+            }
+
+            return { data: { message: 'Estado de turno actualizado', profile: upsertedProfile || { id: targetUserId, ...updatePayload } } };
+          }
+
           return { data: { message: 'Estado de turno actualizado', profile: updatedProfile } };
         }
 

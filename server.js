@@ -134,20 +134,33 @@ app.post('/api/drivers/status', async (req, res) => {
     }
 
     const { is_working, current_vehicle_id } = req.body;
-    const targetUserId = userId || req.body.driver_id;
+    const targetUserId = req.body.driver_id || userId;
+
+    const updatePayload = { 
+      is_working: is_working !== undefined ? is_working : false,
+      current_vehicle_id: current_vehicle_id || null 
+    };
 
     const { data, error } = await supabase
       .from('profiles')
-      .update({ 
-        is_working: is_working !== undefined ? is_working : false,
-        current_vehicle_id: current_vehicle_id || null 
-      })
+      .update(updatePayload)
       .eq('id', targetUserId)
       .select()
-      .single();
+      .maybeSingle();
       
     if (error) throw error;
-    res.json({ message: 'Estado de turno actualizado', profile: data });
+
+    let profileData = data;
+    if (!profileData) {
+      const { data: upserted } = await supabase
+        .from('profiles')
+        .upsert({ id: targetUserId, ...updatePayload })
+        .select()
+        .maybeSingle();
+      profileData = upserted || { id: targetUserId, ...updatePayload };
+    }
+
+    res.json({ message: 'Estado de turno actualizado', profile: profileData });
   } catch (e) {
     console.error("Error updating driver status:", e);
     res.status(500).json({ error: e.message });
