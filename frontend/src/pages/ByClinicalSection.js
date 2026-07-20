@@ -4,6 +4,7 @@ import { Stethoscope, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock,
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_CARD_STYLES = {
