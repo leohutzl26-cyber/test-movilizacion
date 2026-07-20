@@ -364,6 +364,101 @@ const api = {
           return { data: driverCols };
         }
 
+        case "/trips/by-clinical": {
+          const targetDate = queryParams.date || new Date().toISOString().split('T')[0];
+          
+          const { data: clinicalStaff, error: staffError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('role', 'personal_clinico');
+          
+          if (staffError) throw staffError;
+          
+          const { data: rawTrips, error: tripsError } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('scheduled_date', targetDate)
+            .eq('trip_type', 'clinico')
+            .neq('status', 'cancelado')
+            .order('appointment_time', { ascending: true });
+            
+          if (tripsError) throw tripsError;
+          
+          const trips = (rawTrips || []).map(t => {
+            const parsed = { ...t };
+            ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
+              if (Array.isArray(parsed[field])) {
+                parsed[field] = parsed[field].map(item => {
+                  if (typeof item === 'string') {
+                    try { return JSON.parse(item); } catch(e) { return item; }
+                  }
+                  return item;
+                });
+              }
+            });
+            return parsed;
+          });
+          
+          const isTripAssignedTo = (trip, staffId, staffName) => {
+            if (!trip.assigned_clinical_staff || !Array.isArray(trip.assigned_clinical_staff)) return false;
+            return trip.assigned_clinical_staff.some(s => {
+              if (typeof s === 'object' && s !== null) {
+                return s.id === staffId || s.staff_id === staffId || s.name === staffName || s.staff_name === staffName;
+              }
+              if (typeof s === 'string') {
+                return s === staffId || s === staffName || s.includes(staffName);
+              }
+              return false;
+            });
+          };
+
+          const staffCols = [];
+          const assignedTripIds = new Set();
+
+          (clinicalStaff || []).forEach(c => {
+            const cInfo = {
+              id: c.id,
+              name: c.name,
+              profession: c.department || 'Acompañante Clínico',
+              is_working: !!c.is_working,
+              is_active: c.is_active !== false
+            };
+            
+            const cTrips = trips.filter(t => {
+              const matches = isTripAssignedTo(t, c.id, c.name);
+              if (matches) assignedTripIds.add(t.id);
+              return matches;
+            });
+            
+            staffCols.push({
+              staff: cInfo,
+              trips: cTrips
+            });
+          });
+
+          staffCols.sort((a, b) => {
+            if (a.staff.is_working && !b.staff.is_working) return -1;
+            if (!a.staff.is_working && b.staff.is_working) return 1;
+            return a.staff.name.localeCompare(b.staff.name);
+          });
+          
+          const unassignedTrips = trips.filter(t => {
+            if (assignedTripIds.has(t.id)) return false;
+            if (!t.assigned_clinical_staff || !Array.isArray(t.assigned_clinical_staff) || t.assigned_clinical_staff.length === 0) return true;
+            return false;
+          });
+
+          return {
+            data: [
+              {
+                staff: { id: "unassigned", name: "Sin Personal Asignado", profession: "Pendiente", is_working: false },
+                trips: unassignedTrips
+              },
+              ...staffCols
+            ]
+          };
+        }
+
         case "/trips/history": {
           const params = {
             ...queryParams,
@@ -747,6 +842,22 @@ const api = {
             console.error("Error inserting unassign audit log", e);
           }
 
+          return { data: updatedTrip };
+        } else if (parts[3] === "clinical-assign") {
+          const { staff_id, staff_name, staff_type } = data;
+          let newStaff = [];
+          if (staff_id !== "unassigned") {
+            newStaff = [{ type: staff_type || "Acompañante", staff_id, staff_name }];
+          }
+
+          const { data: updatedTrip, error } = await supabase
+            .from('trips')
+            .update({ assigned_clinical_staff: newStaff })
+            .eq('id', tripId)
+            .select()
+            .maybeSingle();
+
+          if (error) throw error;
           return { data: updatedTrip };
         } else if (parts[3] === "status") {
           return {

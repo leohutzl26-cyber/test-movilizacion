@@ -36,6 +36,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       { id: "new", label: "Nueva Solicitud", icon: Plus },
       { id: "analytics", label: "Estadísticas y Gráficos", icon: TrendingUp },
       { id: "by_driver", label: "Pizarra por Conductores", icon: BarChart3 },
+      { id: "by_clinical", label: "Pizarra Acompañamiento", icon: Stethoscope },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { 
         id: "bitacora", 
@@ -75,6 +76,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
     gestion_camas: [
       { id: "dashboard", label: "Bandeja de Entrada", icon: Home },
       { id: "new", label: "Nueva Solicitud", icon: Plus },
+      { id: "by_clinical", label: "Pizarra Acompañamiento", icon: Stethoscope },
       { id: "calendar", label: "Calendario", icon: CalendarDays },
       { id: "vehicles", label: "Vehículos", icon: Truck },
       { id: "history", label: "Histórico y Reportes", icon: FileText },

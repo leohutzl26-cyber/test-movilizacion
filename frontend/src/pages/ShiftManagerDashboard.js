@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import ByDriverSection from "./ByDriverSection";
+import ByClinicalSection from "./ByClinicalSection";
 import LogbookReport from "@/components/LogbookReport";
 import ActiveDriversPanel from "@/components/ActiveDriversPanel";
 
@@ -71,6 +72,7 @@ export default function ShiftManagerDashboard() {
                     )}
                     {section === "calendar" && <CalendarSection />}
                     {section === "by_driver" && <ByDriverSection />}
+                    {section === "by_clinical" && <ByClinicalSection />}
                     {section === "vehicles" && <VehiclesSection />}
                     {section === "drivers" && <DriversSection />}
                     {section === "logbook_monitor" && <LogbookMonitorSection />}

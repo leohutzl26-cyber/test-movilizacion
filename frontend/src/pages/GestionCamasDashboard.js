@@ -9,6 +9,7 @@ import ClinicalStaffMantenedor from "./gestion-camas/ClinicalStaffMantenedor";
 import OriginsMantenedor from "./gestion-camas/OriginsMantenedor";
 import DestinationsMantenedor from "./gestion-camas/DestinationsMantenedor";
 import OriginServicesMantenedor from "./gestion-camas/OriginServicesMantenedor";
+import ByClinicalSection from "./ByClinicalSection";
 import ClinicalCalendarSection from "./gestion-camas/ClinicalCalendarSection";
 import ClinicalHistorySection from "./gestion-camas/ClinicalHistorySection";
 import VehiclesSection from "./gestion-camas/VehiclesSection";
@@ -50,6 +51,7 @@ export default function GestionCamasDashboard() {
         {section === "origins" && <OriginsMantenedor />}
         {section === "destinations" && <DestinationsMantenedor />}
         {section === "services" && <OriginServicesMantenedor />}
+        {section === "by_clinical" && <ByClinicalSection />}
         {section === "calendar" && <ClinicalCalendarSection />}
         {section === "history" && <ClinicalHistorySection />}
         {section === "vehicles" && <VehiclesSection />}
