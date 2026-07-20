@@ -62,7 +62,6 @@ export default function Sidebar({ activeSection, onSectionChange }) {
 
     ],
     conductor: [
-      { id: "dashboard", label: "Mi Resumen", icon: TrendingUp },
       { id: "trips", label: "Mis Viajes", icon: Truck },
       { id: "pool", label: "Bolsa de Viajes", icon: Clock },
       { id: "calendar", label: "Calendario", icon: CalendarDays },

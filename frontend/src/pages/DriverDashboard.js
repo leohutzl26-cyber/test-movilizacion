@@ -18,7 +18,8 @@ import DriverStatsSection from "./driver/DriverStatsSection";
 export default function DriverDashboard() {
   const { user } = useAuth();
   const [section, setSection] = useState(() => {
-    return localStorage.getItem("movilizacion.conductor.section") || "dashboard";
+    const saved = localStorage.getItem("movilizacion.conductor.section");
+    return (saved && saved !== "dashboard") ? saved : "trips";
   });
   const [licenseExpired, setLicenseExpired] = useState(false);
   
@@ -174,9 +175,8 @@ export default function DriverDashboard() {
           </div>
         </div>
 
-        {section === "dashboard" && <DriverStatsSection />}
+        {(section === "dashboard" || section === "trips") && <MyTripsSection />}
         {section === "pool" && <TripPoolSection onNavigate={setSection} />}
-        {section === "trips" && <MyTripsSection />}
         {section === "calendar" && <DriverCalendarSection />}
         {section === "logbook" && <LogbookSection />}
         {section === "history" && <DriverHistorySection />}
