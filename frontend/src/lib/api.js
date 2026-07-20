@@ -391,7 +391,7 @@ const api = {
             .eq('scheduled_date', targetDate)
             .eq('trip_type', 'clinico')
             .neq('status', 'cancelado')
-            .order('appointment_time', { ascending: true });
+            .order('created_at', { ascending: true });
 
           if (userRole === 'coordinador') {
             tripQuery = tripQuery.neq('status', 'revision_gestor');
@@ -403,26 +403,42 @@ const api = {
           const trips = (rawTrips || []).map(t => {
             const parsed = { ...t };
             ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
-              if (Array.isArray(parsed[field])) {
-                parsed[field] = parsed[field].map(item => {
+              let val = parsed[field];
+              if (typeof val === 'string') {
+                try { val = JSON.parse(val); } catch(e) {}
+              }
+              if (Array.isArray(val)) {
+                parsed[field] = val.map(item => {
                   if (typeof item === 'string') {
                     try { return JSON.parse(item); } catch(e) { return item; }
                   }
                   return item;
                 });
+              } else {
+                parsed[field] = val;
               }
             });
             return parsed;
           });
           
           const isTripAssignedTo = (trip, staffId, staffName) => {
-            if (!trip.assigned_clinical_staff || !Array.isArray(trip.assigned_clinical_staff)) return false;
-            return trip.assigned_clinical_staff.some(s => {
+            if (!trip.assigned_clinical_staff) return false;
+            let staffArr = trip.assigned_clinical_staff;
+            if (typeof staffArr === 'string') {
+              try { staffArr = JSON.parse(staffArr); } catch(e){}
+            }
+            if (!Array.isArray(staffArr)) {
+              if (typeof staffArr === 'string') {
+                return (staffId && staffArr === staffId) || (staffName && staffArr.includes(staffName));
+              }
+              return false;
+            }
+            return staffArr.some(s => {
               if (typeof s === 'object' && s !== null) {
-                return s.id === staffId || s.staff_id === staffId || s.name === staffName || s.staff_name === staffName;
+                return (s.id && s.id === staffId) || (s.staff_id && s.staff_id === staffId) || (s.name && s.name === staffName) || (s.staff_name && s.staff_name === staffName);
               }
               if (typeof s === 'string') {
-                return s === staffId || s === staffName || s.includes(staffName);
+                return (staffId && s === staffId) || (staffName && (s === staffName || s.includes(staffName)));
               }
               return false;
             });
@@ -434,7 +450,7 @@ const api = {
           (clinicalStaff || []).forEach(c => {
             const cInfo = {
               id: c.id,
-              name: c.name,
+              name: c.name || "Sin nombre",
               profession: c.department || 'Acompañante Clínico',
               is_working: !!c.is_working,
               is_active: c.is_active !== false
@@ -455,12 +471,14 @@ const api = {
           staffCols.sort((a, b) => {
             if (a.staff.is_working && !b.staff.is_working) return -1;
             if (!a.staff.is_working && b.staff.is_working) return 1;
-            return a.staff.name.localeCompare(b.staff.name);
+            const nameA = a.staff.name || "";
+            const nameB = b.staff.name || "";
+            return nameA.localeCompare(nameB);
           });
           
           const unassignedTrips = trips.filter(t => {
             if (assignedTripIds.has(t.id)) return false;
-            if (!t.assigned_clinical_staff || !Array.isArray(t.assigned_clinical_staff) || t.assigned_clinical_staff.length === 0) return true;
+            if (!t.assigned_clinical_staff || (Array.isArray(t.assigned_clinical_staff) && t.assigned_clinical_staff.length === 0)) return true;
             return false;
           });
 
