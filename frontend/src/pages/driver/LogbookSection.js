@@ -20,19 +20,33 @@ export default function LogbookSection() {
   const [fuelForm, setFuelForm] = useState({ vehicle_id: "", mileage: "", liters: "", amount: "", receipt_number: "" });
   const [submitting, setSubmitting] = useState(false);
 
+  const [shiftVehicle, setShiftVehicle] = useState(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vRes, tRes] = await Promise.all([
+        const [vRes, tRes, meRes] = await Promise.all([
           api.get("/vehicles"),
-          api.get("/trips/driver")
+          api.get("/trips/driver"),
+          api.get("/auth/me")
         ]);
-        setVehicles(vRes.data || []);
+        const vList = vRes.data || [];
+        setVehicles(vList);
+
         const currentTrip = (tRes.data || []).find((t) => t.status === "en_curso");
+        const shiftVehicleId = meRes.data?.current_vehicle_id;
+        const defaultVehicleId = shiftVehicleId || currentTrip?.vehicle_id || (vList.length > 0 ? vList[0].id : "");
+
+        const sVehicle = vList.find(v => v.id === defaultVehicleId);
+        if (sVehicle) setShiftVehicle(sVehicle);
+
+        if (defaultVehicleId) {
+          setIncidentForm((prev) => ({ ...prev, vehicle_id: defaultVehicleId }));
+          setFuelForm((prev) => ({ ...prev, vehicle_id: defaultVehicleId }));
+        }
+
         if (currentTrip) {
           setActiveTrip(currentTrip);
-          setIncidentForm((prev) => ({ ...prev, vehicle_id: currentTrip.vehicle_id }));
-          setFuelForm((prev) => ({ ...prev, vehicle_id: currentTrip.vehicle_id }));
         }
       } catch (e) {
         console.error(e);
@@ -98,20 +112,24 @@ export default function LogbookSection() {
         </div>
       </div>
 
-      {activeTrip && (
+      {shiftVehicle && (
         <div className="mb-6 bg-teal-50 border border-teal-200 p-4 rounded-2xl flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center animate-pulse">
+            <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center">
               <Truck className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase text-teal-600 tracking-widest">Viaje Activo Detectado</p>
+              <p className="text-[10px] font-black uppercase text-teal-600 tracking-widest">
+                {activeTrip ? "Viaje Activo Detectado" : "Móvil Asignado al Turno"}
+              </p>
               <p className="text-sm font-bold text-teal-900">
-                Móvil: {vehicles.find((v) => v.id === activeTrip.vehicle_id)?.plate || "Cargando..."}
+                Móvil: {shiftVehicle.plate} ({shiftVehicle.brand})
               </p>
             </div>
           </div>
-          <Badge className="bg-teal-600 text-white border-none font-black text-[10px] uppercase">Vehículo Fijo</Badge>
+          <Badge className="bg-teal-600 text-white border-none font-black text-[10px] uppercase">
+            {activeTrip ? "Vehículo Fijo" : "En Turno"}
+          </Badge>
         </div>
       )}
 
