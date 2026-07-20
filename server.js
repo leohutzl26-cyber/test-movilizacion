@@ -129,8 +129,8 @@ app.post('/api/drivers/status', async (req, res) => {
     const userRole = req.context.user?.role;
     const userId = req.context.user?.id;
 
-    if (userRole !== 'conductor' && userRole !== 'admin') {
-      return res.status(403).json({ error: 'Acceso denegado: Se requiere perfil de Conductor' });
+    if (userRole !== 'conductor' && userRole !== 'admin' && userRole !== 'coordinador') {
+      return res.status(403).json({ error: 'Acceso denegado: Se requiere perfil de Conductor, Coordinador o Administrador' });
     }
 
     const { is_working, current_vehicle_id } = req.body;

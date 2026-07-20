@@ -1,4 +1,4 @@
-import supabaseApi from './supabase-api';
+import supabaseApi, { callSupabaseFunction } from './supabase-api';
 import { supabase } from './supabase';
 
 const getCurrentUserSession = async () => {
@@ -524,44 +524,32 @@ const api = {
           if (!targetUserId) throw new Error("No driver user session or ID provided");
           
           const updatePayload = { 
+            driver_id: targetUserId,
             is_working: data.is_working !== undefined ? data.is_working : false,
             current_vehicle_id: data.current_vehicle_id || null 
           };
 
-          const { data: updatedProfile, error } = await supabase
-            .from('profiles')
-            .update(updatePayload)
-            .eq('id', targetUserId)
-            .select()
-            .maybeSingle();
-            
-          if (error) throw error;
-
-          if (!updatedProfile) {
-            // If profile record does not exist or wasn't updated, try upserting
-            const { data: upsertedProfile, error: upsertErr } = await supabase
+          try {
+            const resData = await callSupabaseFunction('drivers/status', updatePayload);
+            return { data: resData };
+          } catch (apiErr) {
+            console.warn("Backend API drivers/status failed, attempting fallback direct Supabase update:", apiErr);
+            const { data: updatedProfile, error } = await supabase
               .from('profiles')
-              .upsert({
-                id: targetUserId,
-                ...updatePayload
+              .update({
+                is_working: updatePayload.is_working,
+                current_vehicle_id: updatePayload.current_vehicle_id
               })
+              .eq('id', targetUserId)
               .select()
               .maybeSingle();
 
-            if (upsertErr) {
-              console.warn("Warning upserting profile:", upsertErr);
-              return { 
-                data: { 
-                  message: 'Estado de turno actualizado', 
-                  profile: { id: targetUserId, ...updatePayload } 
-                } 
-              };
+            if (error || !updatedProfile) {
+              throw error || new Error("No se pudo actualizar el estado del conductor en la base de datos.");
             }
 
-            return { data: { message: 'Estado de turno actualizado', profile: upsertedProfile || { id: targetUserId, ...updatePayload } } };
+            return { data: { message: 'Estado de turno actualizado', profile: updatedProfile } };
           }
-
-          return { data: { message: 'Estado de turno actualizado', profile: updatedProfile } };
         }
 
         default:

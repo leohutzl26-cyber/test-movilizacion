@@ -7,7 +7,7 @@ const getAuthHeaders = () => {
 };
 
 // Helper function to handle Supabase Function calls
-const callSupabaseFunction = async (functionName, body = {}) => {
+export const callSupabaseFunction = async (functionName, body = {}) => {
   try {
     const baseUrl = process.env.REACT_APP_API_URL || '';
     const response = await customFetch(`${baseUrl}/api/${functionName}`, {
