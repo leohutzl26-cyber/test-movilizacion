@@ -159,14 +159,15 @@ export default function DriverDashboard() {
                 {isWorking ? "EN TURNO" : "FUERA DE TURNO"}
               </span>
               <button
+                type="button"
                 onClick={toggleTurn}
                 disabled={loadingTurn}
-                className={`w-12 h-6 rounded-full transition-colors duration-300 relative focus:outline-none shrink-0 ${
+                className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-300 inline-flex items-center focus:outline-none shrink-0 cursor-pointer ${
                   isWorking ? "bg-emerald-500" : "bg-slate-300"
                 }`}
               >
-                <span className={`w-5 h-5 bg-white rounded-full absolute top-0.5 shadow transition-transform duration-300 ${
-                  isWorking ? "transform translate-x-6" : "transform translate-x-1"
+                <span className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+                  isWorking ? "translate-x-6" : "translate-x-0"
                 }`} />
               </button>
             </div>
