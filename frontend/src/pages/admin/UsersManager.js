@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { authApi } from "@/lib/supabase-api";
+import { PERSONNEL_TYPES } from "@/lib/tripUtils";
 
 export default function UsersManager() {
   const [users, setUsers] = useState([]);
@@ -272,18 +273,36 @@ export default function UsersManager() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="user-department">Servicio / Departamento (Opcional)</Label>
-              <Select value={formData.department || "none"} onValueChange={v => setFormData({...formData, department: v === "none" ? "" : v})}>
-                <SelectTrigger id="user-department"><SelectValue placeholder="Seleccione Servicio" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin Servicio</SelectItem>
-                  {services.map(s => (
-                    <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.role === "personal_clinico" ? (
+              <div className="space-y-2 bg-teal-50/70 p-3 rounded-xl border border-teal-200">
+                <Label htmlFor="user-profession" className="text-teal-900 font-bold text-xs uppercase">Profesión / Especialidad *</Label>
+                <Select value={formData.department || "none"} onValueChange={v => setFormData({...formData, department: v === "none" ? "" : v})}>
+                  <SelectTrigger id="user-profession" className="bg-white border-teal-300 font-bold text-xs h-9">
+                    <SelectValue placeholder="Seleccione Profesión..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin especificar</SelectItem>
+                    {PERSONNEL_TYPES.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-teal-700 font-medium">Esta profesión identificará al funcionario en las asignaciones de acompañamiento.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="user-department">Servicio / Departamento (Opcional)</Label>
+                <Select value={formData.department || "none"} onValueChange={v => setFormData({...formData, department: v === "none" ? "" : v})}>
+                  <SelectTrigger id="user-department"><SelectValue placeholder="Seleccione Servicio" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin Servicio</SelectItem>
+                    {services.map(s => (
+                      <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {!editingId && (
               <p className="text-xs text-slate-400 mt-2">

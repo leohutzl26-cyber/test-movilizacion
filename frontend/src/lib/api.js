@@ -567,8 +567,28 @@ const api = {
           return { data: await supabaseApi.originServicesApi.createOriginService(serviceData) };
         }
 
-        case "/clinical-staff":
-          return { data: await supabaseApi.clinicalStaff.createClinicalStaff(data) };
+        case "/clinical-staff": {
+          const username = (data.name || "clinico").toLowerCase().replace(/[^a-z0-9]/g, '');
+          const randomSuffix = Math.floor(Math.random() * 899 + 100);
+          const cleanUsername = username ? `${username}${randomSuffix}` : `clinico${Date.now()}`;
+          
+          const { data: createdUser } = await supabase.from('profiles').insert({
+            name: data.name,
+            username: cleanUsername,
+            role: 'personal_clinico',
+            department: data.role || 'Acompañante Clínico',
+            status: 'approved',
+            must_change_password: true,
+            encrypted_password: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJQhN8/LewDrPNAXfL6mhcZK',
+            is_active: data.is_active !== false
+          }).select().maybeSingle();
+
+          try {
+            await supabaseApi.clinicalStaff.createClinicalStaff(data);
+          } catch(e){}
+
+          return { data: createdUser || { name: data.name } };
+        }
 
         case "/vehicles":
           return { data: await supabaseApi.vehicles.createVehicle(data) };

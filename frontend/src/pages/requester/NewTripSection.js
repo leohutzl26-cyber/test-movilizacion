@@ -161,8 +161,13 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
   };
 
   const getStaffByType = (type) => {
-    if (!type) return [];
-    return clinicalStaffOptions.filter((s) => s.role.toLowerCase() === type.toLowerCase());
+    if (!type) return clinicalStaffOptions;
+    const target = type.toLowerCase();
+    const matched = clinicalStaffOptions.filter(s => {
+      const roleStr = (s.role || s.department || "").toLowerCase();
+      return roleStr.includes(target) || target.includes(roleStr);
+    });
+    return matched.length > 0 ? matched : clinicalStaffOptions;
   };
 
   const handleOriginChange = (val) => {
@@ -663,17 +668,11 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="none">Por identificar (Gestor)...</SelectItem>
-                                  {getStaffByType(row.type).length > 0 ? (
-                                    getStaffByType(row.type).map((s) => (
-                                      <SelectItem key={s.id} value={s.id}>
-                                        {s.name}
-                                      </SelectItem>
-                                    ))
-                                  ) : (
-                                    <SelectItem value="__none" disabled>
-                                      No hay personal de este tipo
+                                  {getStaffByType(row.type).map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name} ({s.department || s.role || 'Acompañante'}) {s.is_working ? "🟢 [En Turno]" : "⚪ [Fuera de Turno]"}
                                     </SelectItem>
-                                  )}
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </td>

@@ -75,7 +75,15 @@ export default function GestorNewTripSection() {
       return u;
     });
   };
-  const getStaffByType = (type) => type ? clinicalStaffOptions.filter(s => s.role.toLowerCase() === type.toLowerCase()) : [];
+  const getStaffByType = (type) => {
+    if (!type) return clinicalStaffOptions;
+    const target = type.toLowerCase();
+    const matched = clinicalStaffOptions.filter(s => {
+      const roleStr = (s.role || s.department || "").toLowerCase();
+      return roleStr.includes(target) || target.includes(roleStr);
+    });
+    return matched.length > 0 ? matched : clinicalStaffOptions;
+  };
 
   const handleOriginChange = (val) => {
     if (val === "otro") {
@@ -286,7 +294,7 @@ export default function GestorNewTripSection() {
           {/* Personal clínico tabla */}
           {tripType === "clinico" && (<div className="space-y-3">
             <Label className="font-bold">Personal Clínico {form.transfer_reason !== "Alta" ? "*" : "(Opcional para Altas)"}</Label>
-            {staffRows.length > 0 && <div className="border rounded-xl overflow-hidden"><table className="w-full text-sm"><thead className="bg-slate-100"><tr><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Tipo</th><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Nombre / Identificación</th><th className="p-2 w-10"></th></tr></thead><tbody>{staffRows.map((row, i) => (<tr key={i}><td className="p-2"><Select value={row.type} onValueChange={v => updateStaffRow(i, "type", v)}><SelectTrigger className="h-9"><SelectValue placeholder="Tipo" /></SelectTrigger><SelectContent>{PERSONNEL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Select value={row.staff_id || "none"} onValueChange={v => updateStaffRow(i, "staff_id", v)} disabled={!row.type}><SelectTrigger className="h-9"><SelectValue placeholder="Opcional: Por identificar" /></SelectTrigger><SelectContent><SelectItem value="none">Por identificar luego...</SelectItem>{getStaffByType(row.type).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeStaffRow(i)} className="h-8 w-8 text-red-500"><Trash2 className="w-4 h-4" /></Button></td></tr>))}</tbody></table></div>}
+            {staffRows.length > 0 && <div className="border rounded-xl overflow-hidden"><table className="w-full text-sm"><thead className="bg-slate-100"><tr><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Tipo</th><th className="p-2 text-left text-[10px] font-bold text-slate-500 uppercase">Nombre / Identificación</th><th className="p-2 w-10"></th></tr></thead><tbody>{staffRows.map((row, i) => (<tr key={i}><td className="p-2"><Select value={row.type} onValueChange={v => updateStaffRow(i, "type", v)}><SelectTrigger className="h-9"><SelectValue placeholder="Tipo" /></SelectTrigger><SelectContent>{PERSONNEL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Select value={row.staff_id || "none"} onValueChange={v => updateStaffRow(i, "staff_id", v)} disabled={!row.type}><SelectTrigger className="h-9"><SelectValue placeholder="Opcional: Por identificar" /></SelectTrigger><SelectContent><SelectItem value="none">Por identificar luego...</SelectItem>{getStaffByType(row.type).map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.department || s.role || 'Acompañante'}) {s.is_working ? "🟢 [En Turno]" : "⚪ [Fuera de Turno]"}</SelectItem>)}</SelectContent></Select></td><td className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeStaffRow(i)} className="h-8 w-8 text-red-500"><Trash2 className="w-4 h-4" /></Button></td></tr>))}</tbody></table></div>}
             <Button type="button" variant="outline" onClick={addStaffRow} className="border-teal-200 text-teal-700 h-9"><Plus className="w-4 h-4 mr-1" /> Añadir Personal</Button>
           </div>)}
           {/* Requerimientos */}
