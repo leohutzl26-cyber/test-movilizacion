@@ -366,6 +366,17 @@ const api = {
 
         case "/trips/by-clinical": {
           const targetDate = queryParams.date || new Date().toISOString().split('T')[0];
+          let userRole = queryParams.role || null;
+          
+          if (!userRole) {
+            try {
+              const session = await getCurrentUserSession();
+              if (session?.user?.id) {
+                const { data: prof } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
+                if (prof) userRole = prof.role;
+              }
+            } catch(e) {}
+          }
           
           const { data: clinicalStaff, error: staffError } = await supabase
             .from('profiles')
@@ -374,14 +385,19 @@ const api = {
           
           if (staffError) throw staffError;
           
-          const { data: rawTrips, error: tripsError } = await supabase
+          let tripQuery = supabase
             .from('trips')
             .select('*')
             .eq('scheduled_date', targetDate)
             .eq('trip_type', 'clinico')
             .neq('status', 'cancelado')
             .order('appointment_time', { ascending: true });
-            
+
+          if (userRole === 'coordinador') {
+            tripQuery = tripQuery.neq('status', 'revision_gestor');
+          }
+
+          const { data: rawTrips, error: tripsError } = await tripQuery;
           if (tripsError) throw tripsError;
           
           const trips = (rawTrips || []).map(t => {

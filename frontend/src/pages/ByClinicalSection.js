@@ -4,37 +4,49 @@ import { Stethoscope, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock,
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_CARD_STYLES = {
+    revision_gestor: {
+        bg: "bg-purple-50/40 border-purple-200 hover:border-purple-400 hover:shadow-md",
+        indicator: "bg-purple-500",
+        badge: "bg-purple-100 text-purple-800 border-purple-200",
+        label: "Por Visar"
+    },
     pendiente: {
         bg: "bg-amber-50/40 border-amber-200 hover:border-amber-400 hover:shadow-md",
         indicator: "bg-amber-500",
-        badge: "bg-amber-100 text-amber-800 border-amber-200"
+        badge: "bg-amber-100 text-amber-800 border-amber-200",
+        label: "Visado"
     },
     asignado: {
         bg: "bg-teal-50/40 border-teal-200 hover:border-teal-400 hover:shadow-md",
         indicator: "bg-teal-500",
-        badge: "bg-teal-100 text-teal-800 border-teal-200"
+        badge: "bg-teal-100 text-teal-800 border-teal-200",
+        label: "Asignado"
     },
     en_curso: {
         bg: "bg-blue-50/50 border-blue-200 hover:border-blue-400 hover:shadow-md",
         indicator: "bg-blue-500",
-        badge: "bg-blue-100 text-blue-800 border-blue-200"
+        badge: "bg-blue-100 text-blue-800 border-blue-200",
+        label: "En Curso"
     },
     completado: {
         bg: "bg-emerald-50/40 border-emerald-200 hover:border-emerald-400 hover:shadow-md",
         indicator: "bg-emerald-500",
-        badge: "bg-emerald-100 text-emerald-800 border-emerald-200"
+        badge: "bg-emerald-100 text-emerald-800 border-emerald-200",
+        label: "Completado"
     },
     cancelado: {
         bg: "bg-rose-50/40 border-rose-200 hover:border-rose-400 hover:shadow-md",
         indicator: "bg-rose-500",
-        badge: "bg-rose-100 text-rose-800 border-rose-200"
+        badge: "bg-rose-100 text-rose-800 border-rose-200",
+        label: "Cancelado"
     }
 };
 
 export default function ByClinicalSection() {
+    const { user } = useAuth();
     const [data, setData] = useState([]);
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [loading, setLoading] = useState(true);
@@ -55,14 +67,14 @@ export default function ByClinicalSection() {
 
     const fetchBoard = useCallback(async () => {
         try {
-            const res = await api.get(`/trips/by-clinical?date=${date}`);
+            const res = await api.get(`/trips/by-clinical?date=${date}&role=${user?.role || ''}`);
             setData(res.data || []);
         } catch (e) {
             toast.error("Error al cargar la pizarra gráfica clínica");
         } finally {
             setLoading(false);
         }
-    }, [date]);
+    }, [date, user?.role]);
 
     useEffect(() => {
         fetchBoard();
@@ -245,7 +257,7 @@ export default function ByClinicalSection() {
                                                                             </Badge>
                                                                         )}
                                                                         <Badge className={`text-[9px] font-black uppercase border ${cardStyle.badge}`}>
-                                                                            {trip.status}
+                                                                            {cardStyle.label || trip.status}
                                                                         </Badge>
                                                                     </div>
                                                                 </div>
