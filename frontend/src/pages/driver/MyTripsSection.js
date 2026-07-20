@@ -27,6 +27,8 @@ export default function MyTripsSection() {
   const [driverNotes, setDriverNotes] = useState("");
   const [driverNotesEdit, setDriverNotesEdit] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [driverShiftVehicle, setDriverShiftVehicle] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const handleOpenDetails = (trip) => {
     setDetailsDialog(trip);
@@ -54,10 +56,20 @@ export default function MyTripsSection() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [t, v] = await Promise.all([api.get("/trips/driver"), api.get("/vehicles")]);
-      console.log("My trips data:", t.data);
-      setTrips((t.data || []).filter((tr) => ["asignado", "en_curso"].includes(tr.status)));
-      setVehicles((v.data || []).filter((veh) => veh.status === "disponible"));
+      const [meRes, t, v] = await Promise.all([
+        api.get("/auth/me").catch(() => null),
+        api.get("/trips/driver"),
+        api.get("/vehicles")
+      ]);
+      if (meRes?.data) {
+        setCurrentUserId(meRes.data.id || null);
+        setDriverShiftVehicle(meRes.data.current_vehicle_id || "");
+      }
+      console.log("My trips data:", t?.data);
+      setTrips((t?.data || []).filter((tr) => ["asignado", "en_curso"].includes(tr.status)));
+      
+      const shiftVehId = meRes?.data?.current_vehicle_id;
+      setVehicles((v?.data || []).filter((veh) => veh.status === "disponible" || veh.status === "en_curso" || veh.id === shiftVehId));
     } catch (err) {
       console.error("Error fetching my trips:", err.response?.status, err.response?.data, err.message);
     } finally {
@@ -87,20 +99,20 @@ export default function MyTripsSection() {
     setShowWarning(false);
 
     if (type === "start") {
-      const vehId = trip.vehicle_id || "";
+      const vehId = trip.vehicle_id || driverShiftVehicle || "";
       setSelectedVehicle(vehId);
       if (vehId) {
         const veh = vehicles.find((v) => v.id === vehId);
-        setMileage(veh ? veh.mileage.toString() : "");
+        setMileage(veh && veh.mileage !== undefined && veh.mileage !== null ? veh.mileage.toString() : "");
       } else {
         setMileage("");
       }
     } else if (type === "end") {
-      setSelectedVehicle(trip.vehicle_id || "");
+      setSelectedVehicle(trip.vehicle_id || driverShiftVehicle || "");
       setMileage("");
       setDriverNotes(trip.driver_notes || "");
     } else {
-      setSelectedVehicle(trip.vehicle_id || "");
+      setSelectedVehicle(trip.vehicle_id || driverShiftVehicle || "");
       setMileage("");
     }
   };
@@ -118,7 +130,7 @@ export default function MyTripsSection() {
     setSelectedVehicle(vehId);
     if (actionType === "start") {
       const veh = vehicles.find((v) => v.id === vehId);
-      if (veh) setMileage(veh.mileage.toString());
+      if (veh && veh.mileage !== undefined && veh.mileage !== null) setMileage(veh.mileage.toString());
     }
   };
 
@@ -157,7 +169,19 @@ export default function MyTripsSection() {
         return;
       }
       let payload = {};
-      if (actionType === "start") payload = { status: "en_curso", vehicle_id: selectedVehicle, mileage: parseFloat(mileage) };
+      if (actionType === "start") {
+        payload = { status: "en_curso", vehicle_id: selectedVehicle, mileage: parseFloat(mileage) };
+        // Sincronizar automáticamente el móvil activo del turno del conductor con el vehículo seleccionado para el viaje
+        try {
+          await api.post("/drivers/status", {
+            driver_id: currentUserId,
+            is_working: true,
+            current_vehicle_id: selectedVehicle
+          });
+        } catch (sErr) {
+          console.warn("Advertencia: No se pudo sincronizar el móvil de turno del conductor:", sErr);
+        }
+      }
       if (actionType === "end") payload = { status: "completado", mileage: parseFloat(mileage), driver_notes: driverNotes };
 
       await api.put(`/trips/${actionDialog.id}/status`, payload);
