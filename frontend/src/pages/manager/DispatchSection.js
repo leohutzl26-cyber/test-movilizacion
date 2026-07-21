@@ -238,6 +238,7 @@ export default function DispatchSection() {
   const [stats, setStats] = useState({ pendiente: 0, asignado: 0, en_curso: 0, completado: 0 });
   const [drivers, setDrivers] = useState([]);
   const [assignDialog, setAssignDialog] = useState(null);
+  const [driverSearch, setDriverSearch] = useState("");
   const [detailTrip, setDetailTrip] = useState(null);
   const [cancelDialog, setCancelDialog] = useState(null);
   const [returnDialog, setReturnDialog] = useState(null);
