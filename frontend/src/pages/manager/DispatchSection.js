@@ -652,30 +652,31 @@ export default function DispatchSection() {
   );
 
   const renderTripCard = (t) => (
-    <Card key={t.id} className={`group overflow-hidden border-none shadow-sm hover:shadow-xl ring-1 ring-slate-200/80 hover:ring-teal-500 transition-all duration-300 bg-white rounded-2xl border-l-4 ${statusBorderColors[t.status] || "border-l-slate-400"}`}>
-      <CardContent className="p-4 sm:p-5 space-y-3.5">
-        {/* Cabecera de la Tarjeta */}
-        <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-100">
-          <div className="flex items-center gap-2 flex-wrap">
+    <Card key={t.id} className={`group border border-slate-200/90 shadow-xs hover:shadow-md hover:border-teal-400 transition-all duration-200 bg-white rounded-2xl border-l-4 ${statusBorderColors[t.status] || "border-l-slate-400"}`}>
+      <CardContent className="p-3.5 space-y-2.5">
+        {/* Cabecera: Folio, Prioridad, Estado, Fecha y Hora */}
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span
-              className="bg-teal-50 text-teal-700 border border-teal-200 font-mono px-2.5 py-1 rounded-lg text-xs font-black cursor-pointer hover:bg-teal-100 transition-colors"
+              className="bg-teal-50 text-teal-700 border border-teal-200 font-mono px-2 py-0.5 rounded-md text-xs font-black cursor-pointer hover:bg-teal-100 transition-colors"
               onClick={() => setDetailTrip(t)}
             >
               #{t.tracking_number}
             </span>
-            <Badge className={`text-[10px] font-black px-2.5 py-0.5 uppercase rounded-full border-none shadow-xs flex items-center gap-1 ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
-              {t.priority === "urgente" && "🚨"}
-              {t.priority === "alta" && "⚠️"}
+            <Badge className={`text-[10px] font-black px-2 py-0.5 uppercase rounded-md border-none ${t.priority === "urgente" ? "bg-red-500 text-white animate-pulse" : t.priority === "alta" ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-600"}`}>
+              {t.priority === "urgente" && "🚨 "}
+              {t.priority === "alta" && "⚠️ "}
               {t.priority}
             </Badge>
-            <Badge className={`text-[10px] font-black px-2.5 py-0.5 uppercase rounded-full border-none shadow-xs ${statusColorsSolid[t.status] || "bg-slate-500 text-white"}`}>
+            <Badge className={`text-[10px] font-black px-2 py-0.5 uppercase rounded-md border-none ${statusColorsSolid[t.status] || "bg-slate-500 text-white"}`}>
               {(t.status || "").replace(/_/g, " ")}
             </Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+            <span>{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
             {t.appointment_time && (
-              <span className="bg-amber-50 text-amber-800 border border-amber-200 font-mono text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+              <span className="bg-amber-50 text-amber-900 border border-amber-200 font-mono text-xs font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                 <Clock className="w-3 h-3 text-amber-600" />
                 {t.appointment_time}
               </span>
@@ -684,110 +685,98 @@ export default function DispatchSection() {
         </div>
 
         {/* Título y Categoría */}
-        <div className="cursor-pointer space-y-1" onClick={() => setDetailTrip(t)}>
-          <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-teal-600 transition-colors">
-            {t.trip_type === "clinico" ? t.patient_name : t.task_details}
-          </h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${t.trip_type === "clinico" ? "text-teal-700 bg-teal-50 border border-teal-100" : "text-indigo-700 bg-indigo-50 border border-indigo-100"}`}>
-              {t.trip_type === "clinico" ? "🏥 Traslado Clínico" : "📋 No Clínico"}
+        <div className="cursor-pointer space-y-0.5" onClick={() => setDetailTrip(t)}>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-base font-black text-slate-900 group-hover:text-teal-600 transition-colors leading-tight">
+              {t.trip_type === "clinico" ? t.patient_name : t.task_details}
+            </h3>
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${t.trip_type === "clinico" ? "text-teal-700 bg-teal-50 border border-teal-200" : "text-indigo-700 bg-indigo-50 border border-indigo-200"}`}>
+              {t.trip_type === "clinico" ? "Clínico" : "No Clínico"}
             </span>
-            <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
-              • {t.transfer_reason || "General"}
-            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <span>{t.transfer_reason || "General"}</span>
             {t.trip_type === "no_clinico" && t.staff_count && (
-              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                👤 {t.staff_count} {parseInt(t.staff_count) === 1 ? "Funcionario" : "Funcionarios"}
+              <span className="text-[11px] font-bold text-indigo-700">
+                • 👤 {t.staff_count} {parseInt(t.staff_count) === 1 ? "Funcionario" : "Funcionarios"}
               </span>
             )}
           </div>
         </div>
 
-        {/* Ruta (Origen -> Destino) */}
-        <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100 space-y-2 text-xs font-medium text-slate-700">
-          <div className="flex items-start gap-2">
-            <div className="mt-0.5 w-4 h-4 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 font-bold text-[10px]">A</div>
-            <div className="min-w-0 flex-1">
-              <p className="font-extrabold uppercase text-slate-800 leading-tight">{t.origin}</p>
-              {t.origin_address && <p className="text-[11px] text-slate-500 truncate mt-0.5">{t.origin_address}</p>}
-              {t.origin_maps_url && (
-                <a href={t.origin_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:underline mt-0.5">
-                  <ExternalLink className="w-2.5 h-2.5" /> Ver en mapa
-                </a>
-              )}
-            </div>
+        {/* Ruta Compacta (Origen -> Destino) */}
+        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs font-semibold text-slate-800 space-y-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-4 h-4 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-[10px] font-black shrink-0">A</span>
+            <span className="font-extrabold uppercase truncate">{t.origin}</span>
+            {t.origin_address && <span className="text-[11px] text-slate-400 font-normal truncate hidden sm:inline">({t.origin_address})</span>}
           </div>
-
-          <div className="flex items-start gap-2 border-t border-slate-200/50 pt-2">
-            <div className="mt-0.5 w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[10px]">B</div>
-            <div className="min-w-0 flex-1">
-              <p className="font-extrabold uppercase text-slate-800 leading-tight">{t.destination}</p>
-              {t.destination_address && <p className="text-[11px] text-slate-500 truncate mt-0.5">{t.destination_address}</p>}
-              {t.destination_maps_url && (
-                <a href={t.destination_maps_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:underline mt-0.5">
-                  <ExternalLink className="w-2.5 h-2.5" /> Ver en mapa
-                </a>
-              )}
-            </div>
+          <div className="flex items-center gap-2 min-w-0 border-t border-slate-200/60 pt-1">
+            <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px] font-black shrink-0">B</span>
+            <span className="font-extrabold uppercase truncate">{t.destination}</span>
+            {t.destination_address && <span className="text-[11px] text-slate-400 font-normal truncate hidden sm:inline">({t.destination_address})</span>}
           </div>
         </div>
 
-        {/* Estado del Conductor */}
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${t.driver_name ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>
-              {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-4 h-4" />}
+        {/* Móvil & Conductor */}
+        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100 text-xs font-bold">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${t.driver_name ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>
+              {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-3.5 h-3.5" />}
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase leading-none mb-1">Móvil & Conductor</p>
-              <p className="text-xs font-black text-slate-900 leading-none uppercase truncate">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block leading-none">Móvil & Conductor</span>
+              <span className="text-xs font-black text-slate-900 truncate uppercase block mt-0.5">
                 {t.driver_name ? t.driver_name : "Pendiente de Asignación"}
-              </p>
+              </span>
             </div>
           </div>
           {t.vehicle_plate && (
-            <Badge className="bg-teal-50 text-teal-800 border border-teal-200 font-mono font-black text-xs px-2 py-0.5">
+            <Badge className="bg-teal-50 text-teal-800 border border-teal-200 font-mono font-black text-xs px-2 py-0.5 shrink-0">
               {t.vehicle_plate}
             </Badge>
           )}
         </div>
 
         {/* Acciones */}
-        <div className="pt-2 flex flex-col gap-2">
+        <div className="pt-0.5 flex items-center gap-1.5">
           {["pendiente", "asignado"].includes(t.status) && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={() => setAssignDialog(t)} className="flex-1 h-9 bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase shadow-md rounded-xl flex items-center justify-center gap-2">
-                <Truck className="w-4 h-4" />
-                {t.driver_id ? "Reasignar Conductor" : "Asignar Conductor"}
+            <>
+              <Button onClick={() => setAssignDialog(t)} className="flex-1 h-8 bg-teal-600 hover:bg-teal-700 text-white text-xs font-extrabold uppercase rounded-lg flex items-center justify-center gap-1.5 shadow-xs">
+                <Truck className="w-3.5 h-3.5" />
+                {t.driver_id ? "Reasignar" : "Asignar Conductor"}
               </Button>
 
               {t.driver_id && t.status === "asignado" && (
-                <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-9 px-3 text-xs font-bold uppercase text-amber-600 border-amber-200 hover:bg-amber-50 rounded-xl" title="Desasignar Conductor">
-                  <RotateCcw className="w-3.5 h-3.5 mr-1" /> Quitar
+                <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-8 px-2.5 text-xs font-bold uppercase text-amber-600 border-amber-200 hover:bg-amber-50 rounded-lg" title="Desasignar Conductor">
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
               )}
 
-              <Button onClick={() => setEditDialog(t)} variant="outline" className="h-9 px-3 text-xs font-bold uppercase text-slate-700 border-slate-200 hover:bg-slate-50 rounded-xl" title="Editar Traslado">
-                <Edit className="w-3.5 h-3.5 mr-1" /> Editar
+              <Button onClick={() => setEditDialog(t)} variant="outline" className="h-8 px-2.5 text-xs font-bold uppercase text-slate-700 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Editar Traslado">
+                <Edit className="w-3.5 h-3.5" />
+                <span>Editar</span>
               </Button>
 
-              <Button onClick={() => setReturnDialog(t)} variant="outline" className="h-9 px-3 text-xs font-bold uppercase text-slate-600 border-slate-200 hover:bg-slate-50 rounded-xl" title="Devolver al Gestor de Camas">
-                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Devolver
+              <Button onClick={() => setReturnDialog(t)} variant="outline" className="h-8 px-2.5 text-xs font-bold uppercase text-slate-600 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Devolver al Gestor de Camas">
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Devolver</span>
               </Button>
 
-              <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-9 w-9 p-0 text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl" title="Cancelar Traslado">
-                <XCircle className="w-4 h-4" />
+              <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-8 w-8 p-0 text-rose-600 border-rose-200 hover:bg-rose-50 rounded-lg flex items-center justify-center" title="Cancelar Traslado">
+                <XCircle className="w-3.5 h-3.5" />
               </Button>
 
               {user?.role === 'admin' && (
-                <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-9 w-9 p-0 text-red-700 border-red-300 bg-red-50 hover:bg-red-100 rounded-xl" title="ELIMINAR PERMANENTEMENTE">
-                  <Trash2 className="w-4 h-4" />
+                <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-8 w-8 p-0 text-red-700 border-red-300 bg-red-50 hover:bg-red-100 rounded-lg flex items-center justify-center" title="Eliminar Permanentemente">
+                  <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               )}
-            </div>
+            </>
           )}
-          {t.status === "en_curso" && <Badge className="w-full justify-center bg-blue-100 text-blue-700 border-none font-black text-xs uppercase py-1.5 shadow-sm rounded-xl">En Ruta</Badge>}
-          {t.status === "completado" && <Badge className="w-full justify-center bg-emerald-100 text-emerald-700 border-none font-black text-xs uppercase py-1.5 shadow-sm rounded-xl">Finalizado</Badge>}
+          {t.status === "en_curso" && <Badge className="w-full justify-center bg-blue-100 text-blue-700 border-none font-black text-xs uppercase py-1.5 rounded-lg">En Ruta</Badge>}
+          {t.status === "completado" && <Badge className="w-full justify-center bg-emerald-100 text-emerald-700 border-none font-black text-xs uppercase py-1.5 rounded-lg">Finalizado</Badge>}
         </div>
       </CardContent>
     </Card>
