@@ -858,15 +858,20 @@ export default function DispatchSection() {
           </button>
 
           <button
-            onClick={() => setActiveCategory("actividad")}
+            onClick={() => setActiveCategory("no_clinicos")}
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
-              activeCategory === "actividad"
-                ? "bg-amber-600 text-white shadow-md"
-                : "bg-amber-50 text-amber-700 hover:bg-amber-100/70"
+              activeCategory === "no_clinicos"
+                ? "bg-indigo-600 text-white shadow-md"
+                : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100/70"
             }`}
           >
-            <Activity className="w-4 h-4" />
-            Novedades
+            <Truck className="w-4 h-4" />
+            No Clínicos
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeCategory === "no_clinicos" ? "bg-indigo-700 text-white" : "bg-indigo-100 text-indigo-800"
+            }`}>
+              {nonClinicalTrips.length}
+            </span>
           </button>
         </div>
 
@@ -909,95 +914,88 @@ export default function DispatchSection() {
         </div>
       </div>
 
-      {/* Vista de Novedades / Log en Vivo */}
-      {activeCategory === "actividad" ? (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h2 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-              <Activity className="w-5 h-5 text-amber-600 animate-pulse" /> Novedades y Auditoría en Vivo
-            </h2>
-            <Badge className="bg-emerald-50 text-emerald-700 border-none font-black px-2.5 py-1 rounded-full text-xs">
-              Live Stream
-            </Badge>
+      {/* Grilla Principal de Traslados */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {displayedTrips.map(renderTripCard)}
+        </div>
+
+        {displayedTrips.length === 0 && (
+          <div className="text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl p-8 space-y-3">
+            <ClipboardList className="w-12 h-12 text-slate-300 mx-auto" />
+            <p className="text-sm font-black text-slate-700 uppercase tracking-wide">
+              No hay traslados activos en esta categoría
+            </p>
+            <p className="text-xs text-slate-400 font-medium">
+              Prueba cambiando los filtros de estado o seleccionando la pestaña "Todos".
+            </p>
           </div>
-          
-          <div className="space-y-3">
-            {loadingActivity ? (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
-                <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
-                <span className="text-xs font-black uppercase tracking-wider">Cargando novedades...</span>
-              </div>
-            ) : activityLogs.length === 0 ? (
-              <div className="text-center py-16 text-slate-400 italic text-xs">
-                Sin novedades registradas hoy.
-              </div>
-            ) : (
-              activityLogs.map((log) => {
-                const logDetail = formatActivityLog(log);
-                const Icon = logDetail.Icon;
-                return (
-                  <div key={log.id} className={`p-4 rounded-2xl border transition-all hover:shadow-md flex items-start gap-4 ${logDetail.bg}`}>
-                    <div className={`p-2.5 rounded-xl bg-white border border-slate-100 shrink-0 shadow-xs ${logDetail.iconColor}`}>
-                      <Icon className="w-5 h-5" />
+        )}
+      </div>
+
+      {/* Sección de Novedades y Cambios en Tiempo Real (Visibles directamente en la pantalla principal) */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3 mt-6">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+            <Activity className="w-4 h-4 text-amber-500 animate-pulse" /> Novedades y Cambios Recientes (Tiempo Real)
+          </h2>
+          <Badge className="bg-emerald-50 text-emerald-700 border-none font-black px-2 py-0.5 rounded-full text-[10px]">
+            Live Stream
+          </Badge>
+        </div>
+        
+        <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+          {loadingActivity ? (
+            <div className="flex items-center justify-center py-8 text-slate-400 gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
+              <span className="text-xs font-bold uppercase tracking-wider">Cargando novedades...</span>
+            </div>
+          ) : activityLogs.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 italic text-xs">
+              Sin novedades registradas hoy.
+            </div>
+          ) : (
+            activityLogs.map((log) => {
+              const logDetail = formatActivityLog(log);
+              const Icon = logDetail.Icon;
+              return (
+                <div key={log.id} className={`p-3 rounded-xl border transition-all hover:shadow-xs flex items-center justify-between gap-3 ${logDetail.bg}`}>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={`p-2 rounded-lg bg-white border border-slate-100 shrink-0 shadow-2xs ${logDetail.iconColor}`}>
+                      <Icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex justify-between items-start gap-2 flex-wrap">
-                        <p className="text-sm font-black text-slate-900">{logDetail.title}</p>
-                        <span className="text-xs font-bold text-slate-400 uppercase">
-                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-black text-slate-900">{logDetail.title}</span>
+                        <span className="text-[11px] font-semibold text-slate-600 truncate">{logDetail.description}</span>
                       </div>
-                      <p className="text-xs font-semibold text-slate-600 mt-1 leading-relaxed">
-                        {logDetail.description}
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+                        por {log.user_name || "Sistema"} • {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
-                      <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100/50 pt-2">
-                        <p className="text-xs font-bold text-slate-400 uppercase">
-                          por {log.user_name || "Sistema"}
-                        </p>
-                        {log.new_values?.tracking_number && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const foundTrip = trips.find(t => t.tracking_number === log.new_values.tracking_number);
-                              if (foundTrip) {
-                                setDetailTrip(foundTrip);
-                              } else {
-                                setDetailTrip(log.new_values);
-                              }
-                            }}
-                            className="text-xs font-mono font-black text-teal-600 hover:text-teal-700 bg-white px-2 py-0.5 rounded border border-teal-200 shadow-xs transition-colors cursor-pointer"
-                          >
-                            #{log.new_values.tracking_number}
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      ) : (
-        /* Grilla Principal de Traslados (Amplia y de 2 columnas) */
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {displayedTrips.map(renderTripCard)}
-          </div>
-
-          {displayedTrips.length === 0 && (
-            <div className="text-center py-20 bg-white border border-dashed border-slate-200 rounded-3xl p-8 space-y-3">
-              <ClipboardList className="w-12 h-12 text-slate-300 mx-auto" />
-              <p className="text-sm font-black text-slate-700 uppercase tracking-wide">
-                No hay traslados activos en esta categoría
-              </p>
-              <p className="text-xs text-slate-400 font-medium">
-                Prueba cambiando los filtros de estado o seleccionando la pestaña "Todos".
-              </p>
-            </div>
+                  {log.new_values?.tracking_number && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const foundTrip = trips.find(t => t.tracking_number === log.new_values.tracking_number);
+                        if (foundTrip) {
+                          setDetailTrip(foundTrip);
+                        } else {
+                          setDetailTrip(log.new_values);
+                        }
+                      }}
+                      className="text-xs font-mono font-black text-teal-600 hover:text-teal-700 bg-white px-2 py-1 rounded-md border border-teal-200 shadow-2xs transition-colors cursor-pointer shrink-0"
+                    >
+                      #{log.new_values.tracking_number}
+                    </button>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
-      )}
+      </div>
 
       <TripDetailDialog trip={detailTrip} open={!!detailTrip} onOpenChange={() => setDetailTrip(null)} onRefresh={fetchTrips} />
 
