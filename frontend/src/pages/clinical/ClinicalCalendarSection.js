@@ -9,6 +9,7 @@ import { formatScheduledDate } from "@/lib/tripUtils";
 
 export default function ClinicalCalendarSection() {
   const [trips, setTrips] = useState([]);
+  const [viewMode, setViewMode] = useState("mensual"); // "mensual" | "semanal"
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedTrip, setSelectedTrip] = useState(null);
@@ -30,11 +31,19 @@ export default function ClinicalCalendarSection() {
   }, []);
 
   const handlePrevMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    if (viewMode === "mensual") {
+      setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    } else {
+      setCurrentMonth(prev => new Date(prev.setDate(prev.getDate() - 7)));
+    }
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    if (viewMode === "mensual") {
+      setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    } else {
+      setCurrentMonth(prev => new Date(prev.setDate(prev.getDate() + 7)));
+    }
   };
 
   const getDaysInMonth = (year, month) => {
@@ -47,34 +56,78 @@ export default function ClinicalCalendarSection() {
     return days;
   };
 
+  const getWeekDays = (baseDate) => {
+    const current = new Date(baseDate);
+    const dayOfWeek = current.getDay();
+    const start = new Date(current);
+    start.setDate(current.getDate() - dayOfWeek);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      days.push(new Date(start));
+      start.setDate(start.getDate() + 1);
+    }
+    return days;
+  };
+
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  const daysInMonth = getDaysInMonth(year, month);
+  const daysInMonth = viewMode === "mensual" ? getDaysInMonth(year, month) : getWeekDays(currentMonth);
   const monthName = currentMonth.toLocaleString("es-ES", { month: "long", year: "numeric" });
 
   const selectedTrips = trips.filter(t => t.scheduled_date === selectedDate);
 
+  const getStatusBadge = (status) => {
+    if (status === "completado") return { bg: "bg-emerald-600 text-white", label: "Completado" };
+    if (status === "en_curso") return { bg: "bg-blue-600 text-white", label: "En Curso" };
+    return { bg: "bg-indigo-600 text-white", label: "Asignado" };
+  };
+
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
             <CalendarIcon className="w-6 h-6 text-teal-600" /> Agenda de Acompañamientos Clínicos
           </h2>
           <p className="text-xs text-slate-500 font-medium">
-            Planificación mensual y programación por días asistidos.
+            Planificación semanal y mensual por estados codificados en color.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-          <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-7 w-7">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <span className="text-xs font-black text-slate-800 uppercase px-2">{monthName}</span>
-          <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-7 w-7">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-slate-200 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode("semanal")}
+              className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all ${viewMode === "semanal" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+            >
+              Semanal
+            </button>
+            <button
+              onClick={() => setViewMode("mensual")}
+              className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all ${viewMode === "mensual" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+            >
+              Mensual
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+            <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-7 w-7">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-xs font-black text-slate-800 uppercase px-2">{monthName}</span>
+            <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-7 w-7">
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
+      </div>
+
+      {/* Leyenda de Colores por Estado */}
+      <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 flex-wrap">
+        <span className="text-slate-400 uppercase tracking-wider text-[10px] font-black">Estados:</span>
+        <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-indigo-600"></span> Asignado</div>
+        <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-600"></span> En Ruta</div>
+        <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-600"></span> Completado</div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -95,7 +148,7 @@ export default function ClinicalCalendarSection() {
                 <button
                   key={dateStr}
                   onClick={() => setSelectedDate(dateStr)}
-                  className={`min-h-[70px] p-1.5 rounded-xl border flex flex-col justify-between transition-all text-left ${
+                  className={`min-h-[75px] p-1.5 rounded-xl border flex flex-col justify-between transition-all text-left ${
                     isSelected ? "border-teal-600 bg-teal-50 ring-2 ring-teal-500/20" :
                     isToday ? "border-slate-400 bg-slate-50 font-bold" : "border-slate-100 hover:border-slate-300 bg-white"
                   }`}
@@ -105,10 +158,20 @@ export default function ClinicalCalendarSection() {
                   </span>
 
                   {dayTrips.length > 0 && (
-                    <div className="mt-1 space-y-0.5">
-                      <Badge className="bg-teal-600 text-white text-[8px] font-black px-1 py-0 block truncate">
-                        {dayTrips.length} traslado{dayTrips.length > 1 ? "s" : ""}
-                      </Badge>
+                    <div className="mt-1 space-y-0.5 w-full">
+                      {dayTrips.slice(0, 2).map(t => {
+                        const st = getStatusBadge(t.status);
+                        return (
+                          <span key={t.id} className={`text-[8px] font-black px-1 py-0.5 rounded block truncate ${st.bg}`}>
+                            #{t.tracking_number || t.id.substring(0,4)}
+                          </span>
+                        );
+                      })}
+                      {dayTrips.length > 2 && (
+                        <span className="text-[8px] font-black text-slate-500 block text-right">
+                          +{dayTrips.length - 2} más
+                        </span>
+                      )}
                     </div>
                   )}
                 </button>

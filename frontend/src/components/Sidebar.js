@@ -92,10 +92,10 @@ export default function Sidebar({ activeSection, onSectionChange }) {
       },
     ],
     personal_clinico: [
-      { id: "dashboard", label: "Mi Resumen", icon: TrendingUp },
-      { id: "assignments", label: "Mis Asignaciones", icon: ClipboardList },
-      { id: "calendar", label: "Calendario Clínico", icon: CalendarDays },
-      { id: "history", label: "Histórico Asistencias", icon: History },
+      { id: "mis_viajes", label: "Mis Viajes", icon: ClipboardList },
+      { id: "bolsa", label: "Bolsa de Viajes", icon: BookOpen },
+      { id: "calendario", label: "Calendario", icon: CalendarDays },
+      { id: "historial", label: "Historial", icon: History },
     ]
   };
 

@@ -534,6 +534,41 @@ const api = {
           }
         }
 
+        case "/trips/clinical-pool": {
+          try {
+            const { data: rawTrips, error } = await supabase
+              .from('trips')
+              .select('*')
+              .eq('trip_type', 'clinico')
+              .neq('status', 'cancelado')
+              .neq('status', 'completado')
+              .order('scheduled_date', { ascending: true });
+
+            if (error) console.warn("Error fetching clinical pool trips:", error);
+
+            const poolTrips = (rawTrips || []).map(t => {
+              const parsed = { ...t };
+              ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
+                let val = parsed[field];
+                if (typeof val === 'string') {
+                  try { val = JSON.parse(val); } catch(e) {}
+                }
+                parsed[field] = val;
+              });
+              return parsed;
+            }).filter(t => {
+              let staff = t.assigned_clinical_staff;
+              if (!Array.isArray(staff) || staff.length === 0) return true;
+              return false;
+            });
+
+            return { data: poolTrips };
+          } catch(e) {
+            console.error("Error in /trips/clinical-pool:", e);
+            return { data: [] };
+          }
+        }
+
         case "/trips/history": {
           const params = {
             ...queryParams,
@@ -972,6 +1007,34 @@ const api = {
             console.error("Error inserting unassign audit log", e);
           }
 
+          return { data: updatedTrip };
+        } else if (parts[3] === "self-assign-clinical") {
+          const session = await getCurrentUserSession();
+          const userId = session.user.id;
+          const { data: profile } = await supabase.from('profiles').select('name, department').eq('id', userId).maybeSingle();
+          const staffName = profile?.name || session.user.name;
+          const staffType = profile?.department || "Acompañante Clínico";
+
+          const oldTrip = await supabaseApi.trips.getTripById(tripId);
+          let currentStaff = oldTrip?.assigned_clinical_staff || [];
+          if (typeof currentStaff === 'string') {
+            try { currentStaff = JSON.parse(currentStaff); } catch(e) {}
+          }
+          if (!Array.isArray(currentStaff)) currentStaff = [];
+
+          const alreadyAdded = currentStaff.some(s => (s.staff_id && s.staff_id === userId) || (s.staff_name && s.staff_name === staffName));
+          if (!alreadyAdded) {
+            currentStaff.push({ type: staffType, staff_id: userId, staff_name: staffName });
+          }
+
+          const { data: updatedTrip, error } = await supabase
+            .from('trips')
+            .update({ assigned_clinical_staff: currentStaff })
+            .eq('id', tripId)
+            .select()
+            .maybeSingle();
+
+          if (error) throw error;
           return { data: updatedTrip };
         } else if (parts[3] === "clinical-assign") {
           const { staff_id, staff_name, staff_type } = data;

@@ -32,9 +32,32 @@ export default function ClinicalAssignmentsSection() {
     return () => clearInterval(interval);
   }, [fetchTrips]);
 
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const cleanDateStr = (dateStr) => {
+    if (!dateStr) return "";
+    return dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+  };
+
+  const isTodayOrPast = (t) => {
+    if (t.status === "en_curso") return true;
+    const d = cleanDateStr(t.scheduled_date);
+    return !d || d <= todayStr;
+  };
+
   const activeTrips = trips.filter(t => t.status === "en_curso" || t.status === "asignado" || t.status === "pendiente");
   const completedTrips = trips.filter(t => t.status === "completado");
   const displayTrips = activeTab === "pendientes" ? activeTrips : completedTrips;
+
+  const sortedTrips = [...displayTrips].sort((a, b) => {
+    const aTop = isTodayOrPast(a);
+    const bTop = isTodayOrPast(b);
+    if (aTop && !bTop) return -1;
+    if (!aTop && bTop) return 1;
+    const dateA = cleanDateStr(a.scheduled_date) || "";
+    const dateB = cleanDateStr(b.scheduled_date) || "";
+    return dateA.localeCompare(dateB);
+  });
 
   if (loading && trips.length === 0) {
     return (
@@ -47,7 +70,7 @@ export default function ClinicalAssignmentsSection() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
             <Stethoscope className="w-6 h-6 text-teal-600" /> Mis Asignaciones Clínicas
@@ -77,43 +100,51 @@ export default function ClinicalAssignmentsSection() {
         </div>
       </div>
 
-      {displayTrips.length === 0 ? (
+      {sortedTrips.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-slate-200 rounded-3xl bg-white">
           <Stethoscope className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="font-black text-slate-700 text-sm uppercase">Sin traslados asignados</h3>
           <p className="text-xs text-slate-400 mt-1">
-            No tienes acompañamientos registrados en este momento.
+            No tienes acompañamientos registrados en este momento. Revisa la Bolsa de Viajes.
           </p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {displayTrips.map(t => (
-            <Card
-              key={t.id}
-              className={`shadow-md hover:shadow-lg transition-all duration-300 border-2 rounded-2xl overflow-hidden flex flex-col justify-between ${
-                t.status === "en_curso" ? "border-blue-500 bg-blue-50/20 ring-2 ring-blue-500/20" :
-                t.priority === "urgente" ? "border-red-400 bg-red-50/20" : "border-slate-200 bg-white"
-              }`}
-            >
-              <CardContent className="p-5 space-y-4">
-                {/* Cabecera Tarjeta */}
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="bg-slate-900 text-white font-mono px-2 py-0.5 rounded text-xs font-black">
-                        #{t.tracking_number}
+          {sortedTrips.map(t => {
+            const highlighted = isTodayOrPast(t) && t.status !== "completado";
+            return (
+              <Card
+                key={t.id}
+                className={`shadow-md hover:shadow-lg transition-all duration-300 border-2 rounded-2xl overflow-hidden flex flex-col justify-between ${
+                  t.status === "en_curso" ? "border-blue-500 bg-blue-50/20 ring-2 ring-blue-500/20" :
+                  highlighted ? "border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-500/30 shadow-emerald-100" :
+                  t.priority === "urgente" ? "border-red-400 bg-red-50/20" : "border-slate-200 bg-white"
+                }`}
+              >
+                <CardContent className="p-5 space-y-4">
+                  {/* Cabecera Tarjeta */}
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="bg-slate-900 text-white font-mono px-2 py-0.5 rounded text-xs font-black">
+                          #{t.tracking_number}
+                        </span>
+                        {highlighted && (
+                          <Badge className="bg-emerald-600 text-white font-black text-[9px] uppercase px-2 py-0.5 animate-pulse shadow-xs border-none">
+                            🔥 ATENCIÓN HOY
+                          </Badge>
+                        )}
+                        <Badge className={`text-[9px] font-black uppercase border-none ${
+                          t.status === "en_curso" ? "bg-blue-600 text-white" :
+                          t.status === "completado" ? "bg-emerald-600 text-white" : "bg-teal-600 text-white"
+                        }`}>
+                          {t.status === "en_curso" ? "EN RUTA" : (t.status || "").toUpperCase()}
+                        </Badge>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500 block">
+                        Fecha: {t.scheduled_date ? formatScheduledDate(t.scheduled_date) : "Hoy"}
                       </span>
-                      <Badge className={`text-[9px] font-black uppercase ${
-                        t.status === "en_curso" ? "bg-blue-600 text-white" :
-                        t.status === "completado" ? "bg-emerald-600 text-white" : "bg-teal-600 text-white"
-                      }`}>
-                        {t.status === "en_curso" ? "EN RUTA" : (t.status || "").toUpperCase()}
-                      </Badge>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400 block">
-                      Fecha: {t.scheduled_date ? formatScheduledDate(t.scheduled_date) : "Hoy"}
-                    </span>
-                  </div>
 
                   <div className="text-right">
                     <span className="text-[10px] font-black uppercase text-slate-400 block">Hora Citación</span>
@@ -174,7 +205,8 @@ export default function ClinicalAssignmentsSection() {
                 </Button>
               </CardContent>
             </Card>
-          ))}
+          );
+        })}
         </div>
       )}
 

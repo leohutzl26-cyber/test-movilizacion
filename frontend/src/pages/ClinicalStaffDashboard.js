@@ -1,19 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
-import { Stethoscope, HeartPulse, ShieldCheck, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Stethoscope, HeartPulse, ShieldCheck, CheckCircle2, AlertTriangle, Clock, ShoppingBag, Calendar as CalendarIcon, History, Car } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
-import ClinicalStatsSection from "./clinical/ClinicalStatsSection";
 import ClinicalAssignmentsSection from "./clinical/ClinicalAssignmentsSection";
+import ClinicalTripPoolSection from "./clinical/ClinicalTripPoolSection";
 import ClinicalCalendarSection from "./clinical/ClinicalCalendarSection";
 import ClinicalHistorySection from "./clinical/ClinicalHistorySection";
 
 export default function ClinicalStaffDashboard() {
   const { user } = useAuth();
   const [section, setSection] = useState(() => {
-    return localStorage.getItem("movilizacion.clinical.section") || "dashboard";
+    return localStorage.getItem("movilizacion.clinical.section") || "mis_viajes";
   });
   const [isWorking, setIsWorking] = useState(false);
   const [loadingTurn, setLoadingTurn] = useState(false);
@@ -100,15 +100,62 @@ export default function ClinicalStaffDashboard() {
           </div>
         </div>
 
-        {section === "dashboard" && (
-          <div className="space-y-6">
-            <ClinicalStatsSection />
-            <ClinicalAssignmentsSection />
-          </div>
-        )}
-        {section === "assignments" && <ClinicalAssignmentsSection />}
-        {section === "calendar" && <ClinicalCalendarSection />}
-        {section === "history" && <ClinicalHistorySection />}
+        {/* Navegación PWA Mobile-First de 4 Pestañas */}
+        <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 mb-6 flex overflow-x-auto gap-1.5 custom-scrollbar">
+          <button
+            onClick={() => setSection("mis_viajes")}
+            className={`flex-1 min-w-[110px] py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              section === "mis_viajes" || section === "dashboard" || section === "assignments"
+                ? "bg-teal-600 text-white shadow-md"
+                : "bg-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <Car className="w-4 h-4 shrink-0" />
+            <span>Mis Viajes</span>
+          </button>
+
+          <button
+            onClick={() => setSection("bolsa")}
+            className={`flex-1 min-w-[120px] py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              section === "bolsa"
+                ? "bg-amber-600 text-white shadow-md"
+                : "bg-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4 shrink-0" />
+            <span>Bolsa de Viajes</span>
+          </button>
+
+          <button
+            onClick={() => setSection("calendario")}
+            className={`flex-1 min-w-[110px] py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              section === "calendario" || section === "calendar"
+                ? "bg-indigo-600 text-white shadow-md"
+                : "bg-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <CalendarIcon className="w-4 h-4 shrink-0" />
+            <span>Calendario</span>
+          </button>
+
+          <button
+            onClick={() => setSection("historial")}
+            className={`flex-1 min-w-[110px] py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              section === "historial" || section === "history"
+                ? "bg-slate-800 text-white shadow-md"
+                : "bg-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <History className="w-4 h-4 shrink-0" />
+            <span>Historial</span>
+          </button>
+        </div>
+
+        {/* Contenido de la sección seleccionada */}
+        {(section === "mis_viajes" || section === "dashboard" || section === "assignments") && <ClinicalAssignmentsSection />}
+        {section === "bolsa" && <ClinicalTripPoolSection onAssignSuccess={() => setSection("mis_viajes")} />}
+        {(section === "calendario" || section === "calendar") && <ClinicalCalendarSection />}
+        {(section === "historial" || section === "history") && <ClinicalHistorySection />}
       </main>
     </div>
   );
