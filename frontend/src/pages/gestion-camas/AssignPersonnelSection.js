@@ -340,25 +340,25 @@ export default function AssignPersonnelSection() {
       <div className="hidden lg:block bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-100/70 border-b border-slate-200/60 text-slate-600 font-bold uppercase text-[10px] tracking-[0.1em]">
+            <thead className="bg-slate-100/70 border-b border-slate-200/60 text-slate-600 font-bold uppercase text-[9px] tracking-[0.1em]">
               <tr>
-                <th className="px-6 py-5">Folio / Prioridad</th>
-                <th className="px-6 py-5">Paciente y Motivo</th>
-                <th className="px-6 py-5 min-w-[200px]">Ruta / Servicio</th>
-                <th className="px-6 py-5">Programación</th>
-                <th className="px-6 py-5">Equipo / Detalles</th>
-                <th className="px-6 py-5">Conductor / Móvil</th>
-                <th className="px-6 py-5 text-center">Estado</th>
-                <th className="px-6 py-5 text-center">Acciones</th>
+                <th className="px-3.5 py-4">Folio / Prioridad</th>
+                <th className="px-3.5 py-4">Paciente y Motivo</th>
+                <th className="px-3.5 py-4 min-w-[180px]">Ruta / Servicio</th>
+                <th className="px-3.5 py-4">Programación</th>
+                <th className="px-3.5 py-4">Equipo / Detalles</th>
+                <th className="px-3.5 py-4">Conductor / Móvil</th>
+                <th className="px-3.5 py-4 text-center">Estado</th>
+                <th className="px-3.5 py-4 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {displayedTrips.map(t => {
                 const statusMap = {
                   revision_gestor: { label: "Por Visar", color: "bg-purple-100 text-purple-800 border border-purple-200", border: "border-l-purple-500" },
-                  pendiente: { label: "Pendiente Despacho", color: "bg-amber-100 text-amber-700 border border-amber-200", border: "border-l-amber-500" },
+                  pendiente: { label: "Pendiente", color: "bg-amber-100 text-amber-700 border border-amber-200", border: "border-l-amber-500" },
                   asignado: { label: "Asignado", color: "bg-indigo-100 text-indigo-800 border border-indigo-200", border: "border-l-indigo-500" },
-                  en_curso: { label: "En Curso", color: "bg-blue-100 text-blue-700 border border-blue-200", border: "border-l-blue-500" }
+                  en_curso: { label: "En Curso", color: "bg-blue-100 text-blue-800 border border-blue-200", border: "border-l-blue-500" }
                 };
                 const config = statusMap[t.status] || { label: t.status, color: "bg-slate-100 text-slate-700", border: "border-l-slate-500" };
 
@@ -373,53 +373,53 @@ export default function AssignPersonnelSection() {
                         setEditData({ ...t });
                       }
                     }}
-                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="hover:bg-slate-50 transition-colors cursor-pointer text-xs"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-2">
-                        <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm w-fit">
+                    <td className="px-3.5 py-3 whitespace-nowrap">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="bg-teal-50 text-teal-700 border border-teal-100/50 font-mono px-2 py-0.5 rounded-md text-[11px] font-bold shadow-2xs w-fit">
                           #{t.tracking_number || t.id?.substring(0, 6)?.toUpperCase()}
                         </span>
-                        <Badge className={`font-black border-none text-[10px] uppercase px-2.5 py-1 rounded-full w-fit flex items-center gap-1 shadow-sm ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
+                        <Badge className={`font-black border-none text-[9px] uppercase px-2 py-0.5 rounded-md w-fit flex items-center gap-1 shadow-2xs ${t.priority === "urgente" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-[0_0_8px_rgba(239,68,68,0.45)] border border-red-400 animate-pulse" : t.priority === "alta" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_8px_rgba(249,115,22,0.45)] border border-orange-400" : "bg-slate-100 text-slate-700 border border-slate-200"}`}>
                           {t.priority === "urgente" && "🚨"}
                           {t.priority === "alta" && "⚠️"}
                           {t.priority.toUpperCase()}
                         </Badge>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-slate-900 text-sm mb-1">{t.patient_name || "Paciente no especificado"}</p>
-                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Motivo: {t.transfer_reason || "Sin especificar"}</p>
+                    <td className="px-3.5 py-3">
+                      <p className="font-bold text-slate-900 text-xs mb-0.5">{t.patient_name || "Paciente no especificado"}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Motivo: {t.transfer_reason || "Sin especificar"}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1 text-xs text-slate-600 font-medium">
-                        <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3 text-teal-600 shrink-0" /> <span className="truncate max-w-[180px]" title={t.origin}>{t.origin}</span> <span className="text-slate-400">({t.patient_unit || "-"})</span></div>
-                        <div className="flex items-center gap-1.5"><ArrowRight className="w-3 h-3 text-blue-600 shrink-0" /> <span className="truncate max-w-[180px]" title={t.destination}>{t.destination}</span></div>
+                    <td className="px-3.5 py-3">
+                      <div className="flex flex-col gap-1 text-[11px] text-slate-600 font-semibold">
+                        <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3 text-teal-600 shrink-0" /> <span className="truncate max-w-[150px]" title={t.origin}>{t.origin}</span> <span className="text-slate-400 text-[10px]">({t.patient_unit || "-"})</span></div>
+                        <div className="flex items-center gap-1.5"><ArrowRight className="w-3 h-3 text-blue-600 shrink-0" /> <span className="truncate max-w-[150px]" title={t.destination}>{t.destination}</span></div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3.5 py-3 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs"><CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {formatScheduledDate(t.scheduled_date) || "Hoy"}</div>
-                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs"><Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {t.appointment_time || "--:--"}</div>
+                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-[11px]"><CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {formatScheduledDate(t.scheduled_date) || "Hoy"}</div>
+                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-[11px]"><Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {t.appointment_time || "--:--"}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3.5 py-3">
                       {renderClinicalTeam(t)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3.5 py-3 whitespace-nowrap">
                       {t.driver_name ? (
-                        <div className="flex flex-col gap-0.5 text-xs text-slate-800 font-semibold">
-                          <span className="font-black text-slate-900 uppercase truncate max-w-[150px]" title={t.driver_name}>{t.driver_name}</span>
-                          {t.vehicle_plate && <span className="text-[10px] font-bold text-teal-600 font-mono">Patente: {t.vehicle_plate}</span>}
+                        <div className="flex flex-col gap-0.5 text-[11px] text-slate-800 font-bold">
+                          <span className="font-black text-slate-900 uppercase truncate max-w-[130px]" title={t.driver_name}>{t.driver_name}</span>
+                          {t.vehicle_plate && <span className="text-[9px] font-bold text-teal-600 font-mono">Patente: {t.vehicle_plate}</span>}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 italic font-medium">No asignado</span>
+                        <span className="text-[11px] text-slate-400 italic font-medium">No asignado</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <Badge className={`font-bold uppercase text-xs px-2.5 py-1 rounded-full border-none shadow-sm ${config.color}`}>{config.label}</Badge>
+                    <td className="px-3.5 py-3 whitespace-nowrap text-center">
+                      <Badge className={`font-black uppercase text-[9px] px-2 py-0.5 rounded-md border-none shadow-2xs ${config.color}`}>{config.label}</Badge>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-3.5 py-3 text-center">
                       {(t.status === "revision_gestor" || t.status === "pendiente" || t.status === "asignado") && (
                          <Button onClick={(e) => {
                            e.stopPropagation();
@@ -428,8 +428,8 @@ export default function AssignPersonnelSection() {
                            setPriority(t.priority || "normal");
                            setEditData({ ...t });
                          }}
-                           className={`${t.status === "revision_gestor" ? "bg-teal-600 hover:bg-teal-700" : "bg-blue-600 hover:bg-blue-700"} text-white font-bold h-8 px-4 text-[11px] shadow-sm rounded-lg whitespace-nowrap`}>
-                           {t.status === "revision_gestor" ? "Visar Traslado" : "Editar / Ver"}
+                           className={`${t.status === "revision_gestor" ? "bg-teal-600 hover:bg-teal-700" : "bg-blue-600 hover:bg-blue-700"} text-white font-black h-8 px-2.5 text-[10px] uppercase tracking-wider shadow-sm rounded-lg whitespace-nowrap`}>
+                           {t.status === "revision_gestor" ? "Visar" : "Editar"}
                          </Button>
                       )}
                     </td>

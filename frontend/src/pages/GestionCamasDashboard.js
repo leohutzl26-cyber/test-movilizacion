@@ -28,8 +28,8 @@ export default function GestionCamasDashboard() {
       <Sidebar activeSection={section} onSectionChange={setSection} />
       <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-16 lg:pt-8 min-h-screen max-w-[100vw] overflow-x-hidden">
         {(section === "assign" || section === "dashboard") && (
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-            <div className="xl:col-span-3">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <div className="xl:col-span-4">
               <AssignPersonnelSection />
             </div>
             <div className="xl:col-span-1">
@@ -38,8 +38,8 @@ export default function GestionCamasDashboard() {
           </div>
         )}
         {section === "new" && (
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-            <div className="xl:col-span-3">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <div className="xl:col-span-4">
               <GestorNewTripSection />
             </div>
             <div className="xl:col-span-1">
