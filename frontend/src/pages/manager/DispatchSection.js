@@ -787,7 +787,7 @@ export default function DispatchSection() {
     <div className="animate-slide-up space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Columna Principal (Grilla de Traslados) */}
-        <div className="xl:col-span-3 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           <div className="flex justify-between items-end">
             <div>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bandeja de Entrada</h1>
@@ -903,7 +903,7 @@ export default function DispatchSection() {
 
           {/* Grilla Principal de Traslados */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-4">
               {displayedTrips.map(renderTripCard)}
             </div>
 
@@ -921,12 +921,15 @@ export default function DispatchSection() {
           </div>
         </div>
 
-        {/* Columna Lateral (Control Operativo e Historial de Novedades) */}
-        <div className="xl:col-span-1 space-y-6">
+        {/* Columna Lateral 1 (Control Operativo) */}
+        <div className="xl:col-span-1">
           <ActiveDriversPanel />
+        </div>
 
+        {/* Columna Lateral 2 (Historial de Novedades) */}
+        <div className="xl:col-span-1">
           {/* Sección de Novedades y Cambios en Tiempo Real (Barra Lateral) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col max-h-[500px]">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col h-full max-h-[600px]">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
               <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                 <Activity className="w-4 h-4 text-amber-500 animate-pulse" /> Novedades y Cambios
