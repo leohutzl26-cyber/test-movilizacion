@@ -7,7 +7,8 @@ const supabase = createClient(
 
 exports.handler = async (event, context) => {
   try {
-    const { trip_id, status, mileage, cancel_reason, vehicle_id, driver_notes } = JSON.parse(event.body);
+    const requestBody = JSON.parse(event.body);
+    const { trip_id, status, mileage, cancel_reason, vehicle_id, driver_notes } = requestBody;
     const userId = context.user?.id;
     const userRole = context.user?.role;
 
@@ -107,22 +108,39 @@ exports.handler = async (event, context) => {
       updateData.driver_notes = driver_notes;
     }
 
-    // Update trip
-    const { data: updatedTrip, error: updateError } = await supabase
-      .from('trips')
-      .update(updateData)
-      .eq('id', trip_id)
-      .select()
-      .single();
+    // Support additional fields if passed
+    if (requestBody.clinical_notes !== undefined) {
+      updateData.clinical_notes = requestBody.clinical_notes;
+    }
+    if (requestBody.clinical_escort_confirmed !== undefined) {
+      updateData.clinical_escort_confirmed = requestBody.clinical_escort_confirmed;
+    }
+    if (requestBody.notes !== undefined) {
+      updateData.notes = requestBody.notes;
+    }
 
-    if (updateError) {
-      const debugText = `v2.0.3 | tripId: ${trip_id} | vehicleId: ${activeVehicleId} | hasVehicle: ${hasActiveVehicle} | data: ${JSON.stringify(updateData)}`;
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ 
-          error: `${updateError.message} [Debug: ${debugText}]`
-        })
-      };
+    // Update trip only if there are fields to update
+    let updatedTrip = currentTrip;
+    if (Object.keys(updateData).length > 0) {
+      const { data: directTrip, error: updateError } = await supabase
+        .from('trips')
+        .update(updateData)
+        .eq('id', trip_id)
+        .select()
+        .maybeSingle();
+
+      if (updateError) {
+        const debugText = `v2.0.3 | tripId: ${trip_id} | vehicleId: ${activeVehicleId} | hasVehicle: ${hasActiveVehicle} | data: ${JSON.stringify(updateData)}`;
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ 
+            error: `${updateError.message} [Debug: ${debugText}]`
+          })
+        };
+      }
+      if (directTrip) {
+        updatedTrip = directTrip;
+      }
     }
 
     // Update vehicle status in vehicles table
