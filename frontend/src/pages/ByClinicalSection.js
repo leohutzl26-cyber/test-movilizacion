@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/api";
 import { formatScheduledDate } from "@/lib/tripUtils";
 
 const STATUS_CARD_STYLES = {
