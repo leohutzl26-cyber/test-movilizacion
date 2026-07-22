@@ -745,33 +745,31 @@ export default function DispatchSection() {
           {["pendiente", "asignado"].includes(t.status) && (
             <>
               <Button onClick={() => setAssignDialog(t)} className="flex-1 h-8 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-extrabold uppercase rounded-lg flex items-center justify-center gap-1.5 shadow-xs">
-                <Truck className="w-3 h-3" />
-                {t.driver_id ? "Reasignar" : "Asignar Conductor"}
+                <Truck className="w-3.5 h-3.5" />
+                {t.driver_id ? "Reasignar Conductor" : "Asignar Conductor"}
               </Button>
 
               {t.driver_id && t.status === "asignado" && (
-                <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-8 px-2.5 text-[11px] font-bold uppercase text-amber-600 border-amber-200 hover:bg-amber-50 rounded-lg" title="Desasignar Conductor">
-                  <RotateCcw className="w-3.5 h-3.5" />
+                <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-8 w-8 p-0 text-amber-600 border-amber-200 hover:bg-amber-50 rounded-lg flex items-center justify-center" title="Desasignar Conductor">
+                  <RotateCcw className="w-4 h-4" />
                 </Button>
               )}
 
-              <Button onClick={() => setEditDialog(t)} variant="outline" className="h-8 px-2.5 text-[11px] font-bold uppercase text-slate-700 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Editar Traslado">
-                <Edit className="w-3.5 h-3.5" />
-                <span>Editar</span>
+              <Button onClick={() => setEditDialog(t)} variant="outline" className="h-8 w-8 p-0 text-slate-700 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center justify-center" title="Editar Traslado">
+                <Edit className="w-4 h-4" />
               </Button>
 
-              <Button onClick={() => setReturnDialog(t)} variant="outline" className="h-8 px-2.5 text-[11px] font-bold uppercase text-slate-600 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Devolver al Gestor de Camas">
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Devolver</span>
+              <Button onClick={() => setReturnDialog(t)} variant="outline" className="h-8 w-8 p-0 text-slate-600 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center justify-center" title="Devolver al Gestor de Camas">
+                <RotateCcw className="w-4 h-4" />
               </Button>
 
               <Button onClick={() => setCancelDialog(t)} variant="outline" className="h-8 w-8 p-0 text-rose-600 border-rose-200 hover:bg-rose-50 rounded-lg flex items-center justify-center" title="Cancelar Traslado">
-                <XCircle className="w-3.5 h-3.5" />
+                <XCircle className="w-4 h-4" />
               </Button>
 
               {user?.role === 'admin' && (
                 <Button onClick={() => handleDeleteTrip(t.id)} variant="outline" className="h-8 w-8 p-0 text-red-700 border-red-300 bg-red-50 hover:bg-red-100 rounded-lg flex items-center justify-center" title="Eliminar Permanentemente">
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               )}
             </>
@@ -785,9 +783,9 @@ export default function DispatchSection() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* Columna Principal (Grilla de Traslados) */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className="xl:col-span-3 space-y-6">
           <div className="flex justify-between items-end">
             <div>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bandeja de Entrada</h1>
@@ -903,7 +901,7 @@ export default function DispatchSection() {
 
           {/* Grilla Principal de Traslados */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {displayedTrips.map(renderTripCard)}
             </div>
 
