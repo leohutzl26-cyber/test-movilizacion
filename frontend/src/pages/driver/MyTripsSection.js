@@ -14,6 +14,7 @@ import { formatScheduledDate, statusBorders, statusColorsSolid, statusHeaderStyl
 
 export default function MyTripsSection() {
   const [trips, setTrips] = useState([]);
+  const [availableTrips, setAvailableTrips] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionDialog, setActionDialog] = useState(null);
@@ -29,6 +30,20 @@ export default function MyTripsSection() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [driverShiftVehicle, setDriverShiftVehicle] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
+
+  const handleSelfAssign = async (tripId, existingGroupId) => {
+    try {
+      await api.put(`/trips/${tripId}/self-assign`, {
+        trip_id: tripId,
+        create_group: true,
+        dispatch_group_id: existingGroupId || null
+      });
+      toast.success("Traslado auto-asignado a tu perfil exitosamente");
+      fetchAll();
+    } catch (e) {
+      toast.error("Error al auto-asignarse el traslado");
+    }
+  };
 
   const handleOpenDetails = (trip) => {
     setDetailsDialog(trip);
@@ -56,18 +71,21 @@ export default function MyTripsSection() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [meRes, t, v] = await Promise.all([
+      const [meRes, t, v, activeRes] = await Promise.all([
         api.get("/auth/me").catch(() => null),
         api.get("/trips/driver"),
-        api.get("/vehicles")
+        api.get("/vehicles"),
+        api.get("/trips/active").catch(() => null)
       ]);
       if (meRes?.data) {
         setCurrentUserId(meRes.data.id || null);
         setDriverShiftVehicle(meRes.data.current_vehicle_id || "");
       }
-      console.log("My trips data:", t?.data);
       setTrips((t?.data || []).filter((tr) => ["asignado", "en_curso"].includes(tr.status)));
       
+      const unassigned = (activeRes?.data || []).filter(tr => tr.status === "pendiente" && !tr.driver_id);
+      setAvailableTrips(unassigned);
+
       const shiftVehId = meRes?.data?.current_vehicle_id;
       setVehicles((v?.data || []).filter((veh) => veh.status === "disponible" || veh.status === "en_curso" || veh.id === shiftVehId));
     } catch (err) {
@@ -90,7 +108,7 @@ export default function MyTripsSection() {
 
   const tripsHoy = trips.filter((t) => t.status === "en_curso" || cleanDateStr(t.scheduled_date) <= today);
   const tripsProgramados = trips.filter((t) => t.status !== "en_curso" && cleanDateStr(t.scheduled_date) > today);
-  const displayTrips = activeTab === "hoy" ? tripsHoy : tripsProgramados;
+  const displayTrips = activeTab === "hoy" ? tripsHoy : activeTab === "programados" ? tripsProgramados : availableTrips;
 
   const openActionDialog = (trip, type) => {
     setActionDialog(trip);
@@ -281,21 +299,50 @@ export default function MyTripsSection() {
                     </div>
                   </div>
 
-                  {t.status === "asignado" && isToday && (
+                  {t.dispatch_group_id && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <Badge className="bg-indigo-600 text-white font-mono text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
+                        <Truck className="w-3.5 h-3.5" />
+                        MISIÓN AGRUPADA #{t.dispatch_group_id}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {activeTab === "disponibles" && (
+                    <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-slate-100">
+                      <Button 
+                        onClick={() => handleSelfAssign(t.id)} 
+                        className="flex-1 bg-amber-600 hover:bg-amber-700 text-white h-12 text-sm font-black uppercase tracking-wider rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <Truck className="w-4 h-4" /> Tomar este Traslado
+                      </Button>
+                      {tripsHoy.length > 0 && (
+                        <Button 
+                          onClick={() => handleSelfAssign(t.id, tripsHoy[0]?.dispatch_group_id || 'MISION-ACTIVA')} 
+                          variant="outline" 
+                          className="h-12 border-teal-600 text-teal-700 hover:bg-teal-50 rounded-xl px-4 text-xs font-black uppercase tracking-wider transition-colors"
+                        >
+                          Sumar a Mi Misión Actual
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab !== "disponibles" && t.status === "asignado" && isToday && (
                     <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-slate-100">
                       <Button onClick={() => openActionDialog(t, "start")} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><Play className="w-6 h-6 mr-2 fill-current" /> Iniciar Viaje</Button>
                       <Button onClick={() => openActionDialog(t, "cancel")} variant="outline" className="h-14 text-red-600 border-red-200 hover:bg-red-50 rounded-xl px-6 font-bold sm:w-auto w-full transition-colors">Devolver</Button>
                     </div>
                   )}
 
-                  {t.status === "asignado" && !isToday && (
+                  {activeTab !== "disponibles" && t.status === "asignado" && !isToday && (
                     <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
                       <p className="text-xs text-indigo-600 font-bold flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Programado para {formatScheduledDate(t.scheduled_date)}</p>
                       <Button onClick={() => openActionDialog(t, "cancel")} variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 font-bold">Devolver</Button>
                     </div>
                   )}
 
-                  {t.status === "en_curso" && (
+                  {activeTab !== "disponibles" && t.status === "en_curso" && (
                     <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
                       <Button onClick={() => openActionDialog(t, "end")} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"><CheckCircle className="w-6 h-6 mr-2" /> Finalizar Viaje</Button>
                     </div>
@@ -307,8 +354,12 @@ export default function MyTripsSection() {
         })}
         {displayTrips.length === 0 && (
           <div className="text-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm">
-            <p className="text-xl font-bold text-slate-500">{activeTab === "hoy" ? "No tienes viajes para hoy" : "No tienes viajes programados"}</p>
-            <p className="text-sm font-medium mt-2">{activeTab === "hoy" ? "Revisa la bolsa de viajes disponibles para tomar uno." : "Los viajes futuros aparecerán aquí."}</p>
+            <p className="text-xl font-bold text-slate-500">
+              {activeTab === "hoy" ? "No tienes viajes para hoy" : activeTab === "programados" ? "No tienes viajes programados" : "Sin solicitudes pendientes"}
+            </p>
+            <p className="text-sm font-medium mt-2">
+              {activeTab === "hoy" ? "Revisa la pestaña 'Sin Conductor' para auto-asignarte solicitudes pendientes." : activeTab === "programados" ? "Los viajes futuros aparecerán aquí." : "No hay solicitudes sin asignar en este momento."}
+            </p>
           </div>
         )}
       </div>

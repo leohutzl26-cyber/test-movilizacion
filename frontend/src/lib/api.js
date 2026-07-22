@@ -826,6 +826,61 @@ const api = {
       if (url.startsWith("/trips/")) {
         const tripId = parts[2];
 
+        if (tripId === "group-assign") {
+          const { trip_ids, driver_id, driver_name, vehicle_plate, priority } = data;
+          const groupId = `V-${Math.floor(Math.random() * 90000) + 10000}`;
+          
+          const updates = (trip_ids || []).map(id => {
+            const patch = {
+              driver_id: driver_id || null,
+              driver_name: driver_name || null,
+              vehicle_plate: vehicle_plate || null,
+              dispatch_group_id: groupId,
+              status: driver_id ? 'asignado' : 'pendiente'
+            };
+            if (priority) patch.priority = priority;
+            return supabase.from('trips').update(patch).eq('id', id);
+          });
+          
+          await Promise.all(updates);
+          return { data: { success: true, dispatch_group_id: groupId } };
+        }
+
+        if (tripId === "self-assign" || parts[3] === "self-assign") {
+          const targetTripId = tripId === "self-assign" ? (data.trip_id || (data.trip_ids && data.trip_ids[0])) : tripId;
+          const session = await getCurrentUserSession();
+          const driverId = session.user.id;
+          
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, vehicle_plate')
+            .eq('id', driverId)
+            .maybeSingle();
+            
+          const driverName = profile?.name || session.user.name;
+          const vehiclePlate = profile?.vehicle_plate || data.vehicle_plate || null;
+          
+          let groupId = data.dispatch_group_id;
+          if (data.create_group && !groupId) {
+            groupId = `V-${Math.floor(Math.random() * 90000) + 10000}`;
+          }
+
+          const targetIds = Array.isArray(data.trip_ids) ? data.trip_ids : [targetTripId];
+          const updates = targetIds.map(id => {
+            const patch = {
+              driver_id: driverId,
+              driver_name: driverName,
+              vehicle_plate: vehiclePlate,
+              status: 'asignado'
+            };
+            if (groupId) patch.dispatch_group_id = groupId;
+            return supabase.from('trips').update(patch).eq('id', id);
+          });
+          await Promise.all(updates);
+
+          return { data: { success: true, dispatch_group_id: groupId } };
+        }
+
         if (tripId === "reorder") {
           const promises = (data.trip_ids || []).map((id, index) => 
             supabaseApi.trips.updateTrip(id, { order_in_group: index })

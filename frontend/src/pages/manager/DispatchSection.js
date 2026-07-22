@@ -247,6 +247,34 @@ export default function DispatchSection() {
   const [activityLogs, setActivityLogs] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
 
+  // Estados de selección múltiple / viaje agrupado
+  const [selectedTripIds, setSelectedTripIds] = useState([]);
+  const [groupAssignDialog, setGroupAssignDialog] = useState(false);
+  const [selectedGroupDriverId, setSelectedGroupDriverId] = useState("");
+
+  const handleGroupAssign = async () => {
+    if (!selectedGroupDriverId) {
+      toast.error("Por favor seleccione un conductor para la misión agrupada");
+      return;
+    }
+    const selectedDriver = drivers.find(d => d.id === selectedGroupDriverId);
+    try {
+      await api.put("/trips/group-assign", {
+        trip_ids: selectedTripIds,
+        driver_id: selectedDriver ? selectedDriver.id : null,
+        driver_name: selectedDriver ? selectedDriver.name : null,
+        vehicle_plate: selectedDriver ? (selectedDriver.vehicle_plate || selectedDriver.vehicle?.plate || null) : null
+      });
+      toast.success(`Viaje multitraslado (${selectedTripIds.length} solicitudes) asignado exitosamente`);
+      setSelectedTripIds([]);
+      setGroupAssignDialog(false);
+      setSelectedGroupDriverId("");
+      fetchTrips();
+    } catch (e) {
+      toast.error("Error al asignar la misión multitraslado");
+    }
+  };
+
   // Estados de filtro por categoría y búsqueda
   const [activeCategory, setActiveCategory] = useState("todos"); // "todos" | "clinicos" | "no_clinicos" | "actividad"
   const [searchQuery, setSearchQuery] = useState("");
@@ -655,15 +683,35 @@ export default function DispatchSection() {
   const renderTripCard = (t) => (
     <Card key={t.id} className={`group border border-slate-200/90 shadow-xs hover:shadow-md hover:border-teal-400 transition-all duration-200 bg-white rounded-2xl border-l-4 ${statusBorderColors[t.status] || "border-l-slate-400"}`}>
       <CardContent className="p-3.5 space-y-2.5">
-        {/* Cabecera: Folio, Prioridad, Estado, Fecha y Hora */}
+        {/* Cabecera Tarjeta */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
+            {["pendiente", "asignado"].includes(t.status) && (
+              <input
+                type="checkbox"
+                checked={selectedTripIds.includes(t.id)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setSelectedTripIds(prev => 
+                    prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
+                  );
+                }}
+                className="w-4 h-4 accent-teal-600 rounded cursor-pointer shrink-0"
+                title="Seleccionar para viaje agrupado"
+              />
+            )}
             <span
               className="bg-teal-50 text-teal-700 border border-teal-200 font-mono px-2 py-0.5 rounded-md text-xs font-black cursor-pointer hover:bg-teal-100 transition-colors"
               onClick={() => setDetailTrip(t)}
             >
               #{t.tracking_number}
             </span>
+            {t.dispatch_group_id && (
+              <Badge className="bg-indigo-600 text-white font-mono text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 border-none shadow-2xs">
+                <Truck className="w-2.5 h-2.5" />
+                MISIÓN #{t.dispatch_group_id}
+              </Badge>
+            )}
             <Badge className={`text-[10px] font-black px-2 py-0.5 uppercase rounded-md border-none ${t.priority === "urgente" ? "bg-red-500 text-white animate-pulse" : t.priority === "alta" ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-600"}`}>
               {t.priority === "urgente" && "🚨 "}
               {t.priority === "alta" && "⚠️ "}
@@ -1421,6 +1469,91 @@ export default function DispatchSection() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* BARRA FLOTANTE DE SELECCIÓN MÚLTIPLE / VIAJE AGRUPADO */}
+      {selectedTripIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 border border-slate-800 animate-slide-up">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-teal-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-lg">
+              {selectedTripIds.length}
+            </Badge>
+            <span className="text-xs font-bold text-slate-200">
+              {selectedTripIds.length === 1 ? "solicitud seleccionada" : "solicitudes seleccionadas para agrupar"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setGroupAssignDialog(true)}
+              className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs h-9 px-4 rounded-xl shadow-sm flex items-center gap-1.5 uppercase tracking-wider"
+            >
+              <Truck className="w-4 h-4" />
+              Crear Viaje Agrupado y Asignar
+            </Button>
+            <Button
+              onClick={() => setSelectedTripIds([])}
+              variant="outline"
+              className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-9 px-3 rounded-xl"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* DIALOG ASIGNACIÓN MULTITRASLADO */}
+      <Dialog open={groupAssignDialog} onOpenChange={setGroupAssignDialog}>
+        <DialogContent className="max-w-md bg-white rounded-3xl p-6">
+          <DialogHeader className="mb-3">
+            <DialogTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-teal-600" /> Asignar Misión Agrupada
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 font-medium">
+              Asigne un conductor y móvil para ejecutar las {selectedTripIds.length} solicitudes seleccionadas en un solo trayecto.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-1">
+              <p className="font-bold text-slate-700">Solicitudes Incluidas:</p>
+              <div className="flex flex-wrap gap-1">
+                {selectedTripIds.map(id => {
+                  const t = trips.find(x => x.id === id);
+                  return (
+                    <Badge key={id} className="bg-teal-100 text-teal-800 font-mono text-[10px] px-2 py-0.5 border-none">
+                      #{t ? (t.tracking_number || t.id.substring(0,6)) : id}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Seleccionar Conductor / Móvil</Label>
+              <Select value={selectedGroupDriverId} onValueChange={setSelectedGroupDriverId}>
+                <SelectTrigger className="h-11 text-xs font-bold bg-white">
+                  <SelectValue placeholder="Seleccione Conductor..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {drivers.map(d => (
+                    <SelectItem key={d.id} value={d.id} className="text-xs font-bold">
+                      👤 {d.name} {d.vehicle_plate ? `(Patente: ${d.vehicle_plate})` : "(Sin Vehículo)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setGroupAssignDialog(false)} className="text-xs font-bold rounded-xl h-10">
+              Cancelar
+            </Button>
+            <Button onClick={handleGroupAssign} className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-black rounded-xl h-10 px-5 uppercase">
+              Confirmar Misión Agrupada
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
