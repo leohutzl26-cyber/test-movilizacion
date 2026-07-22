@@ -1053,14 +1053,47 @@ const api = {
           if (error) throw error;
           return { data: updatedTrip };
         } else if (parts[3] === "status") {
-          return {
-            data: await supabaseApi.trips.updateStatus(tripId, data.status, {
-              mileage: data.mileage,
-              cancel_reason: data.cancel_reason || null,
-              vehicle_id: data.vehicle_id || null,
-              driver_notes: data.driver_notes
-            })
-          };
+          const updatePayload = {};
+          if (data.status) updatePayload.status = data.status;
+          if (data.clinical_notes !== undefined) updatePayload.clinical_notes = data.clinical_notes;
+          if (data.clinical_escort_confirmed !== undefined) updatePayload.clinical_escort_confirmed = data.clinical_escort_confirmed;
+          if (data.driver_notes !== undefined) updatePayload.driver_notes = data.driver_notes;
+          if (data.notes !== undefined) updatePayload.notes = data.notes;
+          if (data.mileage !== undefined) updatePayload.mileage = data.mileage;
+          if (data.cancel_reason !== undefined) updatePayload.cancel_reason = data.cancel_reason;
+          if (data.vehicle_id !== undefined) updatePayload.vehicle_id = data.vehicle_id;
+
+          let updatedResult = null;
+          if (data.status && (data.status === 'en_curso' || data.status === 'completado' || data.status === 'cancelado')) {
+            try {
+              updatedResult = await supabaseApi.trips.updateStatus(tripId, data.status, {
+                mileage: data.mileage,
+                cancel_reason: data.cancel_reason || null,
+                vehicle_id: data.vehicle_id || null,
+                driver_notes: data.driver_notes,
+                ...updatePayload
+              });
+            } catch (e) {
+              console.warn("Falling back from Edge Function updateStatus to direct Supabase update:", e);
+            }
+          }
+
+          if (!updatedResult || !updatedResult.id) {
+            const { data: directTrip, error } = await supabase
+              .from('trips')
+              .update(updatePayload)
+              .eq('id', tripId)
+              .select()
+              .maybeSingle();
+
+            if (error) {
+              console.error("Error updating trip status directly:", error);
+              throw error;
+            }
+            updatedResult = directTrip;
+          }
+
+          return { data: updatedResult };
         } else if (parts[3] === "approve-gestor") {
           const oldTrip = await supabaseApi.trips.getTripById(tripId);
           // Visar traslado: pasa de revision_gestor a pendiente

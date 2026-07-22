@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -43,7 +43,7 @@ export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefre
         clinical_escort_confirmed: true,
         clinical_notes: clinicalNotes ? `${clinicalNotes}\n[Confirmación]: Acompañamiento verificado por personal de salud.` : "[Confirmación]: Acompañamiento verificado por personal de salud."
       });
-      toast.success("Acompañamiento clínico verificado y verificado");
+      toast.success("Acompañamiento clínico verificado exitosamente");
       if (onRefresh) onRefresh();
     } catch (e) {
       toast.error("Error al confirmar acompañamiento");
@@ -81,6 +81,9 @@ export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefre
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto p-0 rounded-2xl border-slate-200 shadow-2xl">
+        <DialogTitle className="sr-only">Ficha Clínica de Traslado #{trip.tracking_number}</DialogTitle>
+        <DialogDescription className="sr-only">Ficha con antecedentes clínicos, origen, destino y bitácora de acompañamiento.</DialogDescription>
+
         {/* Header Clínico */}
         <div className="bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 text-white p-4 sm:p-5 rounded-t-2xl">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
