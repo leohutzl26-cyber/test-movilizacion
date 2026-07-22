@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import TripDetailDialog from "./TripDetailDialog";
+import ActiveDriversPanel from "@/components/ActiveDriversPanel";
 import {
   PERSONNEL_TYPES as personnelTypes,
   REQUIREMENT_OPTIONS as requirementOptions,
@@ -784,216 +785,215 @@ export default function DispatchSection() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bandeja de Entrada</h1>
-          <p className="text-slate-500 font-bold text-xs">Gestión de Despacho en Tiempo Real.</p>
-        </div>
-        <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Live</span>
-        </div>
-      </div>
-
-      {/* KPI Status Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatusCard id="pendiente" label="Por Despachar" count={stats.pendiente} color="#f59e0b" activeColor="bg-amber-50" />
-        <StatusCard id="asignado" label="Con Conductor" count={stats.asignado} color="#0d9488" activeColor="bg-teal-50" />
-        <StatusCard id="en_curso" label="En Tránsito" count={stats.en_curso} color="#3b82f6" activeColor="bg-blue-50" />
-        <StatusCard id="completado" label="Finalizados" count={stats.completado} color="#10b981" activeColor="bg-emerald-50" />
-      </div>
-
-      {/* Barra de Pestañas de Categoría y Controles */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
-          <button
-            onClick={() => setActiveCategory("todos")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
-              activeCategory === "todos"
-                ? "bg-slate-900 text-white shadow-md"
-                : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            <ClipboardList className="w-4 h-4" />
-            Todos
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              activeCategory === "todos" ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-700"
-            }`}>
-              {sortedTrips.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveCategory("clinicos")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
-              activeCategory === "clinicos"
-                ? "bg-teal-600 text-white shadow-md"
-                : "bg-teal-50 text-teal-700 hover:bg-teal-100/70"
-            }`}
-          >
-            <Ambulance className="w-4 h-4" />
-            Clínicos
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              activeCategory === "clinicos" ? "bg-teal-700 text-white" : "bg-teal-100 text-teal-800"
-            }`}>
-              {clinicalTrips.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveCategory("no_clinicos")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
-              activeCategory === "no_clinicos"
-                ? "bg-indigo-600 text-white shadow-md"
-                : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100/70"
-            }`}
-          >
-            <Truck className="w-4 h-4" />
-            No Clínicos
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              activeCategory === "no_clinicos" ? "bg-indigo-700 text-white" : "bg-indigo-100 text-indigo-800"
-            }`}>
-              {nonClinicalTrips.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveCategory("no_clinicos")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
-              activeCategory === "no_clinicos"
-                ? "bg-indigo-600 text-white shadow-md"
-                : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100/70"
-            }`}
-          >
-            <Truck className="w-4 h-4" />
-            No Clínicos
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              activeCategory === "no_clinicos" ? "bg-indigo-700 text-white" : "bg-indigo-100 text-indigo-800"
-            }`}>
-              {nonClinicalTrips.length}
-            </span>
-          </button>
-        </div>
-
-        {/* Buscador y Ordenamiento */}
-        <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
-          <div className="relative min-w-[200px] flex-1 lg:flex-initial">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <Input
-              placeholder="Buscar folio, paciente..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold focus:ring-teal-500"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
-            <Select value={sortPrimary} onValueChange={setSortPrimary}>
-              <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 rounded-lg w-[110px] focus:ring-0">
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-100 shadow-lg">
-                <SelectItem value="appointment_time" className="text-xs font-bold">Hora Cita</SelectItem>
-                <SelectItem value="priority" className="text-xs font-bold">Prioridad</SelectItem>
-                <SelectItem value="scheduled_date" className="text-xs font-bold">Fecha</SelectItem>
-                <SelectItem value="origin" className="text-xs font-bold">Origen</SelectItem>
-                <SelectItem value="destination" className="text-xs font-bold">Destino</SelectItem>
-                <SelectItem value="tracking_number" className="text-xs font-bold">N° Seguimiento</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSortPrimaryDir(p => p === "asc" ? "desc" : "asc")}
-              className="h-7 w-7 hover:bg-slate-200/50 rounded-lg text-slate-600"
-              title={sortPrimaryDir === "asc" ? "Ascendente" : "Descendente"}
-            >
-              <ArrowUpDown className={`w-3.5 h-3.5 transition-transform duration-300 ${sortPrimaryDir === "desc" ? "rotate-180 text-teal-600" : "text-indigo-600"}`} />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Grilla Principal de Traslados */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {displayedTrips.map(renderTripCard)}
-        </div>
-
-        {displayedTrips.length === 0 && (
-          <div className="text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl p-8 space-y-3">
-            <ClipboardList className="w-12 h-12 text-slate-300 mx-auto" />
-            <p className="text-sm font-black text-slate-700 uppercase tracking-wide">
-              No hay traslados activos en esta categoría
-            </p>
-            <p className="text-xs text-slate-400 font-medium">
-              Prueba cambiando los filtros de estado o seleccionando la pestaña "Todos".
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Sección de Novedades y Cambios en Tiempo Real (Visibles directamente en la pantalla principal) */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3 mt-6">
-        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-            <Activity className="w-4 h-4 text-amber-500 animate-pulse" /> Novedades y Cambios Recientes (Tiempo Real)
-          </h2>
-          <Badge className="bg-emerald-50 text-emerald-700 border-none font-black px-2 py-0.5 rounded-full text-[10px]">
-            Live Stream
-          </Badge>
-        </div>
-        
-        <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-          {loadingActivity ? (
-            <div className="flex items-center justify-center py-8 text-slate-400 gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
-              <span className="text-xs font-bold uppercase tracking-wider">Cargando novedades...</span>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Columna Principal (Grilla de Traslados) */}
+        <div className="xl:col-span-3 space-y-6">
+          <div className="flex justify-between items-end">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bandeja de Entrada</h1>
+              <p className="text-slate-500 font-bold text-xs">Gestión de Despacho en Tiempo Real.</p>
             </div>
-          ) : activityLogs.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 italic text-xs">
-              Sin novedades registradas hoy.
+            <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Live</span>
             </div>
-          ) : (
-            activityLogs.map((log) => {
-              const logDetail = formatActivityLog(log);
-              const Icon = logDetail.Icon;
-              return (
-                <div key={log.id} className={`p-3 rounded-xl border transition-all hover:shadow-xs flex items-center justify-between gap-3 ${logDetail.bg}`}>
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`p-2 rounded-lg bg-white border border-slate-100 shrink-0 shadow-2xs ${logDetail.iconColor}`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-black text-slate-900">{logDetail.title}</span>
-                        <span className="text-[11px] font-semibold text-slate-600 truncate">{logDetail.description}</span>
-                      </div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
-                        por {log.user_name || "Sistema"} • {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                  {log.new_values?.tracking_number && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const foundTrip = trips.find(t => t.tracking_number === log.new_values.tracking_number);
-                        if (foundTrip) {
-                          setDetailTrip(foundTrip);
-                        } else {
-                          setDetailTrip(log.new_values);
-                        }
-                      }}
-                      className="text-xs font-mono font-black text-teal-600 hover:text-teal-700 bg-white px-2 py-1 rounded-md border border-teal-200 shadow-2xs transition-colors cursor-pointer shrink-0"
-                    >
-                      #{log.new_values.tracking_number}
-                    </button>
-                  )}
+          </div>
+
+          {/* KPI Status Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatusCard id="pendiente" label="Por Despachar" count={stats.pendiente} color="#f59e0b" activeColor="bg-amber-50" />
+            <StatusCard id="asignado" label="Con Conductor" count={stats.asignado} color="#0d9488" activeColor="bg-teal-50" />
+            <StatusCard id="en_curso" label="En Tránsito" count={stats.en_curso} color="#3b82f6" activeColor="bg-blue-50" />
+            <StatusCard id="completado" label="Finalizados" count={stats.completado} color="#10b981" activeColor="bg-emerald-50" />
+          </div>
+
+          {/* Barra de Pestañas de Categoría y Controles */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+              <button
+                onClick={() => setActiveCategory("todos")}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
+                  activeCategory === "todos"
+                    ? "bg-slate-900 text-white shadow-md"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <ClipboardList className="w-4 h-4" />
+                Todos
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  activeCategory === "todos" ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-700"
+                }`}>
+                  {sortedTrips.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveCategory("clinicos")}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
+                  activeCategory === "clinicos"
+                    ? "bg-teal-600 text-white shadow-md"
+                    : "bg-teal-50 text-teal-700 hover:bg-teal-100/70"
+                }`}
+              >
+                <Ambulance className="w-4 h-4" />
+                Clínicos
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  activeCategory === "clinicos" ? "bg-teal-700 text-white" : "bg-teal-100 text-teal-800"
+                }`}>
+                  {clinicalTrips.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveCategory("no_clinicos")}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 shrink-0 ${
+                  activeCategory === "no_clinicos"
+                    ? "bg-indigo-600 text-white shadow-md"
+                    : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100/70"
+                }`}
+              >
+                <Truck className="w-4 h-4" />
+                No Clínicos
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  activeCategory === "no_clinicos" ? "bg-indigo-700 text-white" : "bg-indigo-100 text-indigo-800"
+                }`}>
+                  {nonClinicalTrips.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Buscador y Ordenamiento */}
+            <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
+              <div className="relative min-w-[200px] flex-1 lg:flex-initial">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  placeholder="Buscar folio, paciente..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold focus:ring-teal-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                <Select value={sortPrimary} onValueChange={setSortPrimary}>
+                  <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 rounded-lg w-[110px] focus:ring-0">
+                    <SelectValue placeholder="Ordenar por" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-100 shadow-lg">
+                    <SelectItem value="appointment_time" className="text-xs font-bold">Hora Cita</SelectItem>
+                    <SelectItem value="priority" className="text-xs font-bold">Prioridad</SelectItem>
+                    <SelectItem value="scheduled_date" className="text-xs font-bold">Fecha</SelectItem>
+                    <SelectItem value="origin" className="text-xs font-bold">Origen</SelectItem>
+                    <SelectItem value="destination" className="text-xs font-bold">Destino</SelectItem>
+                    <SelectItem value="tracking_number" className="text-xs font-bold">N° Seguimiento</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSortPrimaryDir(p => p === "asc" ? "desc" : "asc")}
+                  className="h-7 w-7 hover:bg-slate-200/50 rounded-lg text-slate-600"
+                  title={sortPrimaryDir === "asc" ? "Ascendente" : "Descendente"}
+                >
+                  <ArrowUpDown className={`w-3.5 h-3.5 transition-transform duration-300 ${sortPrimaryDir === "desc" ? "rotate-180 text-teal-600" : "text-indigo-600"}`} />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Grilla Principal de Traslados */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {displayedTrips.map(renderTripCard)}
+            </div>
+
+            {displayedTrips.length === 0 && (
+              <div className="text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl p-8 space-y-3">
+                <ClipboardList className="w-12 h-12 text-slate-300 mx-auto" />
+                <p className="text-sm font-black text-slate-700 uppercase tracking-wide">
+                  No hay traslados activos en esta categoría
+                </p>
+                <p className="text-xs text-slate-400 font-medium">
+                  Prueba cambiando los filtros de estado o seleccionando la pestaña "Todos".
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Columna Lateral (Control Operativo e Historial de Novedades) */}
+        <div className="xl:col-span-1 space-y-6">
+          <ActiveDriversPanel />
+
+          {/* Sección de Novedades y Cambios en Tiempo Real (Barra Lateral) */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col max-h-[500px]">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
+              <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                <Activity className="w-4 h-4 text-amber-500 animate-pulse" /> Novedades y Cambios
+              </h2>
+              <Badge className="bg-emerald-50 text-emerald-700 border-none font-black px-2 py-0.5 rounded-full text-[10px]">
+                Live
+              </Badge>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-0">
+              {loadingActivity ? (
+                <div className="flex items-center justify-center py-8 text-slate-400 gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Cargando...</span>
                 </div>
-              );
-            })
-          )}
+              ) : activityLogs.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 italic text-xs">
+                  Sin novedades registradas hoy.
+                </div>
+              ) : (
+                activityLogs.map((log) => {
+                  const logDetail = formatActivityLog(log);
+                  const Icon = logDetail.Icon;
+                  return (
+                    <div key={log.id} className={`p-3 rounded-xl border transition-all hover:shadow-xs flex flex-col gap-2 ${logDetail.bg}`}>
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className={`p-1.5 rounded-lg bg-white border border-slate-100 shrink-0 shadow-2xs ${logDetail.iconColor}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-slate-900 leading-tight">{logDetail.title}</p>
+                          <p className="text-[11px] font-semibold text-slate-600 mt-0.5 break-words">{logDetail.description}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between border-t border-slate-100/50 pt-1.5 mt-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase truncate max-w-[120px]">
+                          por {log.user_name || "Sistema"}
+                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[9px] font-bold text-slate-400">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          {log.new_values?.tracking_number && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const foundTrip = trips.find(t => t.tracking_number === log.new_values.tracking_number);
+                                if (foundTrip) {
+                                  setDetailTrip(foundTrip);
+                                } else {
+                                  setDetailTrip(log.new_values);
+                                }
+                              }}
+                              className="text-[9px] font-mono font-black text-teal-600 hover:text-teal-700 bg-white px-1.5 py-0.5 rounded border border-teal-200 shadow-2xs transition-colors cursor-pointer"
+                            >
+                              #{log.new_values.tracking_number}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
