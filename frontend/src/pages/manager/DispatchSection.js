@@ -1182,7 +1182,7 @@ export default function DispatchSection() {
 
       {/* DIALOGO EDICIÓN */}
       <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
-        <DialogContent className="max-w-3xl bg-slate-50 rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-3xl bg-slate-50 rounded-[2rem] sm:rounded-[2rem] border-none shadow-2xl p-0 max-h-[90vh] overflow-y-auto">
           <div className="bg-slate-900 p-8 pb-10 relative">
             <div className="absolute top-6 right-14">
               <Badge className="bg-teal-500 border-none uppercase tracking-widest text-[10px] font-black shadow-lg">
@@ -1504,7 +1504,7 @@ export default function DispatchSection() {
 
       {/* DIALOG ASIGNACIÓN MULTITRASLADO */}
       <Dialog open={groupAssignDialog} onOpenChange={setGroupAssignDialog}>
-        <DialogContent className="max-w-md bg-white rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-md bg-white rounded-3xl p-4 sm:p-6">
           <DialogHeader className="mb-3">
             <DialogTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
               <Truck className="w-5 h-5 text-teal-600" /> Asignar Misión Agrupada
