@@ -46,7 +46,7 @@ export default function ActiveDriversPanel() {
   );
 
   return (
-    <Card className="shadow-lg border border-slate-200 rounded-2xl overflow-hidden h-full flex flex-col bg-white">
+    <Card className="shadow-lg border border-slate-200 rounded-2xl overflow-hidden xl:h-[600px] h-[500px] flex flex-col bg-white">
       <CardHeader className="p-4 bg-slate-50 border-b border-slate-200">
         <div className="flex items-center justify-between gap-2 mb-3">
           <CardTitle className="text-sm font-black text-slate-800 tracking-wider uppercase flex items-center gap-2">
@@ -96,7 +96,7 @@ export default function ActiveDriversPanel() {
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 overflow-y-auto flex-1 max-h-[450px]">
+      <CardContent className="p-0 overflow-y-auto flex-1 min-h-0">
         {loading ? (
           <div className="p-8 text-center text-xs text-slate-400 font-semibold flex flex-col items-center gap-2">
             <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>

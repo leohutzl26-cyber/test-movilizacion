@@ -688,18 +688,18 @@ export default function DispatchSection() {
         {/* Título y Categoría */}
         <div className="cursor-pointer space-y-0.5" onClick={() => setDetailTrip(t)}>
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-base font-black text-slate-900 group-hover:text-teal-600 transition-colors leading-tight">
+            <h3 className="text-sm font-black text-slate-900 group-hover:text-teal-600 transition-colors leading-tight">
               {t.trip_type === "clinico" ? t.patient_name : t.task_details}
             </h3>
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${t.trip_type === "clinico" ? "text-teal-700 bg-teal-50 border border-teal-200" : "text-indigo-700 bg-indigo-50 border border-indigo-200"}`}>
+            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${t.trip_type === "clinico" ? "text-teal-700 bg-teal-50 border border-teal-200" : "text-indigo-700 bg-indigo-50 border border-indigo-200"}`}>
               {t.trip_type === "clinico" ? "Clínico" : "No Clínico"}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 font-semibold">
             <span>{t.transfer_reason || "General"}</span>
             {t.trip_type === "no_clinico" && t.staff_count && (
-              <span className="text-[11px] font-bold text-indigo-700">
+              <span className="text-[10px] font-bold text-indigo-700">
                 • 👤 {t.staff_count} {parseInt(t.staff_count) === 1 ? "Funcionario" : "Funcionarios"}
               </span>
             )}
@@ -707,34 +707,34 @@ export default function DispatchSection() {
         </div>
 
         {/* Ruta Compacta (Origen -> Destino) */}
-        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs font-semibold text-slate-800 space-y-1">
+        <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-[11px] font-semibold text-slate-800 space-y-1">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-4 h-4 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-[10px] font-black shrink-0">A</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-[9px] font-black shrink-0">A</span>
             <span className="font-extrabold uppercase truncate">{t.origin}</span>
-            {t.origin_address && <span className="text-[11px] text-slate-400 font-normal truncate hidden sm:inline">({t.origin_address})</span>}
+            {t.origin_address && <span className="text-[10px] text-slate-400 font-normal truncate hidden sm:inline">({t.origin_address})</span>}
           </div>
           <div className="flex items-center gap-2 min-w-0 border-t border-slate-200/60 pt-1">
-            <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px] font-black shrink-0">B</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[9px] font-black shrink-0">B</span>
             <span className="font-extrabold uppercase truncate">{t.destination}</span>
-            {t.destination_address && <span className="text-[11px] text-slate-400 font-normal truncate hidden sm:inline">({t.destination_address})</span>}
+            {t.destination_address && <span className="text-[10px] text-slate-400 font-normal truncate hidden sm:inline">({t.destination_address})</span>}
           </div>
         </div>
 
         {/* Móvil & Conductor */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100 text-xs font-bold">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100 text-[11px] font-bold">
           <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${t.driver_name ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>
-              {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-3.5 h-3.5" />}
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${t.driver_name ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}`}>
+              {t.vehicle_type ? VEHICLE_ICONS[t.vehicle_type] : <User className="w-3 h-3" />}
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block leading-none">Móvil & Conductor</span>
-              <span className="text-xs font-black text-slate-900 truncate uppercase block mt-0.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase block leading-none">Móvil & Conductor</span>
+              <span className="text-[11px] font-black text-slate-900 truncate uppercase block mt-0.5">
                 {t.driver_name ? t.driver_name : "Pendiente de Asignación"}
               </span>
             </div>
           </div>
           {t.vehicle_plate && (
-            <Badge className="bg-teal-50 text-teal-800 border border-teal-200 font-mono font-black text-xs px-2 py-0.5 shrink-0">
+            <Badge className="bg-teal-50 text-teal-700 border border-teal-200 font-mono font-black text-[10px] px-1.5 py-0.5 shrink-0">
               {t.vehicle_plate}
             </Badge>
           )}
@@ -744,23 +744,23 @@ export default function DispatchSection() {
         <div className="pt-0.5 flex items-center gap-1.5">
           {["pendiente", "asignado"].includes(t.status) && (
             <>
-              <Button onClick={() => setAssignDialog(t)} className="flex-1 h-8 bg-teal-600 hover:bg-teal-700 text-white text-xs font-extrabold uppercase rounded-lg flex items-center justify-center gap-1.5 shadow-xs">
-                <Truck className="w-3.5 h-3.5" />
+              <Button onClick={() => setAssignDialog(t)} className="flex-1 h-8 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-extrabold uppercase rounded-lg flex items-center justify-center gap-1.5 shadow-xs">
+                <Truck className="w-3 h-3" />
                 {t.driver_id ? "Reasignar" : "Asignar Conductor"}
               </Button>
 
               {t.driver_id && t.status === "asignado" && (
-                <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-8 px-2.5 text-xs font-bold uppercase text-amber-600 border-amber-200 hover:bg-amber-50 rounded-lg" title="Desasignar Conductor">
+                <Button onClick={() => handleUnassign(t.id)} variant="outline" className="h-8 px-2.5 text-[11px] font-bold uppercase text-amber-600 border-amber-200 hover:bg-amber-50 rounded-lg" title="Desasignar Conductor">
                   <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
               )}
 
-              <Button onClick={() => setEditDialog(t)} variant="outline" className="h-8 px-2.5 text-xs font-bold uppercase text-slate-700 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Editar Traslado">
+              <Button onClick={() => setEditDialog(t)} variant="outline" className="h-8 px-2.5 text-[11px] font-bold uppercase text-slate-700 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Editar Traslado">
                 <Edit className="w-3.5 h-3.5" />
                 <span>Editar</span>
               </Button>
 
-              <Button onClick={() => setReturnDialog(t)} variant="outline" className="h-8 px-2.5 text-xs font-bold uppercase text-slate-600 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Devolver al Gestor de Camas">
+              <Button onClick={() => setReturnDialog(t)} variant="outline" className="h-8 px-2.5 text-[11px] font-bold uppercase text-slate-600 border-slate-200 hover:bg-slate-100 rounded-lg flex items-center gap-1" title="Devolver al Gestor de Camas">
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Devolver</span>
               </Button>
@@ -929,7 +929,7 @@ export default function DispatchSection() {
         {/* Columna Lateral 2 (Historial de Novedades) */}
         <div className="xl:col-span-1">
           {/* Sección de Novedades y Cambios en Tiempo Real (Barra Lateral) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col h-full max-h-[600px]">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col xl:h-[600px] h-[500px]">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
               <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                 <Activity className="w-4 h-4 text-amber-500 animate-pulse" /> Novedades y Cambios
