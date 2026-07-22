@@ -46,7 +46,7 @@ export default function ActiveDriversPanel() {
   );
 
   return (
-    <Card className="shadow-lg border border-slate-200 rounded-2xl overflow-hidden xl:h-[600px] h-[500px] flex flex-col bg-white">
+    <Card className="shadow-lg border border-slate-200 rounded-2xl overflow-hidden xl:h-[800px] h-[650px] flex flex-col bg-white">
       <CardHeader className="p-4 bg-slate-50 border-b border-slate-200">
         <div className="flex items-center justify-between gap-2 mb-3">
           <CardTitle className="text-sm font-black text-slate-800 tracking-wider uppercase flex items-center gap-2">

@@ -975,7 +975,7 @@ export default function DispatchSection() {
         {/* Columna Lateral 2 (Historial de Novedades) */}
         <div className="xl:col-span-1">
           {/* Sección de Novedades y Cambios en Tiempo Real (Barra Lateral) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col xl:h-[600px] h-[500px]">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col xl:h-[800px] h-[650px]">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
               <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                 <Activity className="w-4 h-4 text-amber-500 animate-pulse" /> Novedades y Cambios
