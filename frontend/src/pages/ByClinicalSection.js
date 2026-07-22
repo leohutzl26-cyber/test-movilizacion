@@ -4,8 +4,8 @@ import { Stethoscope, User, Calendar as CalendarIcon, MapPin, ArrowRight, Clock,
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatScheduledDate } from "@/lib/tripUtils";
 
 const STATUS_CARD_STYLES = {
     revision_gestor: {
@@ -50,25 +50,44 @@ export default function ByClinicalSection() {
     const { user } = useAuth();
     const [data, setData] = useState([]);
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+    const [viewType, setViewType] = useState(() => {
+        return localStorage.getItem("movilizacion.by_clinical.view") || "diaria";
+    });
     const [loading, setLoading] = useState(true);
 
-    const handlePrevDay = () => {
+    useEffect(() => {
+        localStorage.setItem("movilizacion.by_clinical.view", viewType);
+    }, [viewType]);
+
+    const handlePrevDate = () => {
         setLoading(true);
         const current = new Date(date + "T12:00:00");
-        current.setDate(current.getDate() - 1);
+        if (viewType === "diaria") {
+            current.setDate(current.getDate() - 1);
+        } else if (viewType === "semanal") {
+            current.setDate(current.getDate() - 7);
+        } else if (viewType === "mensual") {
+            current.setMonth(current.getMonth() - 1);
+        }
         setDate(current.toISOString().split("T")[0]);
     };
 
-    const handleNextDay = () => {
+    const handleNextDate = () => {
         setLoading(true);
         const current = new Date(date + "T12:00:00");
-        current.setDate(current.getDate() + 1);
+        if (viewType === "diaria") {
+            current.setDate(current.getDate() + 1);
+        } else if (viewType === "semanal") {
+            current.setDate(current.getDate() + 7);
+        } else if (viewType === "mensual") {
+            current.setMonth(current.getMonth() + 1);
+        }
         setDate(current.toISOString().split("T")[0]);
     };
 
     const fetchBoard = useCallback(async () => {
         try {
-            const res = await api.get(`/trips/by-clinical?date=${date}&role=${user?.role || ''}`);
+            const res = await api.get(`/trips/by-clinical?date=${date}&role=${user?.role || ''}&view=${viewType}`);
             if (res && Array.isArray(res.data)) {
                 setData(res.data);
             } else {
@@ -90,7 +109,7 @@ export default function ByClinicalSection() {
         } finally {
             setLoading(false);
         }
-    }, [date, user?.role]);
+    }, [date, user?.role, viewType]);
 
     useEffect(() => {
         fetchBoard();
@@ -153,9 +172,32 @@ export default function ByClinicalSection() {
         );
     }
 
+    const getFriendlyDateLabel = () => {
+        const dateObj = new Date(date + "T12:00:00");
+        if (viewType === "diaria") {
+            return dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        if (viewType === "semanal") {
+            const dayOfWeek = dateObj.getDay();
+            const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const monday = new Date(dateObj);
+            monday.setDate(dateObj.getDate() + distanceToMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            const optMonthDay = { day: 'numeric', month: 'short' };
+            const optYear = { year: 'numeric' };
+            return `Semana: Lunes ${monday.toLocaleDateString('es-ES', optMonthDay)} - Domingo ${sunday.toLocaleDateString('es-ES', { ...optMonthDay, ...optYear })}`;
+        }
+        if (viewType === "mensual") {
+            return dateObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase();
+        }
+        return "";
+    };
+
     return (
         <div className="animate-slide-up space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black text-slate-900 flex items-center gap-3">
                         <Stethoscope className="w-8 h-8 text-teal-600" /> Pizarra Gráfica (Personal Clínico)
@@ -163,23 +205,58 @@ export default function ByClinicalSection() {
                     <p className="text-slate-500 text-sm font-medium mt-1">
                         Monitoree la carga de trabajo y turnos en vivo del equipo de acompañamiento clínico.
                     </p>
-                </div>
-                <div className="flex items-center gap-1 bg-white rounded-xl shadow-sm border border-slate-200 p-1 shrink-0">
-                    <button onClick={handlePrevDay} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" title="Día Anterior">
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <div className="flex items-center gap-2 px-2 py-1">
-                        <CalendarIcon className="w-4 h-4 text-slate-500" />
-                        <Input
-                            type="date"
-                            value={date}
-                            onChange={(e) => { setLoading(true); setDate(e.target.value); }}
-                            className="border-0 shadow-none focus-visible:ring-0 w-auto p-0 h-auto text-xs font-bold text-slate-700 bg-transparent cursor-pointer"
-                        />
+                    <div className="mt-2 text-xs font-black text-teal-700 uppercase tracking-wider bg-teal-50 px-3 py-1.5 rounded-lg border border-teal-100 w-fit">
+                        📅 {getFriendlyDateLabel()}
                     </div>
-                    <button onClick={handleNextDay} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" title="Día Siguiente">
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto xl:justify-end">
+                    {/* Selector de tipo de vista */}
+                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 shadow-xs">
+                        <button
+                            onClick={() => { setLoading(true); setViewType("diaria"); }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                viewType === "diaria" ? "bg-white text-slate-800 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                            }`}
+                        >
+                            Diaria
+                        </button>
+                        <button
+                            onClick={() => { setLoading(true); setViewType("semanal"); }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                viewType === "semanal" ? "bg-white text-slate-800 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                            }`}
+                        >
+                            Semanal
+                        </button>
+                        <button
+                            onClick={() => { setLoading(true); setViewType("mensual"); }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                                viewType === "mensual" ? "bg-white text-slate-800 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                            }`}
+                        >
+                            Mensual
+                        </button>
+                    </div>
+
+                    {/* Selector de fecha */}
+                    <div className="flex items-center gap-1 bg-white rounded-xl shadow-xs border border-slate-200 p-1 shrink-0">
+                        <button onClick={handlePrevDate} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" title={viewType === "diaria" ? "Día Anterior" : viewType === "semanal" ? "Semana Anterior" : "Mes Anterior"}>
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <div className="flex items-center gap-2 px-2 py-1">
+                            <CalendarIcon className="w-4 h-4 text-slate-500" />
+                            <Input
+                                type="date"
+                                value={date}
+                                onChange={(e) => { setLoading(true); setDate(e.target.value); }}
+                                className="border-0 shadow-none focus-visible:ring-0 w-auto p-0 h-auto text-xs font-bold text-slate-700 bg-transparent cursor-pointer"
+                            />
+                        </div>
+                        <button onClick={handleNextDate} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" title={viewType === "diaria" ? "Día Siguiente" : viewType === "semanal" ? "Semana Siguiente" : "Mes Siguiente"}>
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -304,7 +381,10 @@ export default function ByClinicalSection() {
                                                                 <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 pt-1 border-t border-slate-200/50">
                                                                     <div className="flex items-center gap-1 text-slate-600 font-bold">
                                                                         <Clock className="w-3 h-3 text-slate-400" />
-                                                                        <span>{trip.appointment_time || trip.departure_time || "--:--"}</span>
+                                                                        <span>
+                                                                            {viewType !== "diaria" && trip.scheduled_date ? `${formatScheduledDate(trip.scheduled_date)} • ` : ""}
+                                                                            {trip.appointment_time || trip.departure_time || "--:--"}
+                                                                        </span>
                                                                     </div>
                                                                     {trip.transfer_reason && (
                                                                         <span className="truncate max-w-[120px] bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-600">

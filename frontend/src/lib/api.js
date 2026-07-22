@@ -386,12 +386,42 @@ const api = {
             
             if (staffError) console.warn("Error fetching clinical staff profiles:", staffError);
             
+            const viewType = queryParams.view || 'diaria';
             let tripQuery = supabase
               .from('trips')
               .select('*')
-              .eq('scheduled_date', targetDate)
               .eq('trip_type', 'clinico')
               .neq('status', 'cancelado');
+
+            if (viewType === 'semanal') {
+              const dateObj = new Date(targetDate + 'T12:00:00');
+              const dayOfWeek = dateObj.getDay();
+              const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+              const monday = new Date(dateObj);
+              monday.setDate(dateObj.getDate() + distanceToMonday);
+              const sunday = new Date(monday);
+              sunday.setDate(monday.getDate() + 6);
+              
+              const startOfWeek = monday.toISOString().split('T')[0];
+              const endOfWeek = sunday.toISOString().split('T')[0];
+              
+              tripQuery = tripQuery
+                .gte('scheduled_date', startOfWeek)
+                .lte('scheduled_date', endOfWeek);
+            } else if (viewType === 'mensual') {
+              const dateObj = new Date(targetDate + 'T12:00:00');
+              const year = dateObj.getFullYear();
+              const month = dateObj.getMonth();
+              
+              const startOfMonth = new Date(year, month, 1, 12, 0, 0).toISOString().split('T')[0];
+              const endOfMonth = new Date(year, month + 1, 0, 12, 0, 0).toISOString().split('T')[0];
+              
+              tripQuery = tripQuery
+                .gte('scheduled_date', startOfMonth)
+                .lte('scheduled_date', endOfMonth);
+            } else {
+              tripQuery = tripQuery.eq('scheduled_date', targetDate);
+            }
 
             if (userRole === 'coordinador') {
               tripQuery = tripQuery.neq('status', 'revision_gestor');
