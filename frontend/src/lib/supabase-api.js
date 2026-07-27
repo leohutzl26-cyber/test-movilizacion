@@ -42,6 +42,8 @@ export const callSupabaseFunction = async (functionName, body = {}) => {
 const parseTrip = (trip) => {
   if (!trip) return trip;
   const parsed = { ...trip };
+  parsed.dispatch_group_id = trip.dispatch_group_id || trip.group_id || null;
+  parsed.group_id = trip.group_id || trip.dispatch_group_id || null;
   ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
     if (Array.isArray(parsed[field])) {
       parsed[field] = parsed[field].map(item => {

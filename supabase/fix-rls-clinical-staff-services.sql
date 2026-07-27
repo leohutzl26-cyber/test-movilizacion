@@ -6,6 +6,7 @@
 -- 0. AGREGAR COLUMNAS FALTANTES EN LA TABLA TRIPS
 -- ====================================================
 ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS group_id TEXT;
+ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS dispatch_group_id TEXT;
 ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS order_in_group INTEGER DEFAULT 0;
 ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 

@@ -862,23 +862,85 @@ const api = {
         const tripId = parts[2];
 
         if (tripId === "group-assign") {
-          const { trip_ids, driver_id, driver_name, vehicle_plate, priority } = data;
+          const { trip_ids, driver_id, priority } = data;
+          let driver_name = data.driver_name;
+          let vehicle_plate = data.vehicle_plate;
+
+          if (driver_id) {
+            const { data: driverProfile } = await supabase
+              .from('profiles')
+              .select('name, vehicle_plate, current_vehicle_id')
+              .eq('id', driver_id)
+              .maybeSingle();
+
+            if (driverProfile) {
+              if (!driver_name) driver_name = driverProfile.name;
+              if (!vehicle_plate) vehicle_plate = driverProfile.vehicle_plate;
+
+              if (!vehicle_plate && driverProfile.current_vehicle_id) {
+                const { data: veh } = await supabase
+                  .from('vehicles')
+                  .select('plate')
+                  .eq('id', driverProfile.current_vehicle_id)
+                  .maybeSingle();
+                if (veh?.plate) vehicle_plate = veh.plate;
+              }
+            }
+          }
+
           const groupId = `V-${Math.floor(Math.random() * 90000) + 10000}`;
-          
-          const updates = (trip_ids || []).map(id => {
+          const status = driver_id ? 'asignado' : 'pendiente';
+
+          const updatePromises = (trip_ids || []).map(async (id) => {
             const patch = {
               driver_id: driver_id || null,
               driver_name: driver_name || null,
               vehicle_plate: vehicle_plate || null,
               dispatch_group_id: groupId,
-              status: driver_id ? 'asignado' : 'pendiente'
+              group_id: groupId,
+              status: status
             };
             if (priority) patch.priority = priority;
-            return supabase.from('trips').update(patch).eq('id', id);
+
+            let { data: updated, error } = await supabase.from('trips').update(patch).eq('id', id).select();
+
+            if (error) {
+              console.warn("Supabase update error with dispatch_group_id, retrying with group_id only:", error.message);
+              delete patch.dispatch_group_id;
+              const resRetry = await supabase.from('trips').update(patch).eq('id', id).select();
+              if (resRetry.error) {
+                console.error("Supabase update failed for trip", id, resRetry.error);
+                throw new Error(resRetry.error.message || `Error actualizando viaje ${id}`);
+              }
+              updated = resRetry.data;
+            }
+
+            // Insert audit log
+            try {
+              let userId = null, userName = "Coordinador", userRole = "coordinador";
+              const token = localStorage.getItem('supabase.auth.token');
+              if (token) {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                userId = payload.userId || null;
+                userName = payload.name || "Coordinador";
+                userRole = payload.role || "coordinador";
+              }
+              await supabase.from('audit_logs').insert([{
+                user_id: userId,
+                user_name: userName,
+                user_role: userRole,
+                action: 'asignar_mision_agrupada',
+                entity_type: 'trips',
+                entity_id: id,
+                new_values: { driver_id, driver_name, vehicle_plate, group_id: groupId, dispatch_group_id: groupId, status }
+              }]);
+            } catch(e) {}
+
+            return updated;
           });
-          
-          await Promise.all(updates);
-          return { data: { success: true, dispatch_group_id: groupId } };
+
+          await Promise.all(updatePromises);
+          return { data: { success: true, dispatch_group_id: groupId, group_id: groupId } };
         }
 
         if (tripId === "self-assign" || parts[3] === "self-assign") {
@@ -888,32 +950,51 @@ const api = {
           
           const { data: profile } = await supabase
             .from('profiles')
-            .select('name, vehicle_plate')
+            .select('name, vehicle_plate, current_vehicle_id')
             .eq('id', driverId)
             .maybeSingle();
             
-          const driverName = profile?.name || session.user.name;
-          const vehiclePlate = profile?.vehicle_plate || data.vehicle_plate || null;
+          let driverName = profile?.name || session.user.name;
+          let vehiclePlate = profile?.vehicle_plate || data.vehicle_plate || null;
+
+          if (!vehiclePlate && profile?.current_vehicle_id) {
+            const { data: veh } = await supabase.from('vehicles').select('plate').eq('id', profile.current_vehicle_id).maybeSingle();
+            if (veh?.plate) vehiclePlate = veh.plate;
+          }
           
-          let groupId = data.dispatch_group_id;
+          let groupId = data.dispatch_group_id || data.group_id;
           if (data.create_group && !groupId) {
             groupId = `V-${Math.floor(Math.random() * 90000) + 10000}`;
           }
 
           const targetIds = Array.isArray(data.trip_ids) ? data.trip_ids : [targetTripId];
-          const updates = targetIds.map(id => {
+          const updatePromises = targetIds.map(async (id) => {
             const patch = {
               driver_id: driverId,
               driver_name: driverName,
               vehicle_plate: vehiclePlate,
               status: 'asignado'
             };
-            if (groupId) patch.dispatch_group_id = groupId;
-            return supabase.from('trips').update(patch).eq('id', id);
-          });
-          await Promise.all(updates);
+            if (groupId) {
+              patch.dispatch_group_id = groupId;
+              patch.group_id = groupId;
+            }
 
-          return { data: { success: true, dispatch_group_id: groupId } };
+            let { data: updated, error } = await supabase.from('trips').update(patch).eq('id', id).select();
+            if (error) {
+              delete patch.dispatch_group_id;
+              const resRetry = await supabase.from('trips').update(patch).eq('id', id).select();
+              if (resRetry.error) {
+                console.error("Supabase update error in self-assign for trip", id, resRetry.error);
+                throw new Error(resRetry.error.message);
+              }
+              updated = resRetry.data;
+            }
+            return updated;
+          });
+
+          await Promise.all(updatePromises);
+          return { data: { success: true, dispatch_group_id: groupId, group_id: groupId } };
         }
 
         if (tripId === "reorder") {
