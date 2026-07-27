@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Truck, MapPin, ArrowRight, Navigation, FileText, ShieldAlert, Siren, ClipboardList } from "lucide-react";
+import { Clock, Truck, MapPin, ArrowRight, Navigation, FileText, ShieldAlert, Siren, ClipboardList, ArrowUpDown } from "lucide-react";
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { formatScheduledDate } from "@/lib/tripUtils";
@@ -14,10 +14,52 @@ export default function TripPoolSection({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [activeTab, setActiveTab] = useState("ambulance");
+  const [sortBy, setSortBy] = useState("date_asc");
+
+  const sortTrips = (list) => {
+    return [...list].sort((a, b) => {
+      if (sortBy === "date_asc" || sortBy === "date_desc") {
+        const dateA = a.scheduled_date ? a.scheduled_date.split("T")[0] : (a.created_at ? a.created_at.split("T")[0] : "");
+        const dateB = b.scheduled_date ? b.scheduled_date.split("T")[0] : (b.created_at ? b.created_at.split("T")[0] : "");
+
+        if (dateA !== dateB) {
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          return sortBy === "date_asc" ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+        }
+
+        const timeA = a.departure_time || a.appointment_time || "";
+        const timeB = b.departure_time || b.appointment_time || "";
+        if (timeA !== timeB) {
+          if (!timeA) return 1;
+          if (!timeB) return -1;
+          return sortBy === "date_asc" ? timeA.localeCompare(timeB) : timeB.localeCompare(timeA);
+        }
+
+        const createdA = a.created_at || "";
+        const createdB = b.created_at || "";
+        return sortBy === "date_asc" ? createdA.localeCompare(createdB) : createdB.localeCompare(createdA);
+      }
+
+      if (sortBy === "priority") {
+        const pOrder = { urgente: 1, alta: 2, normal: 3 };
+        const pA = pOrder[a.priority] || 4;
+        const pB = pOrder[b.priority] || 4;
+        if (pA !== pB) return pA - pB;
+
+        const dateA = a.scheduled_date ? a.scheduled_date.split("T")[0] : "";
+        const dateB = b.scheduled_date ? b.scheduled_date.split("T")[0] : "";
+        return dateA.localeCompare(dateB);
+      }
+
+      return 0;
+    });
+  };
 
   const ambulanceTrips = trips.filter((t) => t.trip_type === "clinico");
   const otherTrips = trips.filter((t) => t.trip_type !== "clinico");
-  const displayTrips = activeTab === "ambulance" ? ambulanceTrips : otherTrips;
+  const filteredTrips = activeTab === "ambulance" ? ambulanceTrips : otherTrips;
+  const displayTrips = sortTrips(filteredTrips);
 
   const fetchPool = useCallback(async () => {
     try {
@@ -74,11 +116,28 @@ export default function TripPoolSection({ onNavigate }) {
 
   return (
     <div className="max-w-4xl mx-auto animate-slide-up">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Bolsa de Viajes</h1>
-        <Badge variant="outline" className="text-sm bg-white shadow-sm border-teal-200 text-teal-800 px-3 py-1">
-          {trips.length} en espera
-        </Badge>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Bolsa de Viajes</h1>
+          <p className="text-xs text-slate-500 font-medium">Ordenados por defecto por fecha de traslado ascendente</p>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
+            <ArrowUpDown className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-transparent text-slate-700 text-xs font-bold focus:outline-none cursor-pointer"
+            >
+              <option value="date_asc">Fecha Traslado (Ascendente)</option>
+              <option value="date_desc">Fecha Traslado (Descendente)</option>
+              <option value="priority">Prioridad</option>
+            </select>
+          </div>
+          <Badge variant="outline" className="text-sm bg-white shadow-sm border-teal-200 text-teal-800 px-3 py-1 shrink-0">
+            {trips.length} en espera
+          </Badge>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-6">

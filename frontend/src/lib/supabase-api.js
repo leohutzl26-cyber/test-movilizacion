@@ -217,7 +217,24 @@ export const tripsApi = {
 
   // Get trip pool (available trips)
   getTripPool: async () => {
-    return await tripsApi.getTrips({ status: ['pendiente', 'asignado'] });
+    const poolTrips = await tripsApi.getTrips({ status: ['pendiente', 'asignado'] });
+    return (poolTrips || []).sort((a, b) => {
+      const dateA = a.scheduled_date ? a.scheduled_date.split("T")[0] : (a.created_at ? a.created_at.split("T")[0] : "");
+      const dateB = b.scheduled_date ? b.scheduled_date.split("T")[0] : (b.created_at ? b.created_at.split("T")[0] : "");
+      if (dateA !== dateB) {
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.localeCompare(dateB);
+      }
+      const timeA = a.departure_time || a.appointment_time || "";
+      const timeB = b.departure_time || b.appointment_time || "";
+      if (timeA !== timeB) {
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+        return timeA.localeCompare(timeB);
+      }
+      return (a.created_at || "").localeCompare(b.created_at || "");
+    });
   },
 
   // Get active trips
