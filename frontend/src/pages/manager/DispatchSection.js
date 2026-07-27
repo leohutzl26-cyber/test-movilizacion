@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink, MessageSquare, CheckCircle2, PlusCircle, UserPlus, FileText, AlertCircle } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink, MessageSquare, CheckCircle2, PlusCircle, UserPlus, FileText, AlertCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import { supabase } from "@/lib/supabase";
@@ -722,11 +722,25 @@ export default function DispatchSection() {
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-500 flex-wrap">
             <span>{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+            {t.departure_time && (
+              <span 
+                className="bg-cyan-50 text-cyan-950 border border-cyan-300 font-mono text-xs font-black px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs"
+                title="Hora de Salida"
+              >
+                <LogOut className="w-3 h-3 text-cyan-600 shrink-0" />
+                <span className="text-[10px] uppercase font-bold text-cyan-700">Salida:</span>
+                {t.departure_time}
+              </span>
+            )}
             {t.appointment_time && (
-              <span className="bg-amber-50 text-amber-900 border border-amber-200 font-mono text-xs font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                <Clock className="w-3 h-3 text-amber-600" />
+              <span 
+                className="bg-amber-50 text-amber-950 border border-amber-300 font-mono text-xs font-black px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs"
+                title="Hora de Citación"
+              >
+                <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                <span className="text-[10px] uppercase font-bold text-amber-700">Citación:</span>
                 {t.appointment_time}
               </span>
             )}
@@ -1071,9 +1085,15 @@ export default function DispatchSection() {
                   </div>
                 </div>
               </div>
-              <div className="pt-6 border-t border-teal-100/60">
-                <p className="text-[10px] text-slate-500 font-bold uppercase leading-none mb-2 tracking-wider">Hora de Cita</p>
-                <p className="text-3xl font-black text-teal-600 font-mono">{assignDialog?.appointment_time || "--:--"}</p>
+              <div className="pt-6 border-t border-teal-100/60 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] text-cyan-700 font-bold uppercase leading-none mb-1 tracking-wider">Hora de Salida</p>
+                  <p className="text-2xl font-black text-cyan-800 font-mono">{assignDialog?.departure_time || "--:--"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-amber-700 font-bold uppercase leading-none mb-1 tracking-wider">Hora de Citación</p>
+                  <p className="text-2xl font-black text-amber-800 font-mono">{assignDialog?.appointment_time || "--:--"}</p>
+                </div>
               </div>
             </div>
 

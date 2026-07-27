@@ -199,8 +199,12 @@ export default function TripDetailDialog({ trip, open, onOpenChange, onRefresh }
                     <p className="text-sm font-bold text-slate-800">{formatScheduledDate(trip.scheduled_date) || "Hoy"}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Citación</p>
-                    <p className="text-sm font-black text-teal-600">{trip.appointment_time || "--:--"}</p>
+                    <p className="text-[10px] uppercase font-bold text-cyan-700 tracking-wider">Salida</p>
+                    <p className="text-sm font-black text-cyan-800 font-mono">{trip.departure_time || "--:--"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-amber-700 tracking-wider">Citación</p>
+                    <p className="text-sm font-black text-amber-800 font-mono">{trip.appointment_time || "--:--"}</p>
                   </div>
                 </div>
               </div>

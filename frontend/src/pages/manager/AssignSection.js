@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ClipboardList, Ambulance, RotateCcw, Search, User, ArrowUpDown } from "lucide-react";
+import { MapPin, ArrowRight, ClipboardList, Ambulance, RotateCcw, Search, User, ArrowUpDown, Clock, LogOut } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
 import TripDetailDialog from "./TripDetailDialog";
@@ -147,6 +147,20 @@ export default function AssignSection() {
             <Badge className={`${sColors[t.status] || "bg-slate-100"} border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm`}>{(t.status || "").replace(/_/g, " ")}</Badge>
             <Badge className={`${pColors[t.priority] || pColors.normal} border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm`}>{t.priority}</Badge>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{formatScheduledDate(t.scheduled_date) || "Hoy"}</span>
+            {t.departure_time && (
+              <span className="bg-cyan-50 text-cyan-950 border border-cyan-300 font-mono text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                <LogOut className="w-3 h-3 text-cyan-600 shrink-0" />
+                <span className="text-[9px] uppercase font-bold text-cyan-700">Salida:</span>
+                {t.departure_time}
+              </span>
+            )}
+            {t.appointment_time && (
+              <span className="bg-amber-50 text-amber-950 border border-amber-300 font-mono text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                <span className="text-[9px] uppercase font-bold text-amber-700">Citación:</span>
+                {t.appointment_time}
+              </span>
+            )}
             {t.trip_type === "no_clinico" && t.staff_count && (
               <Badge className="bg-indigo-100 text-indigo-700 border-none text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-sm">
                 👤 {t.staff_count} {parseInt(t.staff_count) === 1 ? "Funcionario" : "Funcionarios"}
