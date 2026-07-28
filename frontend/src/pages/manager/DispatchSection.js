@@ -1707,27 +1707,35 @@ export default function DispatchSection() {
 
       {/* BARRA FLOTANTE DE SELECCIÓN MÚLTIPLE / VIAJE AGRUPADO */}
       {selectedTripIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 border border-slate-800 animate-slide-up">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-indigo-950 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-4 border border-indigo-700 animate-slide-up">
           <div className="flex items-center gap-2">
-            <Badge className="bg-teal-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-lg">
+            <Badge className="bg-indigo-500 text-white font-black text-xs px-2.5 py-1 rounded-lg">
               {selectedTripIds.length}
             </Badge>
-            <span className="text-xs font-bold text-slate-200">
+            <span className="text-xs font-bold text-indigo-100">
               {selectedTripIds.length === 1 ? "solicitud seleccionada" : "solicitudes seleccionadas para agrupar"}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <Button
+              onClick={handleCreateGroupOnly}
+              variant="outline"
+              className="border-indigo-400 text-indigo-100 hover:bg-indigo-900 text-xs font-black uppercase rounded-xl px-3.5 h-9 flex items-center gap-1.5"
+            >
+              <Layers className="w-4 h-4 text-indigo-300" />
+              Crear Misión Agrupada
+            </Button>
+            <Button
               onClick={() => setGroupAssignDialog(true)}
               className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs h-9 px-4 rounded-xl shadow-sm flex items-center gap-1.5 uppercase tracking-wider"
             >
               <Truck className="w-4 h-4" />
-              Crear Viaje Agrupado y Asignar
+              Agrupar y Asignar Móvil
             </Button>
             <Button
               onClick={() => setSelectedTripIds([])}
-              variant="outline"
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-9 px-3 rounded-xl"
+              variant="ghost"
+              className="text-indigo-300 hover:text-white hover:bg-indigo-900 text-xs h-9 px-3 rounded-xl font-bold"
             >
               Cancelar
             </Button>
