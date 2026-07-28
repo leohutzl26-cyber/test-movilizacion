@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink, MessageSquare, CheckCircle2, PlusCircle, UserPlus, FileText, AlertCircle, LogOut } from "lucide-react";
+import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink, MessageSquare, CheckCircle2, PlusCircle, UserPlus, FileText, AlertCircle, LogOut, Layers } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import { supabase } from "@/lib/supabase";
@@ -269,9 +269,46 @@ export default function DispatchSection() {
       setSelectedTripIds([]);
       setGroupAssignDialog(false);
       setSelectedGroupDriverId("");
+      if (filterStatus === "pendiente") {
+        setFilterStatus("asignado");
+      }
       fetchTrips();
     } catch (e) {
       toast.error("Error al asignar la misión multitraslado");
+    }
+  };
+
+  const handleCreateGroupOnly = async () => {
+    if (selectedTripIds.length < 2) {
+      toast.error("Seleccione al menos 2 traslados para agrupar");
+      return;
+    }
+    try {
+      await api.put("/trips/group-assign", {
+        trip_ids: selectedTripIds,
+        driver_id: null,
+        driver_name: null,
+        vehicle_plate: null
+      });
+      toast.success(`Viaje multitraslado (${selectedTripIds.length} solicitudes) creado exitosamente`);
+      setSelectedTripIds([]);
+      fetchTrips();
+    } catch (e) {
+      toast.error("Error al agrupar los traslados");
+    }
+  };
+
+  const handleUngroup = async (groupId, groupTrips) => {
+    if (!window.confirm(`¿Deseas desagrupar la misión ${groupId}? Los traslados volverán a ser independientes.`)) return;
+    try {
+      const updates = (groupTrips || []).map((t) =>
+        supabase.from('trips').update({ dispatch_group_id: null, group_id: null }).eq('id', t.id)
+      );
+      await Promise.all(updates);
+      toast.success(`Misión ${groupId} desagrupada exitosamente`);
+      fetchTrips();
+    } catch (e) {
+      toast.error("Error al desagrupar la misión");
     }
   };
 
@@ -680,6 +717,141 @@ export default function DispatchSection() {
     </button>
   );
 
+  // Agrupar visualmente los viajes en la bandeja que comparten el mismo dispatch_group_id o group_id
+  const groupedDisplayItems = (() => {
+    const groupMap = new Map();
+    const ungrouped = [];
+
+    displayedTrips.forEach((trip) => {
+      const gId = trip.dispatch_group_id || trip.group_id;
+      if (gId) {
+        if (!groupMap.has(gId)) groupMap.set(gId, []);
+        groupMap.get(gId).push(trip);
+      } else {
+        ungrouped.push(trip);
+      }
+    });
+
+    const items = [];
+    groupMap.forEach((tripsInGroup, gId) => {
+      if (tripsInGroup.length > 1) {
+        items.push({ isGroup: true, groupId: gId, trips: tripsInGroup });
+      } else {
+        items.push({ isGroup: false, trip: tripsInGroup[0] });
+      }
+    });
+
+    ungrouped.forEach((trip) => {
+      items.push({ isGroup: false, trip });
+    });
+
+    return items;
+  })();
+
+  const renderGroupCard = (groupId, groupTrips) => {
+    const mainTrip = groupTrips[0];
+    const isAssigned = !!mainTrip.driver_id;
+    const status = mainTrip.status || "pendiente";
+
+    return (
+      <Card key={groupId} className="group border-2 border-indigo-500/90 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-indigo-50/40 via-white to-white rounded-2xl overflow-hidden col-span-1 md:col-span-2">
+        <CardContent className="p-4 space-y-3">
+          {/* Header Misión Multitraslado */}
+          <div className="flex items-center justify-between gap-2 border-b border-indigo-100 pb-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className="bg-indigo-600 text-white font-mono text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
+                <Truck className="w-3.5 h-3.5" />
+                MISIÓN MULTITRASLADO #{groupId}
+              </Badge>
+              <Badge className="bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-black px-2.5 py-1 rounded-lg">
+                {groupTrips.length} Solicitudes Agrupadas
+              </Badge>
+              <Badge className={`text-xs font-black px-2.5 py-1 uppercase rounded-lg border-none ${statusColorsSolid[status] || "bg-slate-500 text-white"}`}>
+                {(status || "").replace(/_/g, " ")}
+              </Badge>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => {
+                  setSelectedTripIds(groupTrips.map(t => t.id));
+                  setGroupAssignDialog(true);
+                }}
+                className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase rounded-lg px-3 flex items-center gap-1.5 shadow-xs"
+              >
+                <Truck className="w-3.5 h-3.5" />
+                {isAssigned ? "Reasignar Móvil a Misión" : "Asignar Móvil a Misión"}
+              </Button>
+              <Button
+                onClick={() => handleUngroup(groupId, groupTrips)}
+                variant="outline"
+                className="h-8 text-xs font-bold text-slate-600 border-slate-200 hover:bg-slate-100 rounded-lg px-2.5"
+                title="Desagrupar Solicitudes"
+              >
+                Desagrupar
+              </Button>
+            </div>
+          </div>
+
+          {/* Información del Conductor si está asignado */}
+          {isAssigned && (
+            <div className="bg-teal-50 border border-teal-200/80 rounded-xl p-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-teal-600 text-white font-black text-xs flex items-center justify-center">
+                  {(mainTrip.driver_name || "U")[0]}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-teal-600 uppercase leading-none">Móvil & Conductor Asignado</p>
+                  <p className="text-xs font-black text-slate-900 leading-tight mt-0.5">{mainTrip.driver_name || "Conductor Registrado"}</p>
+                </div>
+              </div>
+              {mainTrip.vehicle_plate && (
+                <Badge className="bg-teal-700 text-white font-mono text-xs font-black px-2 py-0.5 rounded-md">
+                  {mainTrip.vehicle_plate}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Desglose de Solicitudes Incluidas */}
+          <div className="space-y-2 pt-1">
+            <p className="text-[10px] font-black text-indigo-900 uppercase tracking-wider">Solicitudes incluidas en este traslado:</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {groupTrips.map((subTrip, idx) => (
+                <div key={subTrip.id} className="p-3 bg-white border border-indigo-100 rounded-xl space-y-1.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="bg-slate-100 text-slate-700 font-mono text-[10px] font-black px-1.5 py-0.5 rounded">
+                      #{subTrip.tracking_number}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      Parada {idx + 1}
+                    </span>
+                  </div>
+                  <p className="text-xs font-black text-slate-900 line-clamp-1">
+                    {subTrip.trip_type === "clinico" ? subTrip.patient_name : subTrip.task_details}
+                  </p>
+                  <div className="text-[10px] font-semibold text-slate-500 space-y-0.5">
+                    <p className="truncate">📍 <span className="font-bold text-slate-700">Orig:</span> {subTrip.origin}</p>
+                    <p className="truncate">🏁 <span className="font-bold text-slate-700">Dest:</span> {subTrip.destination}</p>
+                  </div>
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setDetailTrip(subTrip)}
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline"
+                    >
+                      Ver Detalle Completo
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const renderTripCard = (t) => (
     <Card key={t.id} className={`group border border-slate-200/90 shadow-xs hover:shadow-md hover:border-teal-400 transition-all duration-200 bg-white rounded-2xl border-l-4 ${statusBorderColors[t.status] || "border-l-slate-400"}`}>
       <CardContent className="p-3.5 space-y-2.5">
@@ -963,11 +1135,52 @@ export default function DispatchSection() {
 
           {/* Grilla Principal de Traslados */}
           <div className="space-y-4">
+            {selectedTripIds.length > 0 && (
+              <div className="bg-indigo-950 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl animate-fade-in border border-indigo-700">
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-indigo-500 text-white font-black text-xs px-2.5 py-1 rounded-lg">
+                    {selectedTripIds.length} seleccionados
+                  </Badge>
+                  <p className="text-xs font-bold text-indigo-100">
+                    ¿Qué deseas hacer con estas solicitudes seleccionadas?
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                  <Button
+                    onClick={() => setSelectedTripIds([])}
+                    variant="ghost"
+                    className="text-xs text-indigo-200 hover:text-white hover:bg-indigo-900 font-bold h-9"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleCreateGroupOnly}
+                    variant="outline"
+                    className="border-indigo-400 text-indigo-100 hover:bg-indigo-900 text-xs font-black uppercase rounded-xl px-3.5 h-9 flex items-center gap-1.5"
+                  >
+                    <Layers className="w-4 h-4 text-indigo-300" />
+                    Crear Misión Agrupada
+                  </Button>
+                  <Button
+                    onClick={() => setGroupAssignDialog(true)}
+                    className="bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase rounded-xl px-4 h-9 shadow-md flex items-center gap-1.5"
+                  >
+                    <Truck className="w-4 h-4" />
+                    Agrupar y Asignar Móvil
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {displayedTrips.map(renderTripCard)}
+              {groupedDisplayItems.map((item) =>
+                item.isGroup
+                  ? renderGroupCard(item.groupId, item.trips)
+                  : renderTripCard(item.trip)
+              )}
             </div>
 
-            {displayedTrips.length === 0 && (
+            {groupedDisplayItems.length === 0 && (
               <div className="text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl p-8 space-y-3">
                 <ClipboardList className="w-12 h-12 text-slate-300 mx-auto" />
                 <p className="text-sm font-black text-slate-700 uppercase tracking-wide">
