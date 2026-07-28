@@ -674,7 +674,7 @@ export const auditLogsApi = {
 };
 
 // Export all APIs
-export default {
+export const supabaseApi = {
   auth: authApi,
   trips: tripsApi,
   users: usersApi,
@@ -686,3 +686,5 @@ export default {
   clinicalStaff: clinicalStaffApi,
   auditLogs: auditLogsApi
 };
+
+export default supabaseApi;

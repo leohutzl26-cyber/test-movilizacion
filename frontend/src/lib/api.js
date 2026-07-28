@@ -862,7 +862,7 @@ const api = {
         const tripId = parts[2];
 
         if (tripId === "group-assign") {
-          const { trip_ids, driver_id, priority } = data;
+          const { trip_ids, driver_id, priority, dispatch_group_id, group_id } = data;
           let driver_name = data.driver_name;
           let vehicle_plate = data.vehicle_plate;
 
@@ -888,7 +888,21 @@ const api = {
             }
           }
 
-          const groupId = `V-${Math.floor(Math.random() * 90000) + 10000}`;
+          // Mantener un groupId existente si ya pertenece a una misión o generar uno nuevo
+          let groupId = dispatch_group_id || group_id || data.groupId;
+          if (!groupId) {
+            const localGroups = getLocalTripGroups();
+            for (const id of (trip_ids || [])) {
+              if (localGroups[id]) {
+                groupId = localGroups[id];
+                break;
+              }
+            }
+          }
+          if (!groupId) {
+            groupId = `V-${Math.floor(Math.random() * 90000) + 10000}`;
+          }
+
           const status = driver_id ? 'asignado' : 'pendiente';
 
           const updatePromises = (trip_ids || []).map(async (id) => {
@@ -902,23 +916,20 @@ const api = {
             };
             if (priority) patch.priority = priority;
 
-            let { data: updated, error } = await supabase.from('trips').update(patch).eq('id', id).select();
-
-            if (error) {
-              console.warn("Supabase update warning for trip group columns, retrying with group_id only:", error.message);
-              delete patch.dispatch_group_id;
-              const resRetry1 = await supabase.from('trips').update(patch).eq('id', id).select();
-              if (resRetry1.error) {
-                console.warn("Supabase update warning for group_id column, retrying without group fields:", resRetry1.error.message);
-                delete patch.group_id;
-                const resRetry2 = await supabase.from('trips').update(patch).eq('id', id).select();
-                if (resRetry2.error) {
-                  console.error("Supabase update failed for trip", id, resRetry2.error);
-                  throw new Error(resRetry2.error.message || `Error actualizando viaje ${id}`);
-                }
-                updated = resRetry2.data;
-              } else {
-                updated = resRetry1.data;
+            let updated;
+            try {
+              updated = await supabaseApi.trips.updateTrip(id, patch);
+            } catch (e1) {
+              console.warn("Update trip warning for group columns, retrying with group_id only:", e1.message);
+              const patchCopy1 = { ...patch };
+              delete patchCopy1.dispatch_group_id;
+              try {
+                updated = await supabaseApi.trips.updateTrip(id, patchCopy1);
+              } catch (e2) {
+                console.warn("Update trip warning for group_id column, retrying without group fields:", e2.message);
+                const patchCopy2 = { ...patchCopy1 };
+                delete patchCopy2.group_id;
+                updated = await supabaseApi.trips.updateTrip(id, patchCopy2);
               }
             }
 
@@ -988,20 +999,18 @@ const api = {
               patch.group_id = groupId;
             }
 
-            let { data: updated, error } = await supabase.from('trips').update(patch).eq('id', id).select();
-            if (error) {
-              delete patch.dispatch_group_id;
-              const resRetry1 = await supabase.from('trips').update(patch).eq('id', id).select();
-              if (resRetry1.error) {
-                delete patch.group_id;
-                const resRetry2 = await supabase.from('trips').update(patch).eq('id', id).select();
-                if (resRetry2.error) {
-                  console.error("Supabase update error in self-assign for trip", id, resRetry2.error);
-                  throw new Error(resRetry2.error.message);
-                }
-                updated = resRetry2.data;
-              } else {
-                updated = resRetry1.data;
+            let updated;
+            try {
+              updated = await supabaseApi.trips.updateTrip(id, patch);
+            } catch (e1) {
+              const patchCopy1 = { ...patch };
+              delete patchCopy1.dispatch_group_id;
+              try {
+                updated = await supabaseApi.trips.updateTrip(id, patchCopy1);
+              } catch (e2) {
+                const patchCopy2 = { ...patchCopy1 };
+                delete patchCopy2.group_id;
+                updated = await supabaseApi.trips.updateTrip(id, patchCopy2);
               }
             }
             return updated;
