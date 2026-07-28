@@ -1,4 +1,4 @@
-import supabaseApi, { callSupabaseFunction } from './supabase-api';
+import supabaseApi, { callSupabaseFunction, setLocalTripGroup, getLocalTripGroups } from './supabase-api';
 import { supabase } from './supabase';
 
 const getCurrentUserSession = async () => {
@@ -947,6 +947,7 @@ const api = {
           });
 
           await Promise.all(updatePromises);
+          setLocalTripGroup(trip_ids, groupId);
           return { data: { success: true, dispatch_group_id: groupId, group_id: groupId } };
         }
 
@@ -1007,6 +1008,7 @@ const api = {
           });
 
           await Promise.all(updatePromises);
+          if (groupId) setLocalTripGroup(targetIds, groupId);
           return { data: { success: true, dispatch_group_id: groupId, group_id: groupId } };
         }
 

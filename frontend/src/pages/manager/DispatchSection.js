@@ -11,6 +11,7 @@ import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, 
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { setLocalTripGroup } from "@/lib/supabase-api";
 import TripDetailDialog from "./TripDetailDialog";
 import ActiveDriversPanel from "@/components/ActiveDriversPanel";
 import {
@@ -305,6 +306,7 @@ export default function DispatchSection() {
         supabase.from('trips').update({ dispatch_group_id: null, group_id: null }).eq('id', t.id)
       );
       await Promise.all(updates);
+      setLocalTripGroup((groupTrips || []).map(t => t.id), null);
       toast.success(`Misión ${groupId} desagrupada exitosamente`);
       fetchTrips();
     } catch (e) {

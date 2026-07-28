@@ -39,11 +39,36 @@ export const callSupabaseFunction = async (functionName, body = {}) => {
   }
 };
 
+export const getLocalTripGroups = () => {
+  try {
+    const data = localStorage.getItem('movilizacion_trip_groups');
+    return data ? JSON.parse(data) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+export const setLocalTripGroup = (tripIds, groupId) => {
+  try {
+    const current = getLocalTripGroups();
+    (tripIds || []).forEach((id) => {
+      if (groupId) {
+        current[id] = groupId;
+      } else {
+        delete current[id];
+      }
+    });
+    localStorage.setItem('movilizacion_trip_groups', JSON.stringify(current));
+  } catch (e) {}
+};
+
 const parseTrip = (trip) => {
   if (!trip) return trip;
   const parsed = { ...trip };
-  parsed.dispatch_group_id = trip.dispatch_group_id || trip.group_id || null;
-  parsed.group_id = trip.group_id || trip.dispatch_group_id || null;
+  const localGroups = getLocalTripGroups();
+  const groupVal = trip.dispatch_group_id || trip.group_id || localGroups[trip.id] || null;
+  parsed.dispatch_group_id = groupVal;
+  parsed.group_id = groupVal;
   ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
     if (Array.isArray(parsed[field])) {
       parsed[field] = parsed[field].map(item => {
