@@ -706,10 +706,10 @@ export default function DispatchSection() {
             >
               #{t.tracking_number}
             </span>
-            {t.dispatch_group_id && (
+            {(t.dispatch_group_id || t.group_id) && (
               <Badge className="bg-indigo-600 text-white font-mono text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 border-none shadow-2xs">
                 <Truck className="w-2.5 h-2.5" />
-                MISIÓN #{t.dispatch_group_id}
+                MISIÓN #{t.dispatch_group_id || t.group_id}
               </Badge>
             )}
             <Badge className={`text-[10px] font-black px-2 py-0.5 uppercase rounded-md border-none ${t.priority === "urgente" ? "bg-red-500 text-white animate-pulse" : t.priority === "alta" ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-600"}`}>

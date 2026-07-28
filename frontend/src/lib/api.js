@@ -905,14 +905,21 @@ const api = {
             let { data: updated, error } = await supabase.from('trips').update(patch).eq('id', id).select();
 
             if (error) {
-              console.warn("Supabase update error with dispatch_group_id, retrying with group_id only:", error.message);
+              console.warn("Supabase update warning for trip group columns, retrying with group_id only:", error.message);
               delete patch.dispatch_group_id;
-              const resRetry = await supabase.from('trips').update(patch).eq('id', id).select();
-              if (resRetry.error) {
-                console.error("Supabase update failed for trip", id, resRetry.error);
-                throw new Error(resRetry.error.message || `Error actualizando viaje ${id}`);
+              const resRetry1 = await supabase.from('trips').update(patch).eq('id', id).select();
+              if (resRetry1.error) {
+                console.warn("Supabase update warning for group_id column, retrying without group fields:", resRetry1.error.message);
+                delete patch.group_id;
+                const resRetry2 = await supabase.from('trips').update(patch).eq('id', id).select();
+                if (resRetry2.error) {
+                  console.error("Supabase update failed for trip", id, resRetry2.error);
+                  throw new Error(resRetry2.error.message || `Error actualizando viaje ${id}`);
+                }
+                updated = resRetry2.data;
+              } else {
+                updated = resRetry1.data;
               }
-              updated = resRetry.data;
             }
 
             // Insert audit log
@@ -983,12 +990,18 @@ const api = {
             let { data: updated, error } = await supabase.from('trips').update(patch).eq('id', id).select();
             if (error) {
               delete patch.dispatch_group_id;
-              const resRetry = await supabase.from('trips').update(patch).eq('id', id).select();
-              if (resRetry.error) {
-                console.error("Supabase update error in self-assign for trip", id, resRetry.error);
-                throw new Error(resRetry.error.message);
+              const resRetry1 = await supabase.from('trips').update(patch).eq('id', id).select();
+              if (resRetry1.error) {
+                delete patch.group_id;
+                const resRetry2 = await supabase.from('trips').update(patch).eq('id', id).select();
+                if (resRetry2.error) {
+                  console.error("Supabase update error in self-assign for trip", id, resRetry2.error);
+                  throw new Error(resRetry2.error.message);
+                }
+                updated = resRetry2.data;
+              } else {
+                updated = resRetry1.data;
               }
-              updated = resRetry.data;
             }
             return updated;
           });
