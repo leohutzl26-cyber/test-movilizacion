@@ -79,12 +79,58 @@ export default function TripPoolSection({ onNavigate }) {
     return () => clearInterval(interval);
   }, [fetchPool]);
 
+  const groupedDisplayItems = (() => {
+    const groupMap = new Map();
+    const ungrouped = [];
+
+    displayTrips.forEach((trip) => {
+      const gId = trip.dispatch_group_id || trip.group_id;
+      if (gId) {
+        if (!groupMap.has(gId)) groupMap.set(gId, []);
+        groupMap.get(gId).push(trip);
+      } else {
+        ungrouped.push(trip);
+      }
+    });
+
+    const items = [];
+    groupMap.forEach((tripsInGroup, gId) => {
+      if (tripsInGroup.length > 1) {
+        items.push({ isGroup: true, groupId: gId, trips: tripsInGroup });
+      } else {
+        items.push({ isGroup: false, trip: tripsInGroup[0] });
+      }
+    });
+
+    ungrouped.forEach((trip) => {
+      items.push({ isGroup: false, trip });
+    });
+
+    return items;
+  })();
+
+  const handleTakeGroupTrips = async (groupTrips, groupId) => {
+    try {
+      const tripIds = groupTrips.map((t) => t.id);
+      await api.put("/trips/self-assign", {
+        trip_ids: tripIds,
+        create_group: true,
+        dispatch_group_id: groupId
+      });
+      toast.success(`¡Misión multitraslado #${groupId} tomada exitosamente!`);
+      fetchPool();
+      if (onNavigate) onNavigate("trips");
+    } catch (e) {
+      toast.error("Error al tomar la misión multitraslado");
+    }
+  };
+
   const handleTakeTrip = async (id) => {
     try {
       await api.put(`/trips/${id}/assign`);
       toast.success("¡Viaje tomado exitosamente!");
       fetchPool();
-      onNavigate("trips");
+      if (onNavigate) onNavigate("trips");
     } catch (e) {
       toast.error("Error al tomar el viaje");
     }
@@ -113,6 +159,180 @@ export default function TripPoolSection({ onNavigate }) {
       </div>
     );
   }
+
+  const renderSinglePoolCard = (t) => (
+    <Card
+      key={t.id}
+      className={`shadow-md transition-all hover:shadow-lg ${
+        t.priority === "urgente" 
+          ? "border-t-8 border-t-red-600 ring-2 ring-red-500/20 shadow-red-50" 
+          : t.priority === "alta" 
+            ? "border-t-8 border-t-orange-500 ring-2 ring-orange-500/20 shadow-orange-50" 
+            : "border-t-4 border-t-teal-500"
+      }`}
+    >
+      <CardContent className="p-5">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex flex-col gap-2">
+            <span className="bg-slate-800 text-white font-mono px-3 py-1 rounded-md text-sm font-black self-start shadow-sm tracking-widest">
+              {t.tracking_number || t.id.substring(0, 6).toUpperCase()}
+            </span>
+            <span
+              className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider self-start flex items-center gap-1.5 shadow-sm ${
+                priorityColors[t.priority] || priorityColors.normal
+              }`}
+            >
+              {t.priority === "urgente" && "🚨"}
+              {t.priority === "alta" && "⚠️"}
+              {t.priority}
+            </span>
+          </div>
+          <span className="text-sm font-bold text-slate-700 bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300 shadow-sm">
+            {t.scheduled_date ? formatScheduledDate(t.scheduled_date) : new Date(t.created_at).toLocaleDateString()}
+          </span>
+        </div>
+
+        <div className="mb-4">
+          <p className="font-black text-xl text-slate-900 leading-tight mb-2">
+            {t.trip_type === "clinico" ? t.patient_name : t.task_details}
+          </p>
+          <span className="text-[11px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-slate-200">
+            {t.trip_type === "clinico" ? "Traslado Clínico" : "Cometido No Clínico"}
+          </span>
+        </div>
+
+        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <MapPin className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p>
+              <p className="text-base font-bold text-slate-900 leading-snug">{t.origin}</p>
+              {t.origin_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.origin_address}</p>}
+              <p className="text-xs text-slate-500 font-medium">{t.patient_unit || ""}</p>
+              {(t.origin_maps_url || t.origin) && (
+                <a
+                  href={
+                    t.origin_maps_url ||
+                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.origin_address || t.origin)}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
+                >
+                  <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                </a>
+              )}
+            </div>
+          </div>
+          <div className="ml-2.5 pl-3.5 border-l-2 border-dashed border-slate-300 py-1"></div>
+          <div className="flex items-start gap-3">
+            <Navigation className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p>
+              <p className="text-base font-bold text-slate-900 leading-snug">{t.destination}</p>
+              {t.destination_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.destination_address}</p>}
+              {(t.destination_maps_url || t.destination) && (
+                <a
+                  href={
+                    t.destination_maps_url ||
+                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.destination_address || t.destination)}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                >
+                  <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {t.trip_type === "clinico" && t.patient_requirements?.length > 0 && (
+          <div className="mb-4 bg-amber-50 p-3 rounded-lg border border-amber-200 shadow-sm">
+            <p className="text-[10px] font-black text-amber-800 uppercase flex items-center gap-1.5 mb-1">
+              <ShieldAlert className="w-4 h-4" /> Requerimientos Especiales
+            </p>
+            <p className="text-xs text-amber-900 font-bold">{t.patient_requirements.join(", ")}</p>
+          </div>
+        )}
+
+        <div className="flex gap-2 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setSelectedTrip(t)}
+            className="flex-1 border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-12 rounded-xl text-xs sm:text-sm"
+          >
+            <FileText className="w-5 h-5 mr-1.5" /> Detalles
+          </Button>
+          <Button
+            onClick={() => handleTakeTrip(t.id)}
+            className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-sm rounded-xl text-xs sm:text-sm"
+          >
+            <Truck className="w-5 h-5 mr-1.5" /> Tomar Viaje
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderPoolGroupCard = (groupId, groupTrips) => (
+    <Card key={groupId} className="shadow-lg border-2 border-indigo-500/90 rounded-2xl bg-gradient-to-br from-indigo-50/40 via-white to-white overflow-hidden col-span-1 md:col-span-2">
+      <CardContent className="p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-indigo-100 pb-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge className="bg-indigo-600 text-white font-mono text-xs font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+              <Truck className="w-4 h-4" />
+              MISIÓN MULTITRASLADO #{groupId}
+            </Badge>
+            <Badge className="bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-black px-2.5 py-1 rounded-lg">
+              {groupTrips.length} Solicitudes Agrupadas
+            </Badge>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-black text-indigo-900 uppercase tracking-wider">Solicitudes incluidas en esta misión:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {groupTrips.map((subTrip, idx) => (
+              <div key={subTrip.id} className="p-3 bg-white border border-indigo-100 rounded-xl space-y-2 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="bg-indigo-900 text-white font-mono text-[10px] font-black px-2 py-0.5 rounded">
+                    Parada {idx + 1}
+                  </span>
+                  <span className="bg-slate-100 text-slate-700 font-mono text-[10px] font-black px-2 py-0.5 rounded">
+                    #{subTrip.tracking_number}
+                  </span>
+                </div>
+                <p className="font-black text-slate-900 text-sm">
+                  {subTrip.trip_type === "clinico" ? subTrip.patient_name : subTrip.task_details}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Origen</span>
+                    <span className="font-bold text-slate-800">{subTrip.origin}</span>
+                  </div>
+                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Destino</span>
+                    <span className="font-bold text-slate-800">{subTrip.destination}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <Button
+            onClick={() => handleTakeGroupTrips(groupTrips, groupId)}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black h-12 shadow-md rounded-xl text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+          >
+            <Truck className="w-5 h-5" /> Tomar Misión Multitraslado Completa ({groupTrips.length} traslados)
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="max-w-4xl mx-auto animate-slide-up">
@@ -164,122 +384,12 @@ export default function TripPoolSection({ onNavigate }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {displayTrips.map((t) => (
-          <Card
-            key={t.id}
-            className={`shadow-md transition-all hover:shadow-lg ${
-              t.priority === "urgente" 
-                ? "border-t-8 border-t-red-600 ring-2 ring-red-500/20 shadow-red-50" 
-                : t.priority === "alta" 
-                  ? "border-t-8 border-t-orange-500 ring-2 ring-orange-500/20 shadow-orange-50" 
-                  : "border-t-4 border-t-teal-500"
-            }`}
-          >
-            <CardContent className="p-5">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex flex-col gap-2">
-                  <span className="bg-slate-800 text-white font-mono px-3 py-1 rounded-md text-sm font-black self-start shadow-sm tracking-widest">
-                    {t.tracking_number || t.id.substring(0, 6).toUpperCase()}
-                  </span>
-                  <span
-                    className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider self-start flex items-center gap-1.5 shadow-sm ${
-                      priorityColors[t.priority] || priorityColors.normal
-                    }`}
-                  >
-                    {t.priority === "urgente" && "🚨"}
-                    {t.priority === "alta" && "⚠️"}
-                    {t.priority}
-                  </span>
-                </div>
-                <span className="text-sm font-bold text-slate-700 bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300 shadow-sm">
-                  {t.scheduled_date ? formatScheduledDate(t.scheduled_date) : new Date(t.created_at).toLocaleDateString()}
-                </span>
-              </div>
-
-              <div className="mb-4">
-                <p className="font-black text-xl text-slate-900 leading-tight mb-2">
-                  {t.trip_type === "clinico" ? t.patient_name : t.task_details}
-                </p>
-                <span className="text-[11px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border border-slate-200">
-                  {t.trip_type === "clinico" ? "Traslado Clínico" : "Cometido No Clínico"}
-                </span>
-              </div>
-
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origen</p>
-                    <p className="text-base font-bold text-slate-900 leading-snug">{t.origin}</p>
-                    {t.origin_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.origin_address}</p>}
-                    <p className="text-xs text-slate-500 font-medium">{t.patient_unit || ""}</p>
-                    {(t.origin_maps_url || t.origin) && (
-                      <a
-                        href={
-                          t.origin_maps_url ||
-                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.origin_address || t.origin)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:underline mt-1 bg-teal-50 px-2 py-0.5 rounded border border-teal-200"
-                      >
-                        <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
-                      </a>
-                    )}
-                  </div>
-                </div>
-                <div className="ml-2.5 pl-3.5 border-l-2 border-dashed border-slate-300 py-1"></div>
-                <div className="flex items-start gap-3">
-                  <Navigation className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destino</p>
-                    <p className="text-base font-bold text-slate-900 leading-snug">{t.destination}</p>
-                    {t.destination_address && <p className="text-xs font-bold text-slate-600 mt-0.5">{t.destination_address}</p>}
-                    {(t.destination_maps_url || t.destination) && (
-                      <a
-                        href={
-                          t.destination_maps_url ||
-                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.destination_address || t.destination)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline mt-1 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
-                      >
-                        <Navigation className="w-3 h-3 rotate-45" /> Ver en Mapa
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {t.trip_type === "clinico" && t.patient_requirements?.length > 0 && (
-                <div className="mb-4 bg-amber-50 p-3 rounded-lg border border-amber-200 shadow-sm">
-                  <p className="text-[10px] font-black text-amber-800 uppercase flex items-center gap-1.5 mb-1">
-                    <ShieldAlert className="w-4 h-4" /> Requerimientos Especiales
-                  </p>
-                  <p className="text-xs text-amber-900 font-bold">{t.patient_requirements.join(", ")}</p>
-                </div>
-              )}
-
-              <div className="flex gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedTrip(t)}
-                  className="flex-1 border-teal-200 text-teal-700 hover:bg-teal-50 font-bold h-12 rounded-xl text-xs sm:text-sm"
-                >
-                  <FileText className="w-5 h-5 mr-1.5" /> Detalles
-                </Button>
-                <Button
-                  onClick={() => handleTakeTrip(t.id)}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 shadow-sm rounded-xl text-xs sm:text-sm"
-                >
-                  <Truck className="w-5 h-5 mr-1.5" /> Tomar Viaje
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {displayTrips.length === 0 && (
+        {groupedDisplayItems.map((item) =>
+          item.isGroup
+            ? renderPoolGroupCard(item.groupId, item.trips)
+            : renderSinglePoolCard(item.trip)
+        )}
+        {groupedDisplayItems.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm">
             <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-slate-50">
               {activeTab === "ambulance" ? <Siren className="w-10 h-10 text-slate-200" /> : <ClipboardList className="w-10 h-10 text-slate-200" />}
