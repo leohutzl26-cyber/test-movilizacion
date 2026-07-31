@@ -336,6 +336,7 @@ export default function DispatchSection() {
   const [editRequirements, setEditRequirements] = useState([]);
   const [showEditOriginMap, setShowEditOriginMap] = useState(false);
   const [showEditDestMap, setShowEditDestMap] = useState(false);
+  const [useEditCustomService, setUseEditCustomService] = useState(false);
 
   // Carga de opciones al montar
   useEffect(() => {
@@ -413,12 +414,15 @@ export default function DispatchSection() {
       });
       setEditStaffRows(editDialog.assigned_clinical_staff || []);
       setEditRequirements(editDialog.patient_requirements || []);
+      const hasService = originServices.some((s) => s.name === editDialog.patient_unit);
+      setUseEditCustomService(!hasService && !!editDialog.patient_unit);
     } else {
       setEditForm(null);
       setEditStaffRows([]);
       setEditRequirements([]);
+      setUseEditCustomService(false);
     }
-  }, [editDialog]);
+  }, [editDialog, originServices]);
 
   // Manejadores para edición
   const handleEditFormChange = (field, val) => {
@@ -1569,16 +1573,35 @@ export default function DispatchSection() {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] font-bold text-slate-500 uppercase">Servicio Solicitante</Label>
-                      <Select value={editForm.patient_unit} onValueChange={(v) => handleEditFormChange("patient_unit", v)}>
-                        <SelectTrigger className="h-9 text-xs font-semibold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {originServices.map((s) => (
-                            <SelectItem key={s.id} value={s.name}>
-                              {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {!useEditCustomService ? (
+                        <Select value={editForm.patient_unit || undefined} onValueChange={(v) => {
+                          if (v === "otro") {
+                            setUseEditCustomService(true);
+                          } else {
+                            handleEditFormChange("patient_unit", v);
+                          }
+                        }}>
+                          <SelectTrigger className="h-9 text-xs font-semibold">
+                            <SelectValue placeholder="Seleccione servicio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {originServices.map((s) => (
+                              <SelectItem key={s.id} value={s.name}>
+                                {s.name}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="otro">Otro (escribir)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={editForm.patient_unit || ""}
+                          onChange={(e) => handleEditFormChange("patient_unit", e.target.value)}
+                          onDoubleClick={() => setUseEditCustomService(false)}
+                          className="h-9 text-xs font-semibold bg-white"
+                          placeholder="Escriba servicio"
+                        />
+                      )}
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] font-bold text-slate-500 uppercase">Motivo Traslado</Label>
