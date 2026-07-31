@@ -570,13 +570,14 @@ export default function DispatchSection() {
     e.preventDefault();
     if (!editForm) return;
 
+    if (!editForm.patient_unit) {
+      toast.error("Servicio solicitante requerido");
+      return;
+    }
+
     if (editDialog.trip_type === "clinico") {
       if (!editForm.patient_name) {
         toast.error("Nombre del paciente requerido");
-        return;
-      }
-      if (!editForm.patient_unit) {
-        toast.error("Servicio solicitante requerido");
         return;
       }
       if (!editForm.transfer_reason) {
@@ -1540,6 +1541,39 @@ export default function DispatchSection() {
                   </Select>
                 </div>
 
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Servicio Solicitante</Label>
+                  {!useEditCustomService ? (
+                    <Select value={editForm.patient_unit || undefined} onValueChange={(v) => {
+                      if (v === "otro") {
+                        setUseEditCustomService(true);
+                      } else {
+                        handleEditFormChange("patient_unit", v);
+                      }
+                    }}>
+                      <SelectTrigger className="h-9 text-xs font-semibold">
+                        <SelectValue placeholder="Seleccione servicio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {originServices.map((s) => (
+                          <SelectItem key={s.id} value={s.name}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="otro">Otro (escribir)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={editForm.patient_unit || ""}
+                      onChange={(e) => handleEditFormChange("patient_unit", e.target.value)}
+                      onDoubleClick={() => setUseEditCustomService(false)}
+                      className="h-9 text-xs font-semibold bg-white"
+                      placeholder="Escriba servicio"
+                    />
+                  )}
+                </div>
+
                 {editDialog?.trip_type === "no_clinico" && (
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Cantidad de Funcionarios</Label>
@@ -1570,38 +1604,6 @@ export default function DispatchSection() {
                     <div className="space-y-1">
                       <Label className="text-[10px] font-bold text-slate-500 uppercase">Cama</Label>
                       <Input value={editForm.bed} onChange={(e) => handleEditFormChange("bed", e.target.value)} className="h-9 text-xs font-semibold" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Servicio Solicitante</Label>
-                      {!useEditCustomService ? (
-                        <Select value={editForm.patient_unit || undefined} onValueChange={(v) => {
-                          if (v === "otro") {
-                            setUseEditCustomService(true);
-                          } else {
-                            handleEditFormChange("patient_unit", v);
-                          }
-                        }}>
-                          <SelectTrigger className="h-9 text-xs font-semibold">
-                            <SelectValue placeholder="Seleccione servicio" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {originServices.map((s) => (
-                              <SelectItem key={s.id} value={s.name}>
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value="otro">Otro (escribir)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          value={editForm.patient_unit || ""}
-                          onChange={(e) => handleEditFormChange("patient_unit", e.target.value)}
-                          onDoubleClick={() => setUseEditCustomService(false)}
-                          className="h-9 text-xs font-semibold bg-white"
-                          placeholder="Escriba servicio"
-                        />
-                      )}
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] font-bold text-slate-500 uppercase">Motivo Traslado</Label>
