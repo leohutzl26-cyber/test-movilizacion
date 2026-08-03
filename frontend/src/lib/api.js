@@ -387,11 +387,25 @@ const api = {
             if (staffError) console.warn("Error fetching clinical staff profiles:", staffError);
             
             const viewType = queryParams.view || 'diaria';
-            let tripQuery = supabase
+            
+            // Obtener todos los traslados de tipo clinico y no cancelados
+            const { data: rawTrips, error: tripsError } = await supabase
               .from('trips')
               .select('*')
               .eq('trip_type', 'clinico')
               .neq('status', 'cancelado');
+            
+            if (tripsError) console.warn("Error fetching clinical trips:", tripsError);
+
+            // Helper para calcular y formatear fechas en la zona horaria local
+            const formatDateLocal = (date) => {
+              const y = date.getFullYear();
+              const m = String(date.getMonth() + 1).padStart(2, '0');
+              const d = String(date.getDate()).padStart(2, '0');
+              return `${y}-${m}-${d}`;
+            };
+
+            let tripsFiltered = rawTrips || [];
 
             if (viewType === 'semanal') {
               const dateObj = new Date(targetDate + 'T12:00:00');
@@ -402,35 +416,41 @@ const api = {
               const sunday = new Date(monday);
               sunday.setDate(monday.getDate() + 6);
               
-              const startOfWeek = monday.toISOString().split('T')[0];
-              const endOfWeek = sunday.toISOString().split('T')[0];
+              const startOfWeek = formatDateLocal(monday);
+              const endOfWeek = formatDateLocal(sunday);
               
-              tripQuery = tripQuery
-                .gte('scheduled_date', startOfWeek)
-                .lte('scheduled_date', endOfWeek);
+              tripsFiltered = tripsFiltered.filter(t => {
+                if (!t.scheduled_date) return false;
+                const sDate = t.scheduled_date.split('T')[0];
+                return sDate >= startOfWeek && sDate <= endOfWeek;
+              });
             } else if (viewType === 'mensual') {
               const dateObj = new Date(targetDate + 'T12:00:00');
               const year = dateObj.getFullYear();
               const month = dateObj.getMonth();
               
-              const startOfMonth = new Date(year, month, 1, 12, 0, 0).toISOString().split('T')[0];
-              const endOfMonth = new Date(year, month + 1, 0, 12, 0, 0).toISOString().split('T')[0];
+              const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+              const lastDay = new Date(year, month + 1, 0).getDate();
+              const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
               
-              tripQuery = tripQuery
-                .gte('scheduled_date', startOfMonth)
-                .lte('scheduled_date', endOfMonth);
+              tripsFiltered = tripsFiltered.filter(t => {
+                if (!t.scheduled_date) return false;
+                const sDate = t.scheduled_date.split('T')[0];
+                return sDate >= startOfMonth && sDate <= endOfMonth;
+              });
             } else {
-              tripQuery = tripQuery.eq('scheduled_date', targetDate);
+              tripsFiltered = tripsFiltered.filter(t => {
+                if (!t.scheduled_date) return false;
+                const sDate = t.scheduled_date.split('T')[0];
+                return sDate === targetDate;
+              });
             }
 
             if (userRole === 'coordinador') {
-              tripQuery = tripQuery.neq('status', 'revision_gestor');
+              tripsFiltered = tripsFiltered.filter(t => t.status !== 'revision_gestor');
             }
-
-            const { data: rawTrips, error: tripsError } = await tripQuery;
-            if (tripsError) console.warn("Error fetching clinical trips:", tripsError);
             
-            const trips = (rawTrips || []).map(t => {
+            const trips = tripsFiltered.map(t => {
               const parsed = { ...t };
               ['assigned_clinical_staff', 'required_personnel', 'patient_requirements'].forEach(field => {
                 let val = parsed[field];
