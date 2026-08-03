@@ -1184,7 +1184,14 @@ const api = {
           if (data.clinical_escort_confirmed !== undefined) updatePayload.clinical_escort_confirmed = data.clinical_escort_confirmed;
           if (data.driver_notes !== undefined) updatePayload.driver_notes = data.driver_notes;
           if (data.notes !== undefined) updatePayload.notes = data.notes;
-          if (data.mileage !== undefined) updatePayload.mileage = data.mileage;
+          if (data.mileage !== undefined) {
+            // 'trips' has no generic 'mileage' column, only start/end/total_mileage
+            if (data.status === 'en_curso') {
+              updatePayload.start_mileage = data.mileage;
+            } else if (data.status === 'completado') {
+              updatePayload.end_mileage = data.mileage;
+            }
+          }
           if (data.cancel_reason !== undefined) updatePayload.cancel_reason = data.cancel_reason;
           if (data.vehicle_id !== undefined) updatePayload.vehicle_id = data.vehicle_id;
 

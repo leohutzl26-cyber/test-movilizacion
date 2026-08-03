@@ -252,7 +252,14 @@ export default function MyTripsSection() {
       }
       if (actionType === "end") payload = { status: "completado", mileage: parseFloat(mileage), driver_notes: driverNotes };
 
-      await Promise.all(targetTrips.map((t) => api.put(`/trips/${t.id}/status`, payload)));
+      // En una misión multitraslado, algún viaje del grupo puede ya estar
+      // en el estado destino (p. ej. completado en un intento anterior);
+      // reenviar esa transición es inválida y hace fallar todo el Promise.all.
+      const tripsToUpdate = payload.status
+        ? targetTrips.filter((t) => t.status !== payload.status)
+        : targetTrips;
+
+      await Promise.all(tripsToUpdate.map((t) => api.put(`/trips/${t.id}/status`, payload)));
       toast.success(
         actionType === "start"
           ? actionDialog.isGroup ? "Misión iniciada" : "Viaje iniciado"
