@@ -555,7 +555,11 @@ export default function MyTripsSection() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200 mb-2">
                     <span className="text-xs font-bold text-slate-500">KM INICIAL:</span>
-                    <span className="font-mono font-bold text-slate-700">{actionDialog.start_mileage} km</span>
+                    <span className="font-mono font-bold text-slate-700">
+                      {actionDialog.isGroup 
+                        ? (actionDialog.trips[0]?.start_mileage || 0) 
+                        : (actionDialog.start_mileage || 0)} km
+                    </span>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold text-slate-700 text-sm">Kilometraje Final</Label>
