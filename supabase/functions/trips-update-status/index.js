@@ -5,12 +5,23 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Roles that are allowed to change a trip's status. The read-only "panel"
+// display board never mutates trips.
+const ALLOWED_ROLES = ['admin', 'solicitante', 'conductor', 'coordinador', 'gestion_camas', 'personal_clinico'];
+
 exports.handler = async (event, context) => {
   try {
     const requestBody = JSON.parse(event.body);
     const { trip_id, status, mileage, cancel_reason, vehicle_id, driver_notes } = requestBody;
     const userId = context.user?.id;
     const userRole = context.user?.role;
+
+    if (!userId || !ALLOWED_ROLES.includes(userRole)) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ error: 'No tienes permisos para modificar este traslado' })
+      };
+    }
 
     // Validate input
     if (!trip_id) {
