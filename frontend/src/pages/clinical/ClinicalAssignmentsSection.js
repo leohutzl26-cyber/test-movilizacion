@@ -76,6 +76,15 @@ export default function ClinicalAssignmentsSection() {
 
   const myStatus = (t) => findMyEscortEntry(t, user?.id, user?.name)?.status || "en_curso";
 
+  // El acompañamiento "arranca" solo, sin botón: sigue el estado real del
+  // traslado (lo controla el conductor). "Finalizar" sigue siendo manual
+  // porque el acompañante puede terminar su parte en un momento distinto.
+  const escortPhase = (t) => {
+    const mine = myStatus(t);
+    if (mine === "completado") return "completado";
+    return t.status === "en_curso" ? "en_curso" : "programado";
+  };
+
   const activeTrips = trips.filter((t) => myStatus(t) !== "completado");
   const completedTrips = trips.filter((t) => myStatus(t) === "completado");
   const displayTrips = activeTab === "pendientes" ? activeTrips : completedTrips;
@@ -168,7 +177,7 @@ export default function ClinicalAssignmentsSection() {
     );
   }
 
-  const renderStatusBadges = (t, mine) => (
+  const renderStatusBadges = (t, phase) => (
     <div className="flex items-center gap-1.5 flex-wrap">
       <span className="bg-slate-900 text-white font-mono px-2 py-0.5 rounded text-xs font-black">
         #{t.tracking_number}
@@ -179,13 +188,17 @@ export default function ClinicalAssignmentsSection() {
       }`}>
         {t.status === "en_curso" ? "TRASLADO EN RUTA" : (t.status || "").toUpperCase()}
       </Badge>
-      {mine === "completado" ? (
+      {phase === "completado" ? (
         <Badge className="text-[9px] font-black uppercase border-none bg-slate-200 text-slate-700 flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" /> Acompañamiento finalizado
         </Badge>
-      ) : (
+      ) : phase === "en_curso" ? (
         <Badge className="text-[9px] font-black uppercase border-none bg-teal-100 text-teal-800 flex items-center gap-1">
           <Stethoscope className="w-3 h-3" /> Acompañamiento en curso
+        </Badge>
+      ) : (
+        <Badge className="text-[9px] font-black uppercase border-none bg-amber-100 text-amber-800 flex items-center gap-1">
+          <Clock className="w-3 h-3" /> Acompañamiento programado
         </Badge>
       )}
     </div>
@@ -193,6 +206,7 @@ export default function ClinicalAssignmentsSection() {
 
   const renderSingleCard = (t) => {
     const mine = myStatus(t);
+    const phase = escortPhase(t);
     const highlighted = isTodayOrPast(t) && mine !== "completado";
     return (
       <Card
@@ -206,7 +220,7 @@ export default function ClinicalAssignmentsSection() {
         <CardContent className="p-5 space-y-4">
           <div className="flex justify-between items-start">
             <div className="space-y-1.5">
-              {renderStatusBadges(t, mine)}
+              {renderStatusBadges(t, phase)}
               <span className="text-[10px] font-bold text-slate-500 block">
                 Fecha: {t.scheduled_date ? formatScheduledDate(t.scheduled_date) : "Hoy"}
               </span>
@@ -289,15 +303,17 @@ export default function ClinicalAssignmentsSection() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {groupTrips.map((subTrip, idx) => {
-              const mine = myStatus(subTrip);
+              const phase = escortPhase(subTrip);
+              const phaseStyle = phase === "completado" ? "bg-slate-100 text-slate-500" : phase === "en_curso" ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700";
+              const phaseLabel = phase === "completado" ? "Finalizado" : phase === "en_curso" ? "En curso" : "Programado";
               return (
                 <div key={subTrip.id} className="p-2.5 bg-white border border-indigo-100 rounded-xl text-xs space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="bg-indigo-900 text-white font-mono text-[9px] font-black px-1.5 py-0.5 rounded">
                       Parada {idx + 1}
                     </span>
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${mine === "completado" ? "bg-slate-100 text-slate-500" : "bg-teal-100 text-teal-700"}`}>
-                      {mine === "completado" ? "Finalizado" : "En curso"}
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${phaseStyle}`}>
+                      {phaseLabel}
                     </span>
                   </div>
                   <p className="font-black text-slate-900 truncate">{subTrip.patient_name || "Paciente no especificado"}</p>
@@ -345,7 +361,7 @@ export default function ClinicalAssignmentsSection() {
               activeTab === "pendientes" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500"
             }`}
           >
-            En Curso ({activeTrips.length})
+            Activos ({activeTrips.length})
           </button>
           <button
             onClick={() => setActiveTab("completados")}

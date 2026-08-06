@@ -39,6 +39,9 @@ export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefre
 
   const myEscortEntry = findMyEscortEntry(trip, user?.id);
   const alreadyFinalized = myEscortEntry?.status === "completado";
+  // El acompañamiento sigue el estado real del traslado (lo controla el
+  // conductor); no hay un botón manual de "iniciar".
+  const escortPhase = alreadyFinalized ? "completado" : (trip.status === "en_curso" ? "en_curso" : "programado");
 
   const handleSaveNotes = async () => {
     setSavingNotes(true);
@@ -117,6 +120,14 @@ export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefre
               }`}>
                 Prioridad: {trip.priority || 'Normal'}
               </Badge>
+              {myEscortEntry && (
+                <Badge className={`text-[10px] sm:text-xs font-black uppercase ${
+                  escortPhase === 'completado' ? 'bg-slate-500 text-white' :
+                  escortPhase === 'en_curso' ? 'bg-teal-400 text-teal-950' : 'bg-amber-400 text-amber-950'
+                }`}>
+                  {escortPhase === 'completado' ? 'Acompañamiento finalizado' : escortPhase === 'en_curso' ? 'Acompañamiento en curso' : 'Acompañamiento programado'}
+                </Badge>
+              )}
             </div>
             <span className="text-[11px] sm:text-xs text-teal-100 font-bold flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />

@@ -36,6 +36,7 @@ export default function EscortsOverview() {
 
   const onDuty = escorts.filter((e) => e.is_working).length;
   const activeNow = escorts.reduce((sum, e) => sum + e.active_count, 0);
+  const scheduledNow = escorts.reduce((sum, e) => sum + e.scheduled_count, 0);
 
   return (
     <div className="max-w-6xl mx-auto animate-slide-up">
@@ -56,7 +57,10 @@ export default function EscortsOverview() {
             🟢 {onDuty} en turno
           </Badge>
           <Badge className="bg-teal-100 text-teal-800 border-none text-[10px] font-black">
-            {activeNow} acompañamientos activos ahora
+            {activeNow} en curso ahora
+          </Badge>
+          <Badge className="bg-amber-100 text-amber-800 border-none text-[10px] font-black">
+            {scheduledNow} programados
           </Badge>
         </div>
         <div className="w-full sm:max-w-xs">
@@ -83,7 +87,8 @@ export default function EscortsOverview() {
                 <tr>
                   <th className="p-4">Nombre / Profesión</th>
                   <th className="p-4 text-center">Turno</th>
-                  <th className="p-4 text-center">Carga Actual</th>
+                  <th className="p-4 text-center">En Curso</th>
+                  <th className="p-4 text-center">Programados</th>
                   <th className="p-4 text-center">Histórico Completados</th>
                 </tr>
               </thead>
@@ -103,7 +108,12 @@ export default function EscortsOverview() {
                     </td>
                     <td className="p-4 text-center">
                       <Badge className={`border-none text-[10px] font-black ${e.active_count > 0 ? "bg-teal-100 text-teal-800" : "bg-slate-100 text-slate-500"}`}>
-                        {e.active_count} {e.active_count === 1 ? "acompañamiento" : "acompañamientos"}
+                        {e.active_count}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-center">
+                      <Badge className={`border-none text-[10px] font-black ${e.scheduled_count > 0 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"}`}>
+                        {e.scheduled_count}
                       </Badge>
                     </td>
                     <td className="p-4 text-center text-slate-700 font-bold">
@@ -113,7 +123,7 @@ export default function EscortsOverview() {
                 ))}
                 {filteredEscorts.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center py-10 text-slate-400">
+                    <td colSpan={5} className="text-center py-10 text-slate-400">
                       No hay acompañantes clínicos registrados.
                     </td>
                   </tr>

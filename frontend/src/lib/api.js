@@ -637,15 +637,22 @@ const api = {
 
             const overview = (staffProfiles || []).map(p => {
               let activeCount = 0;
+              let scheduledCount = 0;
               let completedCount = 0;
               trips.forEach(t => {
                 const entries = parseStaffEntries(t).filter(s =>
                   (s.staff_id && s.staff_id === p.id) || (!s.staff_id && s.staff_name && s.staff_name === p.name)
                 );
                 entries.forEach(entry => {
-                  // Entradas legadas sin status se cuentan como en curso.
-                  if (entry.status === 'completado') completedCount += 1;
-                  else activeCount += 1;
+                  if (entry.status === 'completado') {
+                    completedCount += 1;
+                  } else if (t.status === 'en_curso') {
+                    // "En curso" refleja el estado real del traslado (lo controla
+                    // el conductor), no solo que el acompañante esté asignado.
+                    activeCount += 1;
+                  } else {
+                    scheduledCount += 1;
+                  }
                 });
               });
 
@@ -655,6 +662,7 @@ const api = {
                 department: p.department || 'Acompañante Clínico',
                 is_working: !!p.is_working,
                 active_count: activeCount,
+                scheduled_count: scheduledCount,
                 completed_count: completedCount
               };
             });
