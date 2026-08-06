@@ -1165,17 +1165,15 @@ const api = {
             currentStaff.push({ type: staffType, staff_id: userId, staff_name: staffName });
           }
 
-          const { data: updatedTrip, error } = await supabase
-            .from('trips')
-            .update({ assigned_clinical_staff: currentStaff })
-            .eq('id', tripId)
-            .select()
-            .maybeSingle();
-
-          if (error) throw error;
-          // RLS puede bloquear el UPDATE sin devolver error (0 filas afectadas);
-          // sin este chequeo el frontend mostraría éxito aunque no se guardó nada.
-          if (!updatedTrip) throw new Error("No se pudo guardar la asignación (permiso denegado)");
+          // Se usa la Edge Function (service role) en vez de un UPDATE directo:
+          // el cliente de Supabase del navegador solo envía la anon key, nunca
+          // el JWT propio de la app, así que las políticas RLS que dependen de
+          // get_auth_uid() nunca ven al usuario autenticado y bloquean el UPDATE
+          // en silencio (0 filas afectadas, sin error).
+          const updatedTrip = await supabaseApi.trips.updateStatus(tripId, undefined, {
+            assigned_clinical_staff: currentStaff
+          });
+          if (!updatedTrip) throw new Error("No se pudo guardar la asignación");
           return { data: updatedTrip };
         } else if (parts[3] === "clinical-assign") {
           const { staff_id, staff_name, staff_type } = data;
@@ -1184,14 +1182,10 @@ const api = {
             newStaff = [{ type: staff_type || "Acompañante", staff_id, staff_name }];
           }
 
-          const { data: updatedTrip, error } = await supabase
-            .from('trips')
-            .update({ assigned_clinical_staff: newStaff })
-            .eq('id', tripId)
-            .select()
-            .maybeSingle();
-
-          if (error) throw error;
+          const updatedTrip = await supabaseApi.trips.updateStatus(tripId, undefined, {
+            assigned_clinical_staff: newStaff
+          });
+          if (!updatedTrip) throw new Error("No se pudo guardar la asignación");
           return { data: updatedTrip };
         } else if (parts[3] === "status") {
           const updatePayload = {};

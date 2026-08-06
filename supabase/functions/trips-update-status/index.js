@@ -129,6 +129,9 @@ exports.handler = async (event, context) => {
     if (requestBody.notes !== undefined) {
       updateData.notes = requestBody.notes;
     }
+    if (requestBody.assigned_clinical_staff !== undefined) {
+      updateData.assigned_clinical_staff = requestBody.assigned_clinical_staff;
+    }
 
     // Update trip only if there are fields to update
     let updatedTrip = currentTrip;
