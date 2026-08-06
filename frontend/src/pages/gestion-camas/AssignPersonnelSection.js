@@ -118,7 +118,7 @@ export default function AssignPersonnelSection() {
       const payload = {
         ...editData,
         priority: priority,
-        assigned_clinical_staff: staffRows,
+        assigned_clinical_staff: staffRows.filter(s => s.staff_id && s.staff_id !== "none" && s.staff_name),
         clinical_team: clinicalTeamString || null
       };
 

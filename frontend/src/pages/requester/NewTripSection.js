@@ -257,7 +257,7 @@ export default function NewTripSection({ editingTrip, setEditingTrip, onSaved })
         transfer_reason: finalTransferReason,
         trip_type: tripType,
         required_personnel: staffRows.map((r) => `${r.type}: ${r.staff_name || "Por identificar"}`),
-        assigned_clinical_staff: staffRows,
+        assigned_clinical_staff: staffRows.filter((r) => r.staff_id && r.staff_name),
       };
 
       if (editingTrip) {

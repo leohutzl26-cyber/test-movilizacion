@@ -131,7 +131,7 @@ export default function GestorNewTripSection() {
     }
     setLoading(true);
     try {
-      await api.post("/trips", { ...form, trip_type: tripType, required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`), assigned_clinical_staff: staffRows });
+      await api.post("/trips", { ...form, trip_type: tripType, required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`), assigned_clinical_staff: staffRows.filter(r => r.staff_id && r.staff_name) });
       toast.success("Traslado creado exitosamente");
       setForm({
         origin: "", origin_address: "", origin_maps_url: "",

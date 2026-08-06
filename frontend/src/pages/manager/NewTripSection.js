@@ -190,7 +190,7 @@ export default function NewTripSection({ onNavigate }) {
                 task_details: tripType === "no_clinico" ? (form.task_details || "").trim() : "",
                 trip_type: tripType,
                 required_personnel: staffRows.map(r => `${r.type}: ${r.staff_name || "Por identificar"}`),
-                assigned_clinical_staff: staffRows,
+                assigned_clinical_staff: staffRows.filter(r => r.staff_id && r.staff_name),
             };
 
             await api.post("/trips", submitData);

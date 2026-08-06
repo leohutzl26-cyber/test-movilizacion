@@ -187,11 +187,14 @@ const api = {
             return staffArr.some(staff => {
               let item = staff;
               if (typeof staff === 'string') {
-                try { item = JSON.parse(staff); } catch(e) {}
+                try { item = JSON.parse(staff); } catch(e) { return false; }
               }
               const sId = item?.staff_id || item?.id;
-              const sName = (item?.staff_name || item?.name || item?.nombre || '').toLowerCase();
-              return (sId && sId === userId) || (userName && (sName.includes(userName) || userName.includes(sName)));
+              if (sId && sId !== "none") return sId === userId;
+              // Sin id registrado (dato legado o "por identificar"): exigir coincidencia
+              // exacta de nombre, nunca una comparación por substring contra un nombre vacío.
+              const sName = (item?.staff_name || item?.name || item?.nombre || '').trim().toLowerCase();
+              return !!sName && !!userName && sName === userName;
             });
           });
 
@@ -579,7 +582,17 @@ const api = {
             }).filter(t => {
               let staff = t.assigned_clinical_staff;
               if (!Array.isArray(staff) || staff.length === 0) return true;
-              return false;
+              // Filas sin id real (vacías o "por identificar") no cuentan como
+              // acompañante confirmado: el traslado sigue disponible en la bolsa.
+              const hasConfirmedStaff = staff.some(s => {
+                let item = s;
+                if (typeof s === 'string') {
+                  try { item = JSON.parse(s); } catch(e) { return false; }
+                }
+                const sId = item?.staff_id || item?.id;
+                return !!(sId && sId !== "none");
+              });
+              return !hasConfirmedStaff;
             });
 
             return { data: poolTrips };
