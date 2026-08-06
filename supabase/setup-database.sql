@@ -274,7 +274,7 @@ CREATE POLICY "Gestores and Admins can delete clinical staff" ON clinical_staff 
 -- RLS Policies for trips
 CREATE POLICY "Trips are viewable by everyone" ON trips FOR SELECT USING (true);
 CREATE POLICY "Users can insert trips" ON trips FOR INSERT WITH CHECK (auth.uid() = requester_id OR auth.role() = 'admin');
-CREATE POLICY "Users can update trips they own" ON trips FOR UPDATE USING (auth.uid() = requester_id OR auth.uid() = driver_id OR auth.role() = 'admin');
+CREATE POLICY "Users can update trips they own" ON trips FOR UPDATE USING (auth.uid() = requester_id OR auth.uid() = driver_id OR auth.role() IN ('admin', 'coordinador', 'gestion_camas', 'personal_clinico'));
 CREATE POLICY "Admins can delete trips" ON trips FOR DELETE USING (auth.role() = 'admin');
 
 -- RLS Policies for audit_logs

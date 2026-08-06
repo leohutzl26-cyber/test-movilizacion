@@ -1173,6 +1173,9 @@ const api = {
             .maybeSingle();
 
           if (error) throw error;
+          // RLS puede bloquear el UPDATE sin devolver error (0 filas afectadas);
+          // sin este chequeo el frontend mostraría éxito aunque no se guardó nada.
+          if (!updatedTrip) throw new Error("No se pudo guardar la asignación (permiso denegado)");
           return { data: updatedTrip };
         } else if (parts[3] === "clinical-assign") {
           const { staff_id, staff_name, staff_type } = data;
