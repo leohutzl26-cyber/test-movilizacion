@@ -20,6 +20,7 @@ import OriginsMantenedor from "./manager/OriginsMantenedor";
 import DestinationsMantenedor from "./manager/DestinationsMantenedor";
 import OriginServicesMantenedor from "./manager/OriginServicesMantenedor";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import EscortsOverview from "@/components/EscortsOverview";
 
 export default function ShiftManagerDashboard() {
     const [section, setSection] = useState(() => {
@@ -74,6 +75,7 @@ export default function ShiftManagerDashboard() {
                     {section === "destinations" && <DestinationsMantenedor />}
                     {section === "services" && <OriginServicesMantenedor />}
                     {section === "analytics" && <AnalyticsDashboard />}
+                    {section === "escorts" && <EscortsOverview />}
                 </div>
             </main>
         </div>

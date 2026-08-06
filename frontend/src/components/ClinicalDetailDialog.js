@@ -10,8 +10,25 @@ import { User, Activity, Stethoscope, HeartPulse, ShieldAlert, Clock, MapPin, Ch
 import api from "@/lib/api";
 import TripEvolutionLog from "@/components/TripEvolutionLog";
 import { formatScheduledDate } from "@/lib/tripUtils";
+import { useAuth } from "@/contexts/AuthContext";
+
+const findMyEscortEntry = (trip, userId) => {
+  let staffArr = trip?.assigned_clinical_staff || [];
+  if (typeof staffArr === "string") {
+    try { staffArr = JSON.parse(staffArr); } catch (e) { staffArr = []; }
+  }
+  if (!Array.isArray(staffArr)) return null;
+  const parsed = staffArr.map((s) => {
+    if (typeof s === "string") {
+      try { return JSON.parse(s); } catch (e) { return { staff_name: s }; }
+    }
+    return s;
+  });
+  return parsed.find((s) => s.staff_id && s.staff_id === userId) || null;
+};
 
 export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefresh }) {
+  const { user } = useAuth();
   const [clinicalNotes, setClinicalNotes] = useState(trip?.clinical_notes || trip?.driver_notes || "");
   const [savingNotes, setSavingNotes] = useState(false);
   const [incidentReason, setIncidentReason] = useState("");
@@ -19,6 +36,9 @@ export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefre
   const [actionLoading, setActionLoading] = useState(false);
 
   if (!trip) return null;
+
+  const myEscortEntry = findMyEscortEntry(trip, user?.id);
+  const alreadyFinalized = myEscortEntry?.status === "completado";
 
   const handleSaveNotes = async () => {
     setSavingNotes(true);
@@ -36,17 +56,17 @@ export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefre
     }
   };
 
-  const handleConfirmEscort = async () => {
+  const handleFinalizeEscort = async () => {
     setActionLoading(true);
     try {
-      await api.put(`/trips/${trip.id}/status`, {
-        clinical_escort_confirmed: true,
-        clinical_notes: clinicalNotes ? `${clinicalNotes}\n[Confirmación]: Acompañamiento verificado por personal de salud.` : "[Confirmación]: Acompañamiento verificado por personal de salud."
+      await api.put(`/trips/${trip.id}/finalize-clinical`, {
+        clinical_notes: clinicalNotes || undefined
       });
-      toast.success("Acompañamiento clínico verificado exitosamente");
+      toast.success("Acompañamiento finalizado exitosamente");
       if (onRefresh) onRefresh();
+      onOpenChange(false);
     } catch (e) {
-      toast.error("Error al confirmar acompañamiento");
+      toast.error("Error al finalizar acompañamiento");
     } finally {
       setActionLoading(false);
     }
@@ -312,14 +332,20 @@ export default function ClinicalDetailDialog({ trip, open, onOpenChange, onRefre
                 <AlertTriangle className="w-3.5 h-3.5" /> Reportar Retraso / Incidencia
               </Button>
 
-              <Button
-                onClick={handleConfirmEscort}
-                disabled={actionLoading}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 sm:h-8 flex items-center justify-center gap-1.5 rounded-xl shadow-xs"
-              >
-                <CheckCircle2 className="w-4 h-4" /> Confirmar Acompañamiento
-              </Button>
+              {alreadyFinalized ? (
+                <Badge className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 border-none">
+                  <CheckCircle2 className="w-4 h-4" /> Acompañamiento ya finalizado
+                </Badge>
+              ) : (
+                <Button
+                  onClick={handleFinalizeEscort}
+                  disabled={actionLoading}
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 sm:h-8 flex items-center justify-center gap-1.5 rounded-xl shadow-xs"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Finalizar Acompañamiento
+                </Button>
+              )}
             </div>
           )}
 

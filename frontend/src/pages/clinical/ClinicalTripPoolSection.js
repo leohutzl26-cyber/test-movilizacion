@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MapPin, ArrowRight, Clock, CalendarDays, Activity, Stethoscope, UserCheck, RefreshCw, AlertCircle, ShoppingBag } from "lucide-react";
+import { MapPin, ArrowRight, Clock, CalendarDays, Activity, Stethoscope, UserCheck, RefreshCw, ShoppingBag, Users } from "lucide-react";
 import api from "@/lib/api";
 import { formatScheduledDate } from "@/lib/tripUtils";
 
@@ -30,6 +30,36 @@ export default function ClinicalTripPoolSection({ onAssignSuccess }) {
     return () => clearInterval(interval);
   }, [fetchPool]);
 
+  const groupedDisplayItems = (() => {
+    const groupMap = new Map();
+    const ungrouped = [];
+
+    trips.forEach((trip) => {
+      const gId = trip.dispatch_group_id || trip.group_id;
+      if (gId) {
+        if (!groupMap.has(gId)) groupMap.set(gId, []);
+        groupMap.get(gId).push(trip);
+      } else {
+        ungrouped.push(trip);
+      }
+    });
+
+    const items = [];
+    groupMap.forEach((tripsInGroup, gId) => {
+      if (tripsInGroup.length > 1) {
+        items.push({ isGroup: true, groupId: gId, trips: tripsInGroup });
+      } else {
+        items.push({ isGroup: false, trip: tripsInGroup[0] });
+      }
+    });
+
+    ungrouped.forEach((trip) => {
+      items.push({ isGroup: false, trip });
+    });
+
+    return items;
+  })();
+
   const handleSelfAssign = async (tripId) => {
     setAssigningId(tripId);
     try {
@@ -45,6 +75,23 @@ export default function ClinicalTripPoolSection({ onAssignSuccess }) {
     }
   };
 
+  const handleSelfAssignGroup = async (groupTrips, groupId) => {
+    setAssigningId(groupId);
+    try {
+      await api.put(`/trips/${groupTrips[0].id}/self-assign-clinical`, {
+        trip_ids: groupTrips.map((t) => t.id)
+      });
+      toast.success(`¡Te has asignado a la misión multitraslado #${groupId} completa!`);
+      if (onAssignSuccess) onAssignSuccess();
+      fetchPool();
+    } catch (e) {
+      console.error("Error al asignarse misión multitraslado:", e);
+      toast.error("No se pudo realizar la auto-asignación de la misión");
+    } finally {
+      setAssigningId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
@@ -53,6 +100,132 @@ export default function ClinicalTripPoolSection({ onAssignSuccess }) {
       </div>
     );
   }
+
+  const renderSingleCard = (t) => (
+    <Card key={t.id} className="border border-slate-200 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white overflow-hidden flex flex-col justify-between">
+      <CardContent className="p-4 space-y-3">
+        {/* Cabecera Tarjeta */}
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+          <span className="bg-teal-50 text-teal-700 border border-teal-200 font-mono px-2.5 py-1 rounded-lg text-xs font-black">
+            #{t.tracking_number || t.id.substring(0,6).toUpperCase()}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <Badge className={`text-[10px] font-black uppercase px-2 py-0.5 border-none ${
+              t.priority === "urgente" ? "bg-red-500 text-white animate-pulse" : t.priority === "alta" ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-600"
+            }`}>
+              {t.priority}
+            </Badge>
+            <Badge className="bg-purple-100 text-purple-800 border-none text-[10px] font-bold uppercase px-2 py-0.5">
+              Sin Acompañante
+            </Badge>
+          </div>
+        </div>
+
+        {/* Paciente y Cita */}
+        <div>
+          <h3 className="font-black text-base text-slate-900 leading-tight">
+            {t.patient_name || "Paciente no especificado"}
+          </h3>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-0.5">
+            Motivo: {t.transfer_reason || "Traslado Clínico"}
+          </p>
+        </div>
+
+        {/* Fecha y Hora */}
+        <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl text-xs font-bold text-slate-700">
+          <div className="flex items-center gap-1">
+            <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
+            <span>{formatScheduledDate(t.scheduled_date)}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
+            <span>{t.appointment_time || "--:--"}</span>
+          </div>
+        </div>
+
+        {/* Ruta Origen -> Destino */}
+        <div className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-xs font-bold">
+          <div className="flex items-center gap-2 text-teal-800">
+            <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <span className="truncate">{t.origin}</span>
+          </div>
+          <div className="flex items-center gap-2 text-blue-800">
+            <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span className="truncate">{t.destination}</span>
+          </div>
+        </div>
+
+        {/* Botón de Auto-asignación */}
+        <Button
+          onClick={() => handleSelfAssign(t.id)}
+          disabled={assigningId === t.id}
+          className="w-full bg-teal-600 hover:bg-teal-700 text-white font-black text-xs h-11 rounded-xl uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer mt-2"
+        >
+          {assigningId === t.id ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Asignando...
+            </>
+          ) : (
+            <>
+              <UserCheck className="w-4 h-4" />
+              Tomar Acompañamiento
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+
+  const renderGroupCard = (groupId, groupTrips) => (
+    <Card key={groupId} className="border-2 border-indigo-500/90 shadow-lg rounded-2xl bg-gradient-to-br from-indigo-50/40 via-white to-white overflow-hidden md:col-span-2">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-2.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge className="bg-indigo-600 text-white font-mono text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" /> MISIÓN MULTITRASLADO #{groupId}
+            </Badge>
+            <Badge className="bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-black px-2 py-0.5">
+              {groupTrips.length} tramos
+            </Badge>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {groupTrips.map((subTrip, idx) => (
+            <div key={subTrip.id} className="p-2.5 bg-white border border-indigo-100 rounded-xl text-xs">
+              <div className="flex items-center justify-between mb-1">
+                <span className="bg-indigo-900 text-white font-mono text-[9px] font-black px-1.5 py-0.5 rounded">
+                  Parada {idx + 1}
+                </span>
+                <span className="text-[9px] font-black text-slate-400">#{subTrip.tracking_number}</span>
+              </div>
+              <p className="font-black text-slate-900">{subTrip.patient_name || "Paciente no especificado"}</p>
+              <p className="text-slate-500 font-bold truncate">{subTrip.origin} → {subTrip.destination}</p>
+            </div>
+          ))}
+        </div>
+
+        <Button
+          onClick={() => handleSelfAssignGroup(groupTrips, groupId)}
+          disabled={assigningId === groupId}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs h-11 rounded-xl uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer"
+        >
+          {assigningId === groupId ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Asignando...
+            </>
+          ) : (
+            <>
+              <UserCheck className="w-4 h-4" />
+              Tomar Misión Multitraslado Completa ({groupTrips.length} tramos)
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -82,81 +255,9 @@ export default function ClinicalTripPoolSection({ onAssignSuccess }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {trips.map((t) => (
-            <Card key={t.id} className="border border-slate-200 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white overflow-hidden flex flex-col justify-between">
-              <CardContent className="p-4 space-y-3">
-                {/* Cabecera Tarjeta */}
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                  <span className="bg-teal-50 text-teal-700 border border-teal-200 font-mono px-2.5 py-1 rounded-lg text-xs font-black">
-                    #{t.tracking_number || t.id.substring(0,6).toUpperCase()}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <Badge className={`text-[10px] font-black uppercase px-2 py-0.5 border-none ${
-                      t.priority === "urgente" ? "bg-red-500 text-white animate-pulse" : t.priority === "alta" ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-600"
-                    }`}>
-                      {t.priority}
-                    </Badge>
-                    <Badge className="bg-purple-100 text-purple-800 border-none text-[10px] font-bold uppercase px-2 py-0.5">
-                      Sin Acompañante
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Paciente y Cita */}
-                <div>
-                  <h3 className="font-black text-base text-slate-900 leading-tight">
-                    {t.patient_name || "Paciente no especificado"}
-                  </h3>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-0.5">
-                    Motivo: {t.transfer_reason || "Traslado Clínico"}
-                  </p>
-                </div>
-
-                {/* Fecha y Hora */}
-                <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl text-xs font-bold text-slate-700">
-                  <div className="flex items-center gap-1">
-                    <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
-                    <span>{formatScheduledDate(t.scheduled_date)}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{t.appointment_time || "--:--"}</span>
-                  </div>
-                </div>
-
-                {/* Ruta Origen -> Destino */}
-                <div className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-xs font-bold">
-                  <div className="flex items-center gap-2 text-teal-800">
-                    <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                    <span className="truncate">{t.origin}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-blue-800">
-                    <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                    <span className="truncate">{t.destination}</span>
-                  </div>
-                </div>
-
-                {/* Botón de Auto-asignación */}
-                <Button
-                  onClick={() => handleSelfAssign(t.id)}
-                  disabled={assigningId === t.id}
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-black text-xs h-11 rounded-xl uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer mt-2"
-                >
-                  {assigningId === t.id ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Asignando...
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="w-4 h-4" />
-                      Tomar Acompañamiento
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {groupedDisplayItems.map((item) =>
+            item.isGroup ? renderGroupCard(item.groupId, item.trips) : renderSingleCard(item.trip)
+          )}
         </div>
       )}
     </div>

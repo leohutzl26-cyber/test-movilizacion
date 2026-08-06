@@ -13,6 +13,7 @@ import ByClinicalSection from "./ByClinicalSection";
 import ClinicalCalendarSection from "./gestion-camas/ClinicalCalendarSection";
 import ClinicalHistorySection from "./gestion-camas/ClinicalHistorySection";
 import VehiclesSection from "./gestion-camas/VehiclesSection";
+import EscortsOverview from "@/components/EscortsOverview";
 
 export default function GestionCamasDashboard() {
   const [section, setSection] = useState(() => {
@@ -55,6 +56,7 @@ export default function GestionCamasDashboard() {
         {section === "calendar" && <ClinicalCalendarSection />}
         {section === "history" && <ClinicalHistorySection />}
         {section === "vehicles" && <VehiclesSection />}
+        {section === "escorts" && <EscortsOverview />}
       </main>
     </div>
   );

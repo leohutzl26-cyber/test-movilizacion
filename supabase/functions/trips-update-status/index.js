@@ -9,6 +9,12 @@ const supabase = createClient(
 // display board never mutates trips.
 const ALLOWED_ROLES = ['admin', 'solicitante', 'conductor', 'coordinador', 'gestion_camas', 'personal_clinico'];
 
+// Explicit audit_action override for updates that aren't a status change
+// (e.g. assigning/finalizing a clinical escort), so audit_logs doesn't fall
+// back to the generic driver-notes label. Whitelisted to avoid trusting an
+// arbitrary client-supplied string as the log action.
+const ALLOWED_AUDIT_ACTIONS = ['auto_asignar_acompanante', 'asignar_acompanante', 'finalizar_acompanamiento'];
+
 exports.handler = async (event, context) => {
   try {
     const requestBody = JSON.parse(event.body);
@@ -192,7 +198,9 @@ exports.handler = async (event, context) => {
         user_id: userId,
         user_name: context.user?.name || 'Unknown',
         user_role: userRole,
-        action: status ? `cambiar_estado_${status}` : 'guardar_observaciones_conductor',
+        action: status
+          ? `cambiar_estado_${status}`
+          : (ALLOWED_AUDIT_ACTIONS.includes(requestBody.audit_action) ? requestBody.audit_action : 'guardar_observaciones_conductor'),
         entity_type: 'trips',
         entity_id: trip_id,
         old_values: currentTrip,

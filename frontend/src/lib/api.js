@@ -602,6 +602,76 @@ const api = {
           }
         }
 
+        case "/trips/escorts-overview": {
+          try {
+            const { data: staffProfiles, error: staffError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('role', 'personal_clinico');
+
+            if (staffError) console.warn("Error fetching escort profiles:", staffError);
+
+            const { data: rawTrips, error: tripsError } = await supabase
+              .from('trips')
+              .select('*')
+              .eq('trip_type', 'clinico')
+              .neq('status', 'cancelado');
+
+            if (tripsError) console.warn("Error fetching clinical trips for escort overview:", tripsError);
+
+            const parseStaffEntries = (trip) => {
+              let staffArr = trip.assigned_clinical_staff;
+              if (typeof staffArr === 'string') {
+                try { staffArr = JSON.parse(staffArr); } catch(e) { return []; }
+              }
+              if (!Array.isArray(staffArr)) return [];
+              return staffArr.map(s => {
+                if (typeof s === 'string') {
+                  try { return JSON.parse(s); } catch(e) { return { staff_name: s }; }
+                }
+                return s;
+              });
+            };
+
+            const trips = rawTrips || [];
+
+            const overview = (staffProfiles || []).map(p => {
+              let activeCount = 0;
+              let completedCount = 0;
+              trips.forEach(t => {
+                const entries = parseStaffEntries(t).filter(s =>
+                  (s.staff_id && s.staff_id === p.id) || (!s.staff_id && s.staff_name && s.staff_name === p.name)
+                );
+                entries.forEach(entry => {
+                  // Entradas legadas sin status se cuentan como en curso.
+                  if (entry.status === 'completado') completedCount += 1;
+                  else activeCount += 1;
+                });
+              });
+
+              return {
+                id: p.id,
+                name: p.name || "Sin nombre",
+                department: p.department || 'Acompañante Clínico',
+                is_working: !!p.is_working,
+                active_count: activeCount,
+                completed_count: completedCount
+              };
+            });
+
+            overview.sort((a, b) => {
+              if (a.is_working && !b.is_working) return -1;
+              if (!a.is_working && b.is_working) return 1;
+              return (a.name || "").localeCompare(b.name || "");
+            });
+
+            return { data: overview };
+          } catch(e) {
+            console.error("Error in /trips/escorts-overview:", e);
+            return { data: [] };
+          }
+        }
+
         case "/trips/history": {
           const params = {
             ...queryParams,
@@ -1152,38 +1222,78 @@ const api = {
           const { data: profile } = await supabase.from('profiles').select('name, department').eq('id', userId).maybeSingle();
           const staffName = profile?.name || session.user.name;
           const staffType = profile?.department || "Acompañante Clínico";
+          const now = new Date().toISOString();
 
-          const oldTrip = await supabaseApi.trips.getTripById(tripId);
-          let currentStaff = oldTrip?.assigned_clinical_staff || [];
-          if (typeof currentStaff === 'string') {
-            try { currentStaff = JSON.parse(currentStaff); } catch(e) {}
-          }
-          if (!Array.isArray(currentStaff)) currentStaff = [];
-
-          const alreadyAdded = currentStaff.some(s => (s.staff_id && s.staff_id === userId) || (s.staff_name && s.staff_name === staffName));
-          if (!alreadyAdded) {
-            currentStaff.push({ type: staffType, staff_id: userId, staff_name: staffName });
-          }
+          // Soporta autoasignación grupal para misiones multitraslado: si
+          // viene trip_ids, se asigna a todos los tramos del grupo de una vez.
+          const targetIds = Array.isArray(data?.trip_ids) && data.trip_ids.length > 0 ? data.trip_ids : [tripId];
 
           // Se usa la Edge Function (service role) en vez de un UPDATE directo:
           // el cliente de Supabase del navegador solo envía la anon key, nunca
           // el JWT propio de la app, así que las políticas RLS que dependen de
           // get_auth_uid() nunca ven al usuario autenticado y bloquean el UPDATE
           // en silencio (0 filas afectadas, sin error).
-          const updatedTrip = await supabaseApi.trips.updateStatus(tripId, undefined, {
-            assigned_clinical_staff: currentStaff
+          const updatedTrips = await Promise.all(targetIds.map(async (id) => {
+            const oldTrip = await supabaseApi.trips.getTripById(id);
+            let currentStaff = oldTrip?.assigned_clinical_staff || [];
+            if (typeof currentStaff === 'string') {
+              try { currentStaff = JSON.parse(currentStaff); } catch(e) { currentStaff = []; }
+            }
+            if (!Array.isArray(currentStaff)) currentStaff = [];
+
+            const alreadyAdded = currentStaff.some(s => (s.staff_id && s.staff_id === userId) || (s.staff_name && s.staff_name === staffName));
+            if (!alreadyAdded) {
+              currentStaff.push({ type: staffType, staff_id: userId, staff_name: staffName, status: 'en_curso', assigned_at: now });
+            }
+
+            const updated = await supabaseApi.trips.updateStatus(id, undefined, {
+              assigned_clinical_staff: currentStaff,
+              audit_action: 'auto_asignar_acompanante'
+            });
+            if (!updated) throw new Error("No se pudo guardar la asignación");
+            return updated;
+          }));
+
+          return { data: targetIds.length > 1 ? updatedTrips : updatedTrips[0] };
+        } else if (parts[3] === "finalize-clinical") {
+          const session = await getCurrentUserSession();
+          const userId = session.user.id;
+          const now = new Date().toISOString();
+
+          const oldTrip = await supabaseApi.trips.getTripById(tripId);
+          let currentStaff = oldTrip?.assigned_clinical_staff || [];
+          if (typeof currentStaff === 'string') {
+            try { currentStaff = JSON.parse(currentStaff); } catch(e) { currentStaff = []; }
+          }
+          if (!Array.isArray(currentStaff)) currentStaff = [];
+
+          let found = false;
+          currentStaff = currentStaff.map(s => {
+            if (s.staff_id && s.staff_id === userId) {
+              found = true;
+              return { ...s, status: 'completado', completed_at: now };
+            }
+            return s;
           });
-          if (!updatedTrip) throw new Error("No se pudo guardar la asignación");
+          if (!found) throw new Error("No figuras como acompañante asignado en este traslado");
+
+          const updatedTrip = await supabaseApi.trips.updateStatus(tripId, undefined, {
+            assigned_clinical_staff: currentStaff,
+            clinical_notes: data?.clinical_notes,
+            audit_action: 'finalizar_acompanamiento'
+          });
+          if (!updatedTrip) throw new Error("No se pudo finalizar el acompañamiento");
           return { data: updatedTrip };
         } else if (parts[3] === "clinical-assign") {
           const { staff_id, staff_name, staff_type } = data;
           let newStaff = [];
           if (staff_id !== "unassigned") {
-            newStaff = [{ type: staff_type || "Acompañante", staff_id, staff_name }];
+            newStaff = [{ type: staff_type || "Acompañante", staff_id, staff_name, status: 'en_curso', assigned_at: new Date().toISOString() }];
           }
 
           const updatedTrip = await supabaseApi.trips.updateStatus(tripId, undefined, {
-            assigned_clinical_staff: newStaff
+            assigned_clinical_staff: newStaff,
+            audit_action: 'asignar_acompanante'
           });
           if (!updatedTrip) throw new Error("No se pudo guardar la asignación");
           return { data: updatedTrip };

@@ -98,6 +98,9 @@ export default function TripEvolutionLog({ tripId }) {
     else if (action === 'auto_asignar') detail = "Conductor auto-asignado";
     else if (action === 'desasignar_conductor') detail = "Conductor desasignado";
     else if (action === 'guardar_observaciones_conductor') detail = "Observaciones guardadas por el conductor";
+    else if (action === 'auto_asignar_acompanante') detail = `${log.user_name || 'Acompañante'} se autoasignó como acompañante clínico`;
+    else if (action === 'asignar_acompanante') detail = `Acompañante clínico asignado por ${log.user_name || 'Gestión de Camas'}`;
+    else if (action === 'finalizar_acompanamiento') detail = `Acompañamiento finalizado por ${log.user_name || 'el acompañante'}`;
     else if (action === 'editar_traslado') detail = log.new_values?.detalle || "Traslado modificado";
     else if (action.startsWith('cambiar_estado_')) {
       const status = action.replace('cambiar_estado_', '').replace(/_/g, " ");
@@ -113,6 +116,7 @@ export default function TripEvolutionLog({ tripId }) {
     if (action.includes('asignar')) return <User className="w-4 h-4 text-blue-600" />;
     if (action.includes('desasignar')) return <User className="w-4 h-4 text-rose-600" />;
     if (action.includes('observaciones')) return <FileText className="w-4 h-4 text-amber-600" />;
+    if (action.includes('finalizar')) return <CheckCircle className="w-4 h-4 text-emerald-600" />;
     if (action.includes('estado')) return <CheckCircle className="w-4 h-4 text-teal-600" />;
     return <Activity className="w-4 h-4 text-slate-500" />;
   };
@@ -122,6 +126,7 @@ export default function TripEvolutionLog({ tripId }) {
     if (action.includes('asignar')) return "bg-blue-100 border-blue-200 text-blue-800";
     if (action.includes('desasignar')) return "bg-rose-100 border-rose-200 text-rose-800";
     if (action.includes('observaciones')) return "bg-amber-100 border-amber-200 text-amber-800";
+    if (action.includes('finalizar')) return "bg-emerald-100 border-emerald-200 text-emerald-800";
     if (action.includes('estado')) return "bg-teal-100 border-teal-200 text-teal-800";
     return "bg-slate-100 border-slate-200 text-slate-800";
   };
