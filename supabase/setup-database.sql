@@ -110,6 +110,8 @@ CREATE TABLE trips (
     priority TEXT DEFAULT 'normal' CHECK (priority IN ('baja', 'normal', 'alta', 'urgente')),
     notes TEXT,
     driver_notes TEXT,
+    clinical_notes TEXT,
+    clinical_escort_confirmed BOOLEAN DEFAULT FALSE,
     trip_type TEXT DEFAULT 'no_clinico' CHECK (trip_type IN ('clinico', 'no_clinico')),
     status TEXT DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'asignado', 'en_curso', 'completado', 'cancelado', 'revision_gestor')),
     
