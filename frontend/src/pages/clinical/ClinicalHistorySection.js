@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,27 +7,57 @@ import { History, Search, FileText, CheckCircle2, Stethoscope, MapPin, Clock, Ca
 import api from "@/lib/api";
 import ClinicalDetailDialog from "@/components/ClinicalDetailDialog";
 import { formatScheduledDate } from "@/lib/tripUtils";
+import { useAuth } from "@/contexts/AuthContext";
+
+const findMyEscortEntry = (trip, userId, userName) => {
+  let staffArr = trip.assigned_clinical_staff || [];
+  if (typeof staffArr === "string") {
+    try { staffArr = JSON.parse(staffArr); } catch (e) { staffArr = []; }
+  }
+  if (!Array.isArray(staffArr)) return null;
+
+  const parsed = staffArr.map((s) => {
+    if (typeof s === "string") {
+      try { return JSON.parse(s); } catch (e) { return { staff_name: s }; }
+    }
+    return s;
+  });
+
+  const byId = parsed.find((s) => s.staff_id && s.staff_id === userId);
+  if (byId) return byId;
+
+  const uName = (userName || "").trim().toLowerCase();
+  if (!uName) return null;
+  return parsed.find((s) => !s.staff_id && (s.staff_name || "").trim().toLowerCase() === uName) || null;
+};
 
 export default function ClinicalHistorySection() {
+  const { user } = useAuth();
   const [trips, setTrips] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       const res = await api.get("/trips/clinical");
-      setTrips((res.data || []).filter(t => t.status === "completado" || t.status === "cancelado"));
+      // Se muestra en el historial cuando el propio acompañante finalizó su
+      // parte (no cuando el conductor termina el traslado), o si el
+      // traslado se canceló (ya no hay nada que finalizar).
+      setTrips((res.data || []).filter(t => {
+        const mine = findMyEscortEntry(t, user?.id, user?.name)?.status;
+        return mine === "completado" || t.status === "cancelado";
+      }));
     } catch (e) {
       console.error("Error fetching clinical history:", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [fetchHistory]);
 
   const filteredTrips = trips.filter(t =>
     (t.patient_name || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -68,7 +98,10 @@ export default function ClinicalHistorySection() {
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
           <div className="divide-y divide-slate-100">
-            {filteredTrips.map(t => (
+            {filteredTrips.map(t => {
+              const mine = findMyEscortEntry(t, user?.id, user?.name)?.status;
+              const isCancelled = t.status === "cancelado" && mine !== "completado";
+              return (
               <div key={t.id} className="p-4 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -76,9 +109,9 @@ export default function ClinicalHistorySection() {
                       #{t.tracking_number}
                     </span>
                     <Badge className={`text-[9px] font-black uppercase ${
-                      t.status === "completado" ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-rose-100 text-rose-800 border-rose-200"
+                      isCancelled ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-emerald-100 text-emerald-800 border-emerald-200"
                     }`}>
-                      {t.status}
+                      {isCancelled ? "Cancelado" : "Acompañamiento finalizado"}
                     </Badge>
                     <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-400" />
@@ -103,7 +136,8 @@ export default function ClinicalHistorySection() {
                   </Button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -69,12 +69,17 @@ export default function ClinicalCalendarSection() {
     return days;
   };
 
+  const cleanDateStr = (dateStr) => {
+    if (!dateStr) return "";
+    return dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+  };
+
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const daysInMonth = viewMode === "mensual" ? getDaysInMonth(year, month) : getWeekDays(currentMonth);
   const monthName = currentMonth.toLocaleString("es-ES", { month: "long", year: "numeric" });
 
-  const selectedTrips = trips.filter(t => t.scheduled_date === selectedDate);
+  const selectedTrips = trips.filter(t => cleanDateStr(t.scheduled_date) === selectedDate);
 
   const getStatusBadge = (status) => {
     if (status === "completado") return { bg: "bg-emerald-600 text-white", label: "Completado" };
@@ -140,7 +145,7 @@ export default function ClinicalCalendarSection() {
           <div className="grid grid-cols-7 gap-1.5">
             {daysInMonth.map(dayDate => {
               const dateStr = dayDate.toISOString().split("T")[0];
-              const dayTrips = trips.filter(t => t.scheduled_date === dateStr);
+              const dayTrips = trips.filter(t => cleanDateStr(t.scheduled_date) === dateStr);
               const isSelected = dateStr === selectedDate;
               const isToday = dateStr === new Date().toISOString().split("T")[0];
 
