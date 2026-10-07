@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { auditLogsApi } from "@/lib/supabase-api";
 
 const replaceIsoDates = (text) => {
   if (!text) return "";
@@ -27,13 +27,9 @@ export default function AuditLogs() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    supabase
-      .from('audit_logs')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .then(({ data }) => {
-        if (data) setLogs(data || []);
-      });
+    auditLogsApi.getAuditLogs(1000)
+      .then((data) => setLogs(data || []))
+      .catch((e) => console.error("Error cargando auditoría:", e));
   }, []);
 
   const filtered = logs.filter((l) =>

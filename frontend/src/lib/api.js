@@ -1046,23 +1046,9 @@ const api = {
 
             // Insert audit log
             try {
-              let userId = null, userName = "Coordinador", userRole = "coordinador";
-              const token = localStorage.getItem('supabase.auth.token');
-              if (token) {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                userId = payload.userId || null;
-                userName = payload.name || "Coordinador";
-                userRole = payload.role || "coordinador";
-              }
-              await supabase.from('audit_logs').insert([{
-                user_id: userId,
-                user_name: userName,
-                user_role: userRole,
-                action: 'asignar_mision_agrupada',
-                entity_type: 'trips',
-                entity_id: id,
+              await supabaseApi.auditLogs.logTripAction('asignar_mision_agrupada', id, {
                 new_values: { driver_id, driver_name, vehicle_plate, group_id: groupId, dispatch_group_id: groupId, status }
-              }]);
+              });
             } catch(e) {}
 
             return updated;
@@ -1196,29 +1182,8 @@ const api = {
             status: 'pendiente'
           });
 
-          let userId = null;
-          let userName = "Coordinador";
-          let userRole = "coordinador";
           try {
-            const token = localStorage.getItem('supabase.auth.token');
-            if (token) {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              userId = payload.userId || null;
-              userName = payload.name || "Coordinador";
-              userRole = payload.role || "coordinador";
-            }
-          } catch (e) {}
-
-          try {
-            await supabase.from('audit_logs').insert([{
-              user_id: userId,
-              user_name: userName,
-              user_role: userRole,
-              action: 'desasignar_conductor',
-              entity_type: 'trips',
-              entity_id: tripId,
-              new_values: updatedTrip
-            }]);
+            await supabaseApi.auditLogs.logTripAction('desasignar_conductor', tripId, { new_values: updatedTrip });
           } catch (e) {
             console.error("Error inserting unassign audit log", e);
           }
@@ -1362,32 +1327,9 @@ const api = {
             status: 'pendiente'
           });
 
-          let userId = null;
-          let userName = "Gestor de Camas";
-          let userRole = "gestion_camas";
-          try {
-            const token = localStorage.getItem('supabase.auth.token');
-            if (token) {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              userId = payload.userId || null;
-              userName = payload.name || "Gestor de Camas";
-              userRole = payload.role || "gestion_camas";
-            }
-          } catch (e) {
-            console.error("Error decoding token for audit log", e);
-          }
-
           // Registrar la visación
           try {
-            await supabase.from('audit_logs').insert([{
-              user_id: userId,
-              user_name: userName,
-              user_role: userRole,
-              action: 'cambiar_estado_pendiente',
-              entity_type: 'trips',
-              entity_id: tripId,
-              new_values: updatedTrip
-            }]);
+            await supabaseApi.auditLogs.logTripAction('cambiar_estado_pendiente', tripId, { new_values: updatedTrip });
           } catch (e) {
             console.error("Error inserting audit log for approve-gestor", e);
           }
@@ -1426,15 +1368,9 @@ const api = {
 
           if (changes.length > 0) {
             try {
-              await supabase.from('audit_logs').insert([{
-                user_id: userId,
-                user_name: userName,
-                user_role: userRole,
-                action: 'editar_traslado',
-                entity_type: 'trips',
-                entity_id: tripId,
+              await supabaseApi.auditLogs.logTripAction('editar_traslado', tripId, {
                 new_values: { detalle: `Modificó al visar: ${changes.join(', ')}` }
-              }]);
+              });
             } catch (e) {
               console.error("Error inserting edit audit log during approve-gestor", e);
             }
@@ -1480,29 +1416,10 @@ const api = {
           });
 
           if (changes.length > 0) {
-            let userId = null;
-            let userName = "Usuario / Coordinador";
-            let userRole = "coordinador";
             try {
-              const token = localStorage.getItem('supabase.auth.token');
-              if (token) {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                userId = payload.userId || null;
-                userName = payload.name || "Usuario / Coordinador";
-                userRole = payload.role || "coordinador";
-              }
-            } catch (e) {}
-
-            try {
-              await supabase.from('audit_logs').insert([{
-                user_id: userId,
-                user_name: userName,
-                user_role: userRole,
-                action: 'editar_traslado',
-                entity_type: 'trips',
-                entity_id: tripId,
+              await supabaseApi.auditLogs.logTripAction('editar_traslado', tripId, {
                 new_values: { detalle: `Modificó: ${changes.join(', ')}` }
-              }]);
+              });
             } catch (e) {
               console.error("Error inserting edit audit log", e);
             }

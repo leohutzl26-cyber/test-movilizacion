@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 
 const app = express();
 app.set('trust proxy', 1); // Confiar en el proxy inverso (Vercel, Render, etc.) para obtener la IP real del cliente
@@ -53,10 +54,26 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// La cuota general se cuenta por usuario autenticado (JWT válido) y, si no hay, por IP.
+// Detrás de una misma IP (la red del hospital) varios usuarios no deben agotar una cuota común.
+const identificarCliente = (req) => {
+  const token = (req.headers['authorization'] || '').split(' ')[1];
+  if (token && JWT_SECRET) {
+    try {
+      const { userId } = jwt.verify(token, JWT_SECRET);
+      if (userId) return { clave: `user:${userId}`, autenticado: true };
+    } catch (err) {
+      // Token inválido o vencido: se trata como anónimo y cae a la cuota por IP.
+    }
+  }
+  return { clave: ipKeyGenerator(req.ip), autenticado: false };
+};
+
 // Rate limiting general para la API
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 200, // máximo 200 requests por IP
+  limit: (req) => (identificarCliente(req).autenticado ? 1500 : 200), // por usuario autenticado / por IP anónima
+  keyGenerator: (req) => identificarCliente(req).clave,
   message: { error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -88,7 +105,8 @@ const functions = {
   'users-approve': require('./supabase/functions/users-approve'),
   'manage-catalogs': require('./supabase/functions/manage-catalogs'),
   'admin-users': require('./supabase/functions/admin-users'),
-  'auth-change-password': require('./supabase/functions/auth-change-password')
+  'auth-change-password': require('./supabase/functions/auth-change-password'),
+  'audit-logs': require('./supabase/functions/audit-logs')
 };
 
 // JWT Middleware to populate context.user

@@ -649,27 +649,28 @@ export const clinicalStaffApi = {
 export const auditLogsApi = {
   // Get audit logs (admin only)
   getAuditLogs: async (limit = 50) => {
-    const { data, error } = await supabase
-      .from('audit_logs')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(limit);
-    
-    if (error) throw error;
-    return data || [];
+    const res = await callSupabaseFunction('audit-logs', { action: 'list', limit });
+    return res.logs || [];
+  },
+
+  // Últimos movimientos de traslados para el panel de despacho (coordinador y admin)
+  getTripActivity: async (limit = 20) => {
+    const res = await callSupabaseFunction('audit-logs', { action: 'list', entity_type: 'trips', limit });
+    return res.logs || [];
   },
 
   // Get specific trip audit logs
   getTripAuditLogs: async (tripId) => {
-    const { data, error } = await supabase
-      .from('audit_logs')
-      .select('*')
-      .eq('entity_type', 'trips')
-      .eq('entity_id', tripId)
-      .order('timestamp', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    const res = await callSupabaseFunction('audit-logs', { action: 'list', entity_type: 'trips', entity_id: tripId });
+    return res.logs || [];
+  },
+
+  // Registra una acción sobre un traslado. El backend firma el registro con el usuario del JWT.
+  logTripAction: async (action, tripId, { old_values, new_values, details } = {}) => {
+    return await callSupabaseFunction('audit-logs', {
+      action: 'create',
+      entry: { action, entity_type: 'trips', entity_id: tripId, old_values, new_values, details }
+    });
   }
 };
 

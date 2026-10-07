@@ -64,7 +64,7 @@ export default function TripEvolutionLog({ tripId }) {
           <FileText className="w-6 h-6 text-red-300 mb-2" />
           <p className="text-xs font-bold text-red-600 uppercase tracking-widest">Error al cargar evolución</p>
           <p className="text-[10px] text-red-500 mt-1 max-w-sm">
-            No se pudo obtener el historial. Esto ocurre si las políticas RLS en tu consola de Supabase bloquean la lectura (SELECT) de la tabla <strong>audit_logs</strong>.
+            No se pudo obtener el historial. Revisa tu conexión o vuelve a iniciar sesión; si el problema continúa, avisa al administrador con el detalle de abajo.
           </p>
           <p className="text-[9px] text-slate-500 mt-2 font-mono bg-white px-2 py-1 rounded border">
             Detalle: {error}

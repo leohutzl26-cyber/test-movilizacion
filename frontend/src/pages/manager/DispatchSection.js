@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { MapPin, ArrowRight, ShieldAlert, Activity, Truck, User, AlertTriangle, RefreshCw, ClipboardList, Ambulance, Plus, Trash2, XCircle, Clock, RotateCcw, Edit, Search, ArrowUpDown, ExternalLink, MessageSquare, CheckCircle2, PlusCircle, UserPlus, FileText, AlertCircle, LogOut, Layers } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import { setLocalTripGroup, supabaseApi } from "@/lib/supabase-api";
 import TripDetailDialog from "./TripDetailDialog";
 import ActiveDriversPanel from "@/components/ActiveDriversPanel";
@@ -348,15 +347,8 @@ export default function DispatchSection() {
 
   const fetchActivityLogs = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('entity_type', 'trips')
-        .order('timestamp', { ascending: false })
-        .limit(20);
-      if (!error && data) {
-        setActivityLogs(data);
-      }
+      const data = await supabaseApi.auditLogs.getTripActivity(20);
+      setActivityLogs(data);
     } catch (e) {
       console.error("Error cargando logs de actividad:", e);
     } finally {
@@ -367,22 +359,12 @@ export default function DispatchSection() {
   useEffect(() => {
     fetchActivityLogs();
 
-    const channel = supabase
-      .channel('audit-logs-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'audit_logs' },
-        (payload) => {
-          if (payload.new && payload.new.entity_type === 'trips') {
-            setActivityLogs((prev) => [payload.new, ...prev.slice(0, 19)]);
-          }
-        }
-      )
-      .subscribe();
+    // Sin tiempo real: se consulta cada 15 s, solo con la pestaña visible.
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchActivityLogs();
+    }, 15000);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => clearInterval(interval);
   }, [fetchActivityLogs]);
 
   // Sincronizar estados locales de edición cuando se abre el modal
