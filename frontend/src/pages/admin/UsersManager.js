@@ -143,12 +143,11 @@ export default function UsersManager() {
   const handleDelete = async (u) => {
     if (window.confirm(`¿Eliminar definitivamente al usuario ${u.name}? Esta acción es irreversible y removerá el perfil asociado.`)) {
       try {
-        const { error } = await supabase.from('profiles').delete().eq('id', u.id);
-        if (error) throw error;
-        toast.success("Usuario eliminado exitosamente");
+        const response = await authApi.adminUsers({ action: 'delete', id: u.id });
+        toast.success(response.message || "Usuario eliminado exitosamente");
         fetchUsers();
       } catch (e) {
-        toast.error("Error al eliminar usuario");
+        toast.error(e.message || "Error al eliminar usuario");
       }
     }
   };

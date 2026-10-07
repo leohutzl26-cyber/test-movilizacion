@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
+const { sinSecretos } = require('../_shared/sanitize');
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
@@ -105,14 +106,14 @@ exports.handler = async (event, context) => {
           action: 'crear_usuario',
           entity_type: 'profiles',
           entity_id: newProfile.id,
-          new_values: newProfile
+          new_values: sinSecretos(newProfile)
         });
 
       return {
         statusCode: 200,
         body: JSON.stringify({
           message: 'Usuario creado exitosamente',
-          user: newProfile
+          user: sinSecretos(newProfile)
         })
       };
     }
@@ -188,15 +189,15 @@ exports.handler = async (event, context) => {
           action: 'editar_usuario',
           entity_type: 'profiles',
           entity_id: id,
-          old_values: currentUser,
-          new_values: updatedProfile
+          old_values: sinSecretos(currentUser),
+          new_values: sinSecretos(updatedProfile)
         });
 
       return {
         statusCode: 200,
         body: JSON.stringify({
           message: 'Usuario actualizado exitosamente',
-          user: updatedProfile
+          user: sinSecretos(updatedProfile)
         })
       };
     }
@@ -263,8 +264,82 @@ exports.handler = async (event, context) => {
         statusCode: 200,
         body: JSON.stringify({
           message: 'Contraseña restablecida exitosamente a 123456',
-          user: updatedProfile
+          user: sinSecretos(updatedProfile)
         })
+      };
+    }
+
+    if (action === 'delete') {
+      const { id } = payload;
+
+      if (!id) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'ID de usuario es obligatorio para eliminar' })
+        };
+      }
+
+      if (id === userId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'No puedes eliminar tu propio usuario' })
+        };
+      }
+
+      const { data: profile, error: findError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (findError) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: findError.message })
+        };
+      }
+
+      if (!profile) {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ error: 'Usuario no encontrado' })
+        };
+      }
+
+      const { error: deleteError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        // 23503 = llave foránea: el usuario ya tiene traslados, auditoría o cargas de combustible asociadas
+        if (deleteError.code === '23503') {
+          return {
+            statusCode: 409,
+            body: JSON.stringify({ error: 'No se puede eliminar: el usuario tiene traslados o registros asociados. Desactívalo desde Editar para impedir su acceso.' })
+          };
+        }
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: deleteError.message })
+        };
+      }
+
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userId,
+          user_name: context.user?.name || 'Administrador',
+          user_role: userRole,
+          action: 'eliminar_usuario',
+          entity_type: 'profiles',
+          entity_id: id,
+          old_values: sinSecretos(profile)
+        });
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Usuario eliminado exitosamente' })
       };
     }
 

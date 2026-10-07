@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { sinSecretos } = require('../_shared/sanitize');
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
@@ -70,15 +71,15 @@ exports.handler = async (event, context) => {
         action: action === 'approve' ? 'aprobar_usuario' : 'rechazar_usuario',
         entity_type: 'profiles',
         entity_id: user_id,
-        old_values: currentUser,
-        new_values: updatedUser
+        old_values: sinSecretos(currentUser),
+        new_values: sinSecretos(updatedUser)
       });
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         message: `User ${action}d successfully`,
-        user: updatedUser
+        user: sinSecretos(updatedUser)
       })
     };
   } catch (error) {
