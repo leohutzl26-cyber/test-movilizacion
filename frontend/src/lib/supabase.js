@@ -7,7 +7,13 @@ if (!process.env.REACT_APP_SUPABASE_URL || !process.env.REACT_APP_SUPABASE_ANON_
   console.error('Supabase URL or Anon Key is missing in environment variables')
 }
 
-// Workaround a prueba de balas: Usamos XMLHttpRequest puro para esquivar 
+// Columnas de "profiles" que el navegador puede leer. Excluye encrypted_password:
+// la anon key viaja en el bundle, así que el hash nunca debe salir hacia el cliente.
+// Usar esta lista en lugar de select('*') / select() sobre profiles. Si se agrega una
+// columna a profiles, hay que añadirla aquí y en supabase/restrict-profiles-column-select.sql.
+export const PROFILE_COLUMNS = 'id, email, name, role, status, shift_type, license_expiry, created_at, username, must_change_password, is_active, rut, vehicle_plate, phone, department, is_working, current_vehicle_id'
+
+// Workaround a prueba de balas: Usamos XMLHttpRequest puro para esquivar
 // cualquier extensión o interceptor de fetch que esté bloqueando los streams.
 export const customFetch = (url, options) => {
   return new Promise((resolve, reject) => {

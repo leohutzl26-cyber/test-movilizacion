@@ -1,5 +1,5 @@
 import supabaseApi, { callSupabaseFunction, setLocalTripGroup, getLocalTripGroups } from './supabase-api';
-import { supabase } from './supabase';
+import { supabase, PROFILE_COLUMNS } from './supabase';
 
 const getCurrentUserSession = async () => {
   try {
@@ -118,7 +118,7 @@ const api = {
       switch (baseUrl) {
         case "/auth/me": {
           const session = await getCurrentUserSession();
-          const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          const { data: profile } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', session.user.id).single();
           return { data: profile };
         }
 
@@ -168,7 +168,7 @@ const api = {
 
         case "/trips/clinical": {
           const session = await getCurrentUserSession();
-          const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          const { data: userProfile } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', session.user.id).single();
           const allTrips = await supabaseApi.trips.getTrips({});
           
           const userName = (userProfile?.name || '').toLowerCase();
@@ -271,7 +271,7 @@ const api = {
           // 1. Obtener todos los conductores
           const { data: drivers, error: driversError } = await supabase
             .from('profiles')
-            .select('*')
+            .select(PROFILE_COLUMNS)
             .eq('role', 'conductor');
           
           if (driversError) throw driversError;
@@ -384,9 +384,9 @@ const api = {
             
             const { data: clinicalStaff, error: staffError } = await supabase
               .from('profiles')
-              .select('*')
+              .select(PROFILE_COLUMNS)
               .eq('role', 'personal_clinico');
-            
+
             if (staffError) console.warn("Error fetching clinical staff profiles:", staffError);
             
             const viewType = queryParams.view || 'diaria';
@@ -606,7 +606,7 @@ const api = {
           try {
             const { data: staffProfiles, error: staffError } = await supabase
               .from('profiles')
-              .select('*')
+              .select(PROFILE_COLUMNS)
               .eq('role', 'personal_clinico');
 
             if (staffError) console.warn("Error fetching escort profiles:", staffError);
@@ -897,7 +897,7 @@ const api = {
             must_change_password: true,
             encrypted_password: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJQhN8/LewDrPNAXfL6mhcZK',
             is_active: data.is_active !== false
-          }).select().maybeSingle();
+          }).select(PROFILE_COLUMNS).maybeSingle();
 
           try {
             await supabaseApi.clinicalStaff.createClinicalStaff(data);
@@ -945,7 +945,7 @@ const api = {
                 current_vehicle_id: updatePayload.current_vehicle_id
               })
               .eq('id', targetUserId)
-              .select()
+              .select(PROFILE_COLUMNS)
               .maybeSingle();
 
             if (error || !updatedProfile) {

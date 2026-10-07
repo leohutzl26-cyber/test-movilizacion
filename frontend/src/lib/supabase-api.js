@@ -1,4 +1,4 @@
-import { supabase, customFetch } from './supabase';
+import { supabase, customFetch, PROFILE_COLUMNS } from './supabase';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -366,7 +366,7 @@ export const tripsApi = {
 export const usersApi = {
   // Get all users
   getUsers: async () => {
-    const { data, error } = await supabase.from('profiles').select('*');
+    const { data, error } = await supabase.from('profiles').select(PROFILE_COLUMNS);
     if (error) throw error;
     return data || [];
   },
@@ -375,7 +375,7 @@ export const usersApi = {
   getUserById: async (userId) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(PROFILE_COLUMNS)
       .eq('id', userId)
       .single();
     
@@ -397,7 +397,7 @@ export const usersApi = {
       .from('profiles')
       .update({ role })
       .eq('id', userId)
-      .select()
+      .select(PROFILE_COLUMNS)
       .single();
     
     if (error) throw error;

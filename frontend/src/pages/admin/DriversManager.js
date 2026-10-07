@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Edit, CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, PROFILE_COLUMNS } from "@/lib/supabase";
 
 export default function DriversManager() {
   const [drivers, setDrivers] = useState([]);
@@ -27,7 +27,7 @@ export default function DriversManager() {
 
   const fetchDrivers = useCallback(async () => {
     try {
-      const { data } = await supabase.from('profiles').select('*').eq('role', 'conductor').order('name');
+      const { data } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('role', 'conductor').order('name');
       if (data) setDrivers(data || []);
     } catch (e) {
       toast.error("Error al cargar conductores");

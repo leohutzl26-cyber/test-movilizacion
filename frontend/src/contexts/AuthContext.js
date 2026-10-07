@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, PROFILE_COLUMNS } from "@/lib/supabase";
 import { authApi } from "@/lib/supabase-api";
 
 const AuthContext = createContext(null);
@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_COLUMNS)
         .eq('id', userId)
         .single();
 
@@ -201,7 +201,7 @@ export function AuthProvider({ children }) {
         .from('profiles')
         .update(userData)
         .eq('id', user.id)
-        .select()
+        .select(PROFILE_COLUMNS)
         .single();
 
       if (error) throw error;
