@@ -1,5 +1,5 @@
 import supabaseApi, { callSupabaseFunction, setLocalTripGroup, getLocalTripGroups } from './supabase-api';
-import { supabase, PROFILE_COLUMNS } from './supabase';
+import { supabase } from './supabase';
 
 const getCurrentUserSession = async () => {
   try {
@@ -117,8 +117,7 @@ const api = {
 
       switch (baseUrl) {
         case "/auth/me": {
-          const session = await getCurrentUserSession();
-          const { data: profile } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', session.user.id).single();
+          const { profile } = await supabaseApi.profiles.me();
           return { data: profile };
         }
 
@@ -143,12 +142,11 @@ const api = {
 
         case "/trips/user": {
           const session = await getCurrentUserSession();
-          const { data: profile } = await supabase.from('profiles').select('role, department').eq('id', session.user.id).single();
+          const { profile, department_user_ids } = await supabaseApi.profiles.me();
           
           let userTrips;
           if (profile && profile.role === 'solicitante' && profile.department) {
-            const { data: deptUsers } = await supabase.from('profiles').select('id').eq('department', profile.department);
-            const userIds = (deptUsers || []).map(u => u.id);
+            const userIds = department_user_ids || [];
             if (userIds.length > 0) {
               userTrips = await supabaseApi.trips.getTrips({ requester_ids: userIds });
             } else {
@@ -168,7 +166,7 @@ const api = {
 
         case "/trips/clinical": {
           const session = await getCurrentUserSession();
-          const { data: userProfile } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', session.user.id).single();
+          const { profile: userProfile } = await supabaseApi.profiles.me();
           const allTrips = await supabaseApi.trips.getTrips({});
           
           const userName = (userProfile?.name || '').toLowerCase();
@@ -223,8 +221,8 @@ const api = {
         }
 
         case "/drivers": {
-          const drivers = await supabaseApi.users.getUsers();
-          return { data: drivers?.filter(u => u.role === 'conductor') || [] };
+          const drivers = await supabaseApi.users.getDrivers();
+          return { data: drivers || [] };
         }
 
         case "/origins":
@@ -238,10 +236,10 @@ const api = {
 
         case "/clinical-staff": {
           const catalog = await supabaseApi.clinicalStaff.getClinicalStaff();
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, name, role, is_working, department, is_active')
-            .eq('role', 'personal_clinico');
+          const profiles = await supabaseApi.profiles.directory({ role: 'personal_clinico' }).catch((e) => {
+            console.warn("No se pudo cargar el personal clínico registrado:", e);
+            return [];
+          });
           
           const profileStaff = (profiles || []).map(p => ({
             id: p.id,
@@ -269,12 +267,7 @@ const api = {
           const targetDate = queryParams.date || new Date().toISOString().split('T')[0];
           
           // 1. Obtener todos los conductores
-          const { data: drivers, error: driversError } = await supabase
-            .from('profiles')
-            .select(PROFILE_COLUMNS)
-            .eq('role', 'conductor');
-          
-          if (driversError) throw driversError;
+          const drivers = await supabaseApi.profiles.directory({ role: 'conductor' });
           
           // 2. Obtener todos los vehículos para saber el tipo (vehicle_type) usando la patente o id
           const { data: vehicles, error: vehiclesError } = await supabase
@@ -376,18 +369,18 @@ const api = {
               try {
                 const session = await getCurrentUserSession();
                 if (session?.user?.id) {
-                  const { data: prof } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
+                  const { profile: prof } = await supabaseApi.profiles.me();
                   if (prof) userRole = prof.role;
                 }
               } catch(e) {}
             }
             
-            const { data: clinicalStaff, error: staffError } = await supabase
-              .from('profiles')
-              .select(PROFILE_COLUMNS)
-              .eq('role', 'personal_clinico');
-
-            if (staffError) console.warn("Error fetching clinical staff profiles:", staffError);
+            let clinicalStaff = [];
+            try {
+              clinicalStaff = await supabaseApi.profiles.directory({ role: 'personal_clinico' });
+            } catch (staffError) {
+              console.warn("Error fetching clinical staff profiles:", staffError);
+            }
             
             const viewType = queryParams.view || 'diaria';
             
@@ -604,12 +597,12 @@ const api = {
 
         case "/trips/escorts-overview": {
           try {
-            const { data: staffProfiles, error: staffError } = await supabase
-              .from('profiles')
-              .select(PROFILE_COLUMNS)
-              .eq('role', 'personal_clinico');
-
-            if (staffError) console.warn("Error fetching escort profiles:", staffError);
+            let staffProfiles = [];
+            try {
+              staffProfiles = await supabaseApi.profiles.directory({ role: 'personal_clinico' });
+            } catch (staffError) {
+              console.warn("Error fetching escort profiles:", staffError);
+            }
 
             const { data: rawTrips, error: tripsError } = await supabase
               .from('trips')
@@ -721,10 +714,9 @@ const api = {
           
           let userTrips;
           if (currentUserId) {
-            const { data: profile } = await supabase.from('profiles').select('role, department').eq('id', currentUserId).single();
+            const { profile, department_user_ids } = await supabaseApi.profiles.me();
             if (profile && profile.role === 'solicitante' && profile.department) {
-              const { data: deptUsers } = await supabase.from('profiles').select('id').eq('department', profile.department);
-              const userIds = (deptUsers || []).map(u => u.id);
+              const userIds = department_user_ids || [];
               if (userIds.length > 0) {
                 userTrips = await supabaseApi.trips.getTrips({ requester_ids: userIds });
               } else {
@@ -742,12 +734,7 @@ const api = {
         case "/drivers/active": {
           try {
             // 1. Obtener todos los perfiles de conductor
-            const { data: drivers, error: driversError } = await supabase
-              .from('profiles')
-              .select('id, name, username, email, phone, is_working, current_vehicle_id, vehicle_plate, is_active')
-              .eq('role', 'conductor');
-              
-            if (driversError) throw driversError;
+            const drivers = await supabaseApi.profiles.directory({ role: 'conductor' });
             
             // 2. Obtener traslados en curso
             const { data: activeTrips, error: tripsError } = await supabase
@@ -884,26 +871,12 @@ const api = {
         }
 
         case "/clinical-staff": {
-          const username = (data.name || "clinico").toLowerCase().replace(/[^a-z0-9]/g, '');
-          const randomSuffix = Math.floor(Math.random() * 899 + 100);
-          const cleanUsername = username ? `${username}${randomSuffix}` : `clinico${Date.now()}`;
-          
-          const { data: createdUser } = await supabase.from('profiles').insert({
-            name: data.name,
-            username: cleanUsername,
-            role: 'personal_clinico',
-            department: data.role || 'Acompañante Clínico',
-            status: 'approved',
-            must_change_password: true,
-            encrypted_password: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJQhN8/LewDrPNAXfL6mhcZK',
-            is_active: data.is_active !== false
-          }).select(PROFILE_COLUMNS).maybeSingle();
-
+          // El perfil con acceso al sistema se crea desde Administración (admin-users); aquí solo se registra en el catálogo.
           try {
             await supabaseApi.clinicalStaff.createClinicalStaff(data);
           } catch(e){}
 
-          return { data: createdUser || { name: data.name } };
+          return { data: { name: data.name } };
         }
 
         case "/vehicles":
@@ -933,27 +906,8 @@ const api = {
             current_vehicle_id: data.current_vehicle_id || null 
           };
 
-          try {
-            const resData = await callSupabaseFunction('drivers/status', updatePayload);
-            return { data: resData };
-          } catch (apiErr) {
-            console.warn("Backend API drivers/status failed, attempting fallback direct Supabase update:", apiErr);
-            const { data: updatedProfile, error } = await supabase
-              .from('profiles')
-              .update({
-                is_working: updatePayload.is_working,
-                current_vehicle_id: updatePayload.current_vehicle_id
-              })
-              .eq('id', targetUserId)
-              .select(PROFILE_COLUMNS)
-              .maybeSingle();
-
-            if (error || !updatedProfile) {
-              throw error || new Error("No se pudo actualizar el estado del conductor en la base de datos.");
-            }
-
-            return { data: { message: 'Estado de turno actualizado', profile: updatedProfile } };
-          }
+          const resData = await callSupabaseFunction('drivers/status', updatePayload);
+          return { data: resData };
         }
 
         default:
@@ -978,11 +932,7 @@ const api = {
           let vehicle_plate = data.vehicle_plate;
 
           if (driver_id) {
-            const { data: driverProfile } = await supabase
-              .from('profiles')
-              .select('name, vehicle_plate, current_vehicle_id')
-              .eq('id', driver_id)
-              .maybeSingle();
+            const [driverProfile] = await supabaseApi.profiles.directory({ ids: [driver_id] }).catch(() => []);
 
             if (driverProfile) {
               if (!driver_name) driver_name = driverProfile.name;
@@ -1064,11 +1014,7 @@ const api = {
           const session = await getCurrentUserSession();
           const driverId = session.user.id;
           
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('name, vehicle_plate, current_vehicle_id')
-            .eq('id', driverId)
-            .maybeSingle();
+          const { profile } = await supabaseApi.profiles.me();
             
           let driverName = profile?.name || session.user.name;
           let vehiclePlate = profile?.vehicle_plate || data.vehicle_plate || null;
@@ -1144,13 +1090,10 @@ const api = {
           const session = await getCurrentUserSession();
           const driverId = session.user.id;
           
-          const { data: profile, error: profileErr } = await supabase
-            .from('profiles')
-            .select('vehicle_plate')
-            .eq('id', driverId)
-            .single();
-          
-          if (profileErr) {
+          let profile = null;
+          try {
+            ({ profile } = await supabaseApi.profiles.me());
+          } catch (profileErr) {
             console.error("Error fetching driver profile:", profileErr);
           }
           
@@ -1192,7 +1135,7 @@ const api = {
         } else if (parts[3] === "self-assign-clinical") {
           const session = await getCurrentUserSession();
           const userId = session.user.id;
-          const { data: profile } = await supabase.from('profiles').select('name, department').eq('id', userId).maybeSingle();
+          const { profile } = await supabaseApi.profiles.me();
           const staffName = profile?.name || session.user.name;
           const staffType = profile?.department || "Acompañante Clínico";
           const now = new Date().toISOString();

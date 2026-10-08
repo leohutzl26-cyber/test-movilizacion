@@ -5,6 +5,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
+const { sinSecretos } = require('./supabase/functions/_shared/sanitize');
 
 const app = express();
 app.set('trust proxy', 1); // Confiar en el proxy inverso (Vercel, Render, etc.) para obtener la IP real del cliente
@@ -106,7 +107,8 @@ const functions = {
   'manage-catalogs': require('./supabase/functions/manage-catalogs'),
   'admin-users': require('./supabase/functions/admin-users'),
   'auth-change-password': require('./supabase/functions/auth-change-password'),
-  'audit-logs': require('./supabase/functions/audit-logs')
+  'audit-logs': require('./supabase/functions/audit-logs'),
+  'profiles': require('./supabase/functions/profiles')
 };
 
 // JWT Middleware to populate context.user
@@ -154,9 +156,14 @@ app.post('/api/drivers/status', async (req, res) => {
     const { is_working, current_vehicle_id } = req.body;
     const targetUserId = req.body.driver_id || userId;
 
-    const updatePayload = { 
+    // Cambiar el turno de otra persona solo le corresponde a admin y coordinador.
+    if (targetUserId !== userId && !['admin', 'coordinador'].includes(userRole)) {
+      return res.status(403).json({ error: 'Solo puedes cambiar tu propio turno' });
+    }
+
+    const updatePayload = {
       is_working: is_working !== undefined ? is_working : false,
-      current_vehicle_id: current_vehicle_id || null 
+      current_vehicle_id: current_vehicle_id || null
     };
 
     const { data, error } = await supabase
@@ -165,20 +172,15 @@ app.post('/api/drivers/status', async (req, res) => {
       .eq('id', targetUserId)
       .select()
       .maybeSingle();
-      
+
     if (error) throw error;
 
-    let profileData = data;
-    if (!profileData) {
-      const { data: upserted } = await supabase
-        .from('profiles')
-        .upsert({ id: targetUserId, ...updatePayload })
-        .select()
-        .maybeSingle();
-      profileData = upserted || { id: targetUserId, ...updatePayload };
+    // Antes, si el perfil no existía, un upsert lo creaba con el id recibido.
+    if (!data) {
+      return res.status(404).json({ error: 'Perfil no encontrado' });
     }
 
-    res.json({ message: 'Estado de turno actualizado', profile: profileData });
+    res.json({ message: 'Estado de turno actualizado', profile: sinSecretos(data) });
   } catch (e) {
     console.error("Error updating driver status:", e);
     res.status(500).json({ error: e.message });
@@ -188,13 +190,18 @@ app.post('/api/drivers/status', async (req, res) => {
 // Endpoint para consultar conductores y vehículos activos
 app.get('/api/drivers/active', async (req, res) => {
   try {
+    // Antes respondía a cualquiera, sin sesión, con email y teléfono de cada conductor.
+    if (!['admin', 'coordinador', 'gestion_camas'].includes(req.context.user?.role)) {
+      return res.status(req.context.user ? 403 : 401).json({ error: 'Acceso denegado' });
+    }
+
     let drivers = [];
-    
+
     // 1. Obtener todos los perfiles de conductor
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, username, email, phone, is_working, current_vehicle_id, vehicle_plate, is_active')
+        .select('id, name, phone, is_working, current_vehicle_id, vehicle_plate, is_active')
         .eq('role', 'conductor');
       
       if (error) throw error;
@@ -204,7 +211,7 @@ app.get('/api/drivers/active', async (req, res) => {
       // Fallback: si falla por columnas nuevas no migradas, consultamos el esquema anterior
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, username, email, phone, vehicle_plate, is_active')
+        .select('id, name, phone, vehicle_plate, is_active')
         .eq('role', 'conductor');
         
       if (error) throw error;
@@ -256,8 +263,6 @@ app.get('/api/drivers/active', async (req, res) => {
       return {
         id: d.id,
         name: d.name,
-        username: d.username,
-        email: d.email,
         phone: d.phone,
         is_working: d.is_working,
         current_vehicle_id: d.current_vehicle_id,

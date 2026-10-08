@@ -7,7 +7,6 @@ import supabaseApi from './supabase-api';
 import { supabase } from './supabase';
 
 jest.mock('./supabase', () => ({
-  PROFILE_COLUMNS: 'id',
   customFetch: jest.fn(),
   supabase: { from: jest.fn(), auth: { getSession: jest.fn() } }
 }));

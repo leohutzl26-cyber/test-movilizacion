@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase, PROFILE_COLUMNS } from "@/lib/supabase";
-import { authApi } from "@/lib/supabase-api";
+import { supabase } from "@/lib/supabase";
+import { authApi, profilesApi } from "@/lib/supabase-api";
 
 const AuthContext = createContext(null);
 
@@ -8,19 +8,11 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId) => {
+  // El perfil propio se pide al backend; el navegador no lee la tabla "profiles".
+  const fetchProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(PROFILE_COLUMNS)
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching profile:", error);
-        return null;
-      }
-      return data;
+      const { profile } = await profilesApi.me();
+      return profile;
     } catch (error) {
       console.error("Error fetching profile:", error);
       return null;
@@ -151,26 +143,8 @@ export function AuthProvider({ children }) {
       // Use our custom auth function
       const response = await authApi.register(userData);
 
+      // El backend (auth-register) ya crea el perfil en estado "pending", a la espera de un admin.
       if (response.user_id) {
-        // Create profile in Supabase (waiting for admin approval)
-        const profileData = {
-          id: response.user_id,
-          email: userData.email,
-          username: userData.username || userData.email,
-          name: userData.name,
-          role: userData.role,
-          status: 'pending'
-        };
-
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([profileData]);
-
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-          throw new Error('Profile creation failed');
-        }
-
         return response;
       } else {
         throw new Error('Registration failed: No user ID received');
@@ -191,33 +165,6 @@ export function AuthProvider({ children }) {
       throw error;
     }
   }, []);
-
-  const updateUser = useCallback(async (userData) => {
-    try {
-      if (!user) throw new Error('No user logged in');
-
-      // Update profile in Supabase
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(userData)
-        .eq('id', user.id)
-        .select(PROFILE_COLUMNS)
-        .single();
-
-      if (error) throw error;
-
-      // Update local user state
-      setUser(prev => ({
-        ...prev,
-        ...data
-      }));
-
-      return data;
-    } catch (error) {
-      console.error("Update user error:", error);
-      throw error;
-    }
-  }, [user]);
 
   const approveUser = useCallback(async (userId) => {
     try {
@@ -270,7 +217,6 @@ export function AuthProvider({ children }) {
     register,
     changePassword,
     logout,
-    updateUser,
     approveUser,
     rejectUser,
     isAuthenticated: !!user,

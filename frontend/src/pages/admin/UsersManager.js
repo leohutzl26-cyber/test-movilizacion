@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit, RefreshCw } from "lucide-react";
-import { supabase, PROFILE_COLUMNS } from "@/lib/supabase";
-import { authApi } from "@/lib/supabase-api";
+import { supabase } from "@/lib/supabase";
+import { authApi, profilesApi } from "@/lib/supabase-api";
 import { PERSONNEL_TYPES } from "@/lib/tripUtils";
 
 export default function UsersManager() {
@@ -34,8 +34,8 @@ export default function UsersManager() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('profiles').select(PROFILE_COLUMNS).order('created_at', { ascending: false });
-      if (!error) setUsers(data || []);
+      const data = await profilesApi.list({ order_by: 'created_at', ascending: false });
+      setUsers(data || []);
     } catch (e) {
       toast.error("Error al cargar usuarios");
     } finally {

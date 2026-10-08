@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Edit, CheckCircle, XCircle } from "lucide-react";
-import { supabase, PROFILE_COLUMNS } from "@/lib/supabase";
+import { authApi, profilesApi } from "@/lib/supabase-api";
 
 export default function DriversManager() {
   const [drivers, setDrivers] = useState([]);
@@ -27,8 +27,8 @@ export default function DriversManager() {
 
   const fetchDrivers = useCallback(async () => {
     try {
-      const { data } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('role', 'conductor').order('name');
-      if (data) setDrivers(data || []);
+      const data = await profilesApi.list({ role: 'conductor', order_by: 'name', ascending: true });
+      setDrivers(data || []);
     } catch (e) {
       toast.error("Error al cargar conductores");
     } finally {
@@ -48,12 +48,12 @@ export default function DriversManager() {
 
   const saveLicense = async () => {
     try {
-      await supabase.from('profiles').update({ license_expiry: licenseDate }).eq('id', selectedDriver.id);
+      await authApi.adminUsers({ action: 'set_license', id: selectedDriver.id, license_expiry: licenseDate || null });
       toast.success("Fecha de licencia actualizada");
       setIsDialogOpen(false);
       fetchDrivers();
     } catch (e) {
-      toast.error("Error al actualizar fecha");
+      toast.error(e.message || "Error al actualizar fecha");
     }
   };
 

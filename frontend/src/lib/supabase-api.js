@@ -1,4 +1,4 @@
-import { supabase, customFetch, PROFILE_COLUMNS } from './supabase';
+import { supabase, customFetch } from './supabase';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -362,26 +362,30 @@ export const tripsApi = {
   }
 };
 
-// Users functions
-export const usersApi = {
-  // Get all users
-  getUsers: async () => {
-    const { data, error } = await supabase.from('profiles').select(PROFILE_COLUMNS);
-    if (error) throw error;
-    return data || [];
+// Perfiles: el navegador no lee ni escribe la tabla "profiles"; todo pasa por el backend.
+export const profilesApi = {
+  // Perfil propio + ids de las personas de su mismo departamento
+  me: async () => {
+    return await callSupabaseFunction('profiles', { action: 'me' });
   },
 
-  // Get user by ID
-  getUserById: async (userId) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(PROFILE_COLUMNS)
-      .eq('id', userId)
-      .single();
-    
-    if (error) throw error;
-    return data;
+  // Listado mínimo de conductores o personal clínico, por rol o por ids
+  directory: async ({ role, ids } = {}) => {
+    const res = await callSupabaseFunction('profiles', { action: 'directory', role, ids });
+    return res.users || [];
   },
+
+  // Listado completo para administración (solo admin)
+  list: async ({ role, order_by, ascending } = {}) => {
+    const res = await callSupabaseFunction('profiles', { action: 'list', role, order_by, ascending });
+    return res.users || [];
+  }
+};
+
+// Users functions
+export const usersApi = {
+  // Conductores visibles para el resto de las pantallas (sin datos personales)
+  getDrivers: async () => profilesApi.directory({ role: 'conductor' }),
 
   // Update user status (approve/reject)
   updateUserStatus: async (userId, action) => {
@@ -391,27 +395,15 @@ export const usersApi = {
     });
   },
 
-  // Update user role
+  // Update user role (solo admin)
   updateUserRole: async (userId, role) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ role })
-      .eq('id', userId)
-      .select(PROFILE_COLUMNS)
-      .single();
-    
-    if (error) throw error;
-    return data;
+    const res = await callSupabaseFunction('admin-users', { action: 'set_role', id: userId, role });
+    return res.user;
   },
 
-  // Delete user
+  // Delete user (solo admin)
   deleteUser: async (userId) => {
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
-    
-    if (error) throw error;
+    await callSupabaseFunction('admin-users', { action: 'delete', id: userId });
   }
 };
 
@@ -679,6 +671,7 @@ export const supabaseApi = {
   auth: authApi,
   trips: tripsApi,
   users: usersApi,
+  profiles: profilesApi,
   vehicles: vehiclesApi,
   stats: statsApi,
   destinations: destinationsApi,

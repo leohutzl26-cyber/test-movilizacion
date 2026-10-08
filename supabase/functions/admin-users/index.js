@@ -2,6 +2,8 @@ const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 const { sinSecretos } = require('../_shared/sanitize');
 
+const ROLES_VALIDOS = ['admin', 'solicitante', 'conductor', 'coordinador', 'gestion_camas', 'personal_clinico', 'panel'];
+
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY
@@ -266,6 +268,131 @@ exports.handler = async (event, context) => {
           message: 'Contraseña restablecida exitosamente a 123456',
           user: sinSecretos(updatedProfile)
         })
+      };
+    }
+
+    if (action === 'set_role') {
+      const { id, role } = payload;
+
+      if (!id || !role) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'ID de usuario y rol son obligatorios' })
+        };
+      }
+      if (!ROLES_VALIDOS.includes(role)) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Rol no válido. Opciones: ${ROLES_VALIDOS.join(', ')}` })
+        };
+      }
+      if (id === userId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'No puedes cambiar tu propio rol' })
+        };
+      }
+
+      const { data: currentUser, error: findError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (findError) {
+        return { statusCode: 400, body: JSON.stringify({ error: findError.message }) };
+      }
+      if (!currentUser) {
+        return { statusCode: 404, body: JSON.stringify({ error: 'Usuario no encontrado' }) };
+      }
+
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) {
+        return { statusCode: 400, body: JSON.stringify({ error: updateError.message }) };
+      }
+
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userId,
+          user_name: context.user?.name || 'Administrador',
+          user_role: userRole,
+          action: 'cambiar_rol_usuario',
+          entity_type: 'profiles',
+          entity_id: id,
+          old_values: sinSecretos(currentUser),
+          new_values: sinSecretos(updatedProfile)
+        });
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Rol actualizado exitosamente', user: sinSecretos(updatedProfile) })
+      };
+    }
+
+    if (action === 'set_license') {
+      const { id, license_expiry } = payload;
+
+      if (!id) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'ID de usuario es obligatorio' })
+        };
+      }
+      // Fecha ISO (AAAA-MM-DD) o null para borrarla.
+      if (license_expiry !== null && license_expiry !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(license_expiry)) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'license_expiry debe tener formato AAAA-MM-DD' })
+        };
+      }
+
+      const { data: currentUser, error: findError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (findError) {
+        return { statusCode: 400, body: JSON.stringify({ error: findError.message }) };
+      }
+      if (!currentUser) {
+        return { statusCode: 404, body: JSON.stringify({ error: 'Usuario no encontrado' }) };
+      }
+
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('profiles')
+        .update({ license_expiry: license_expiry || null })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) {
+        return { statusCode: 400, body: JSON.stringify({ error: updateError.message }) };
+      }
+
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userId,
+          user_name: context.user?.name || 'Administrador',
+          user_role: userRole,
+          action: 'actualizar_licencia_usuario',
+          entity_type: 'profiles',
+          entity_id: id,
+          old_values: { license_expiry: currentUser.license_expiry },
+          new_values: { license_expiry: updatedProfile.license_expiry }
+        });
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Licencia actualizada exitosamente', user: sinSecretos(updatedProfile) })
       };
     }
 
