@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabaseApi } from "@/lib/supabase-api";
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -61,12 +61,7 @@ export default function AnalyticsDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: err } = await supabase
-        .from("trips")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (err) throw err;
+      const data = await supabaseApi.trips.getTrips({});
       setTrips(data || []);
     } catch (e) {
       console.error("Error al cargar viajes para analítica:", e);

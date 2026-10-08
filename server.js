@@ -108,7 +108,9 @@ const functions = {
   'admin-users': require('./supabase/functions/admin-users'),
   'auth-change-password': require('./supabase/functions/auth-change-password'),
   'audit-logs': require('./supabase/functions/audit-logs'),
-  'profiles': require('./supabase/functions/profiles')
+  'profiles': require('./supabase/functions/profiles'),
+  'trips-read': require('./supabase/functions/trips-read'),
+  'trips-delete': require('./supabase/functions/trips-delete')
 };
 
 // JWT Middleware to populate context.user

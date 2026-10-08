@@ -283,14 +283,12 @@ const api = {
           });
           
           // 3. Obtener todos los viajes para esa fecha (no cancelados)
-          const { data: rawTrips, error: tripsError } = await supabase
-            .from('trips')
-            .select('*')
-            .eq('scheduled_date', targetDate)
-            .neq('status', 'cancelado')
-            .order('appointment_time', { ascending: true });
-            
-          if (tripsError) throw tripsError;
+          const rawTrips = await supabaseApi.trips.getTrips({
+            date: targetDate,
+            exclude_status: ['cancelado'],
+            order_by: 'appointment_time',
+            ascending: true
+          });
           
           // Parsear campos JSON en los traslados
           const trips = (rawTrips || []).map(t => {
@@ -385,13 +383,12 @@ const api = {
             const viewType = queryParams.view || 'diaria';
             
             // Obtener todos los traslados de tipo clinico y no cancelados
-            const { data: rawTrips, error: tripsError } = await supabase
-              .from('trips')
-              .select('*')
-              .eq('trip_type', 'clinico')
-              .neq('status', 'cancelado');
-            
-            if (tripsError) console.warn("Error fetching clinical trips:", tripsError);
+            let rawTrips = [];
+            try {
+              rawTrips = await supabaseApi.trips.getTrips({ trip_type: 'clinico', exclude_status: ['cancelado'] });
+            } catch (tripsError) {
+              console.warn("Error fetching clinical trips:", tripsError);
+            }
 
             // Helper para calcular y formatear fechas en la zona horaria local
             const formatDateLocal = (date) => {
@@ -552,15 +549,17 @@ const api = {
 
         case "/trips/clinical-pool": {
           try {
-            const { data: rawTrips, error } = await supabase
-              .from('trips')
-              .select('*')
-              .eq('trip_type', 'clinico')
-              .neq('status', 'cancelado')
-              .neq('status', 'completado')
-              .order('scheduled_date', { ascending: true });
-
-            if (error) console.warn("Error fetching clinical pool trips:", error);
+            let rawTrips = [];
+            try {
+              rawTrips = await supabaseApi.trips.getTrips({
+                trip_type: 'clinico',
+                exclude_status: ['cancelado', 'completado'],
+                order_by: 'scheduled_date',
+                ascending: true
+              });
+            } catch (error) {
+              console.warn("Error fetching clinical pool trips:", error);
+            }
 
             const poolTrips = (rawTrips || []).map(t => {
               const parsed = { ...t };
@@ -604,13 +603,12 @@ const api = {
               console.warn("Error fetching escort profiles:", staffError);
             }
 
-            const { data: rawTrips, error: tripsError } = await supabase
-              .from('trips')
-              .select('*')
-              .eq('trip_type', 'clinico')
-              .neq('status', 'cancelado');
-
-            if (tripsError) console.warn("Error fetching clinical trips for escort overview:", tripsError);
+            let rawTrips = [];
+            try {
+              rawTrips = await supabaseApi.trips.getTrips({ trip_type: 'clinico', exclude_status: ['cancelado'] });
+            } catch (tripsError) {
+              console.warn("Error fetching clinical trips for escort overview:", tripsError);
+            }
 
             const parseStaffEntries = (trip) => {
               let staffArr = trip.assigned_clinical_staff;
@@ -737,12 +735,7 @@ const api = {
             const drivers = await supabaseApi.profiles.directory({ role: 'conductor' });
             
             // 2. Obtener traslados en curso
-            const { data: activeTrips, error: tripsError } = await supabase
-              .from('trips')
-              .select('id, driver_id, status, tracking_number')
-              .eq('status', 'en_curso');
-              
-            if (tripsError) throw tripsError;
+            const activeTrips = await supabaseApi.trips.getTrips({ status: ['en_curso'] });
             
             // 3. Obtener catálogo de vehículos
             const { data: vehicles, error: vehiclesError } = await supabase
@@ -1398,16 +1391,6 @@ const api = {
   delete: async (url) => {
     try {
       const parts = url.split("/");
-
-      if (url === "/trips/clear-all") {
-        const allTrips = await supabaseApi.trips.getTrips();
-        for (const trip of allTrips) {
-          if (trip.id !== '00000000-0000-0000-0000-000000000000') {
-            await supabaseApi.trips.deleteTrip(trip.id);
-          }
-        }
-        return { data: { success: true } };
-      }
 
       if (url.startsWith("/trips/")) {
         const tripId = parts[2];

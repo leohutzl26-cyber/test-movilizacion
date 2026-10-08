@@ -4,24 +4,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { XCircle, Search, ArrowRight, Trash2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { Search, ArrowRight, Trash2 } from "lucide-react";
+import { supabaseApi } from "@/lib/supabase-api";
 
 export default function TripsManager() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const fetchTrips = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase.from('trips').select('*').order('created_at', { ascending: false });
-      if (search) {
-        query = query.ilike('tracking_number', `%${search}%`);
-      }
-      const { data } = await query;
-      if (data) setTrips(data || []);
+      const data = await supabaseApi.trips.getTrips(search ? { folio: search } : {});
+      setTrips(data || []);
     } catch (e) {
       toast.error("Error al cargar viajes");
     } finally {
@@ -36,27 +31,11 @@ export default function TripsManager() {
   const handleDeleteIndividual = async (id, tracking) => {
     if (window.confirm(`¿Seguro que desea eliminar el viaje ${tracking}? Esta acción es irreversible.`)) {
       try {
-        await supabase.from('trips').delete().eq('id', id);
+        await supabaseApi.trips.deleteTrip(id);
         toast.success("Viaje eliminado");
         fetchTrips();
       } catch (e) {
-        toast.error("No se pudo eliminar el viaje");
-      }
-    }
-  };
-
-  const handleClearAll = async () => {
-    const val = window.prompt("Escriba 'ELIMINAR TODO' para confirmar el borrado total de la base de datos de viajes.");
-    if (val === "ELIMINAR TODO") {
-      setIsDeletingAll(true);
-      try {
-        await supabase.from('trips').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        toast.success("Base de datos de viajes limpiada");
-        fetchTrips();
-      } catch (e) {
-        toast.error("Error en la limpieza total");
-      } finally {
-        setIsDeletingAll(false);
+        toast.error(e.message || "No se pudo eliminar el viaje");
       }
     }
   };
@@ -65,15 +44,6 @@ export default function TripsManager() {
     <div className="max-w-6xl mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Gestión de Viajes</h1>
-        <Button
-          variant="destructive"
-          onClick={handleClearAll}
-          disabled={isDeletingAll}
-          className="font-bold shadow-lg"
-        >
-          <XCircle className="w-4 h-4 mr-2" />
-          {isDeletingAll ? "Limpiando..." : "Limpiar Todo (ADMIN)"}
-        </Button>
       </div>
 
       <div className="relative mb-6">

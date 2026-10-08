@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sinSecretos } = require('../_shared/sanitize');
+const { alcanceDe } = require('../_shared/trip-scope');
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
@@ -69,6 +70,22 @@ exports.handler = async (event, context) => {
         // Listados generales: el admin ve todo; el coordinador solo el feed de traslados.
         if (!esAdmin && !(esCoordinador && entity_type === 'trips')) {
           return responder(403, { error: 'Acceso denegado' });
+        }
+      } else if (!esAdmin) {
+        // Historial de una entidad concreta: solo traslados, y solo los que el rol puede ver.
+        // Los registros guardan copias completas del traslado, así que valen las mismas reglas que trips-read.
+        if (entity_type !== 'trips') {
+          return responder(403, { error: 'Acceso denegado' });
+        }
+        const alcance = await alcanceDe(user, supabase);
+        if (!alcance || alcance.soloActivos) {
+          return responder(403, { error: 'Acceso denegado' });
+        }
+        if (!alcance.sinRestriccion) {
+          const { data: traslado } = await supabase.from('trips').select('*').eq('id', String(entity_id)).maybeSingle();
+          if (!traslado || !alcance.permite(traslado)) {
+            return responder(404, { error: 'Traslado no encontrado' });
+          }
         }
       }
 

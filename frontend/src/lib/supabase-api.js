@@ -155,62 +155,28 @@ export const authApi = {
   }
 };
 
+// Lectura de traslados a través del backend. Devuelve un arreglo, o { trips, total } si se pide paginación.
+const leerTraslados = async (filters = {}) => {
+  const usePagination = filters.page !== undefined && filters.limit !== undefined;
+  const res = await callSupabaseFunction('trips-read', { action: 'list', ...filters });
+  const trips = (res.trips || []).map(parseTrip);
+  return usePagination ? { trips, total: res.total || 0 } : trips;
+};
+
 // Trips functions
 export const tripsApi = {
-  // Get trips based on user role
-  getTrips: async (filters = {}) => {
-    const usePagination = filters.page !== undefined && filters.limit !== undefined;
-    const selectOptions = usePagination ? { count: 'exact' } : {};
-    
-    let query = supabase.from('trips').select('*', selectOptions).order('created_at', { ascending: false });
-    
-    if (filters.status) {
-      query = query.in('status', filters.status);
-    }
-    
-    if (filters.requester_ids) {
-      query = query.in('requester_id', filters.requester_ids);
-    } else if (filters.requester_id) {
-      query = query.eq('requester_id', filters.requester_id);
-    }
-    
-    if (filters.driver_id) {
-      query = query.eq('driver_id', filters.driver_id);
-    }
-    
-    if (usePagination) {
-      const from = (parseInt(filters.page) - 1) * parseInt(filters.limit);
-      const to = from + parseInt(filters.limit) - 1;
-      query = query.range(from, to);
-      
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return {
-        trips: (data || []).map(parseTrip),
-        total: count || 0
-      };
-    } else {
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []).map(parseTrip);
-    }
-  },
+  // Traslados visibles para el usuario según su rol. El filtrado por rol lo hace el backend (trips-read).
+  getTrips: async (filters = {}) => leerTraslados(filters),
 
   // Create new trip
   createTrip: async (tripData) => {
     return parseTrip(await callSupabaseFunction('trips-create', serializeTrip(tripData)));
   },
 
-  // Get trip by ID
+  // Get trip by ID (404 si el traslado no existe o el rol no puede verlo)
   getTripById: async (tripId) => {
-    const { data, error } = await supabase
-      .from('trips')
-      .select('*')
-      .eq('id', tripId)
-      .single();
-    
-    if (error) throw error;
-    return parseTrip(data);
+    const res = await callSupabaseFunction('trips-read', { action: 'get', id: tripId });
+    return parseTrip(res.trip);
   },
 
   // Update trip
@@ -264,101 +230,20 @@ export const tripsApi = {
     });
   },
 
-  // Get active trips
+  // Traslados activos (pendiente, asignado, en curso) más los completados hoy
   getActiveTrips: async () => {
-    // 1. Obtener traslados activos normales (pendiente, asignado, en curso)
-    const activeTrips = await tripsApi.getTrips({ status: ['pendiente', 'asignado', 'en_curso'] });
-    
-    // 2. Obtener traslados completados hoy (para mostrar en la sección "Finalizados Hoy" de la bandeja de entrada)
-    try {
-      const tzOffset = new Date().getTimezoneOffset() * 60000;
-      const todayStr = new Date(Date.now() - tzOffset).toISOString().split('T')[0];
-      
-      const { data: completedTrips, error } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('status', 'completado')
-        .eq('scheduled_date', todayStr);
-        
-      if (error) {
-        console.error("Error fetching completed trips:", error);
-        return activeTrips;
-      }
-      
-      const parsedCompleted = (completedTrips || []).map(parseTrip);
-      return [...activeTrips, ...parsedCompleted];
-    } catch (e) {
-      console.error("Error in getActiveTrips completed query:", e);
-      return activeTrips;
-    }
+    const tzOffset = new Date().getTimezoneOffset() * 60000;
+    const today = new Date(Date.now() - tzOffset).toISOString().split('T')[0];
+    const res = await callSupabaseFunction('trips-read', { action: 'active', today });
+    return (res.trips || []).map(parseTrip);
   },
 
-  // Get trip history
-  getTripHistory: async (filters = {}) => {
-    const usePagination = filters.page !== undefined && filters.limit !== undefined;
-    const selectOptions = usePagination ? { count: 'exact' } : {};
-    
-    let query = supabase.from('trips').select('*', selectOptions).order('created_at', { ascending: false });
-    
-    if (filters.folio) {
-      query = query.ilike('tracking_number', `%${filters.folio}%`);
-    }
-    
-    if (filters.startDate) {
-      query = query.gte('scheduled_date', filters.startDate);
-    }
-    
-    if (filters.endDate) {
-      query = query.lte('scheduled_date', filters.endDate);
-    }
+  // Get trip history (mismos filtros que getTrips más folio, fechas, vehículo y búsqueda)
+  getTripHistory: async (filters = {}) => leerTraslados(filters),
 
-    if (filters.vehicle_id) {
-      query = query.eq('vehicle_id', filters.vehicle_id);
-    }
-
-    if (filters.status && filters.status !== 'all') {
-      query = query.eq('status', filters.status);
-    }
-
-    if (filters.trip_type && filters.trip_type !== 'all') {
-      query = query.eq('trip_type', filters.trip_type);
-    }
-
-    if (filters.patient_name) {
-      query = query.ilike('patient_name', `%${filters.patient_name}%`);
-    }
-
-    if (filters.search) {
-      const term = `%${filters.search}%`;
-      query = query.or(`patient_name.ilike.${term},tracking_number.ilike.${term},origin.ilike.${term},destination.ilike.${term}`);
-    }
-    
-    if (usePagination) {
-      const from = (parseInt(filters.page) - 1) * parseInt(filters.limit);
-      const to = from + parseInt(filters.limit) - 1;
-      query = query.range(from, to);
-      
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return {
-        trips: (data || []).map(parseTrip),
-        total: count || 0
-      };
-    } else {
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []).map(parseTrip);
-    }
-  },
-
-  // Delete trip
+  // Delete trip (solo admin, de uno en uno)
   deleteTrip: async (tripId) => {
-    const { error } = await supabase
-      .from('trips')
-      .delete()
-      .eq('id', tripId);
-    
-    if (error) throw error;
+    await callSupabaseFunction('trips-delete', { id: tripId });
   }
 };
 
@@ -470,33 +355,9 @@ export const statsApi = {
   // Get dashboard stats
   getDashboardStats: async () => {
     return await callSupabaseFunction('stats-dashboard');
-  },
-
-  // Get simple stats for components
-  getSimpleStats: async () => {
-    try {
-      const { data: trips } = await supabase.from('trips').select('status');
-      const { data: vehicles } = await supabase.from('vehicles').select('status');
-      
-      return {
-        by_status: {
-          pendiente: trips?.filter(t => t.status === 'pendiente').length || 0,
-          asignado: trips?.filter(t => t.status === 'asignado').length || 0,
-          en_curso: trips?.filter(t => t.status === 'en_curso').length || 0,
-          completado: trips?.filter(t => t.status === 'completado').length || 0,
-        },
-        total_vehicles: vehicles?.length || 0,
-        vehicles_available: vehicles?.filter(v => v.status === 'disponible').length || 0
-      };
-    } catch (error) {
-      console.error('Error getting simple stats:', error);
-      return {
-        by_status: { pendiente: 0, asignado: 0, en_curso: 0, completado: 0 },
-        total_vehicles: 0,
-        vehicles_available: 0
-      };
-    }
   }
+
+  // (getSimpleStats se eliminó: leía trips directo desde el navegador y nadie lo usaba)
 };
 
 // Destinations/Origins/Origin Services functions

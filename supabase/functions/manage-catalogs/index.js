@@ -35,6 +35,15 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Eliminar traslados es exclusivo del admin (trips-delete); aquí un coordinador o un gestor
+    // de camas podía borrarlos llamando a la API directamente.
+    if (table === 'trips' && action === 'delete' && user.role !== 'admin') {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ error: 'Solo un administrador puede eliminar traslados.' })
+      };
+    }
+
     let result = null;
     let queryError = null;
 
