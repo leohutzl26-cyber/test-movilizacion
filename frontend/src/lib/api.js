@@ -1271,54 +1271,23 @@ const api = {
           if (!updatedTrip) throw new Error("No se pudo guardar la asignación");
           return { data: updatedTrip };
         } else if (parts[3] === "status") {
-          const updatePayload = {};
-          if (data.status) updatePayload.status = data.status;
-          if (data.clinical_notes !== undefined) updatePayload.clinical_notes = data.clinical_notes;
-          if (data.clinical_escort_confirmed !== undefined) updatePayload.clinical_escort_confirmed = data.clinical_escort_confirmed;
-          if (data.driver_notes !== undefined) updatePayload.driver_notes = data.driver_notes;
-          if (data.notes !== undefined) updatePayload.notes = data.notes;
-          if (data.mileage !== undefined) {
-            // 'trips' has no generic 'mileage' column, only start/end/total_mileage
-            if (data.status === 'en_curso') {
-              updatePayload.start_mileage = data.mileage;
-            } else if (data.status === 'completado') {
-              updatePayload.end_mileage = data.mileage;
-            }
+          // Todo cambio de estado, y las notas del traslado, pasan por el backend (clave de servicio).
+          // Escribir directo con la anon key no sirve: RLS descarta la fila sin devolver error y la
+          // pantalla mostraba éxito sin haber guardado nada. Los errores del backend se propagan.
+          const result = await supabaseApi.trips.updateStatus(tripId, data.status, {
+            mileage: data.mileage,
+            cancel_reason: data.cancel_reason,
+            vehicle_id: data.vehicle_id || null,
+            driver_notes: data.driver_notes,
+            clinical_notes: data.clinical_notes,
+            clinical_escort_confirmed: data.clinical_escort_confirmed,
+            notes: data.notes
+          });
+
+          if (!result || !result.id) {
+            throw new Error("No se pudo actualizar el traslado");
           }
-          if (data.cancel_reason !== undefined) updatePayload.cancel_reason = data.cancel_reason;
-          if (data.vehicle_id !== undefined) updatePayload.vehicle_id = data.vehicle_id;
-
-          let updatedResult = null;
-          if (data.status && (data.status === 'en_curso' || data.status === 'completado' || data.status === 'cancelado')) {
-            try {
-              updatedResult = await supabaseApi.trips.updateStatus(tripId, data.status, {
-                mileage: data.mileage,
-                cancel_reason: data.cancel_reason || null,
-                vehicle_id: data.vehicle_id || null,
-                driver_notes: data.driver_notes,
-                ...updatePayload
-              });
-            } catch (e) {
-              console.warn("Falling back from Edge Function updateStatus to direct Supabase update:", e);
-            }
-          }
-
-          if (!updatedResult || !updatedResult.id) {
-            const { data: directTrip, error } = await supabase
-              .from('trips')
-              .update(updatePayload)
-              .eq('id', tripId)
-              .select()
-              .maybeSingle();
-
-            if (error) {
-              console.error("Error updating trip status directly:", error);
-              throw error;
-            }
-            updatedResult = directTrip;
-          }
-
-          return { data: updatedResult };
+          return { data: result };
         } else if (parts[3] === "approve-gestor") {
           const oldTrip = await supabaseApi.trips.getTripById(tripId);
           // Visar traslado: pasa de revision_gestor a pendiente
