@@ -1,12 +1,12 @@
-// Guardia: el navegador no debe leer ni escribir las tablas "profiles", "audit_logs" ni "trips". La anon
+// Guardia: el navegador no debe leer ni escribir las tablas "profiles", "audit_logs", "trips" ni "clinical_staff". La anon
 // key viaja en el bundle, así que cualquier acceso directo expone datos personales o de pacientes (o, con
 // RLS cerrado, falla en silencio). Todo acceso debe pasar por el backend: /api/profiles, /api/audit-logs,
-// /api/trips-read y /api/trips-delete.
+// /api/trips-read, /api/trips-delete y /api/clinical-staff.
 const fs = require('fs');
 const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
-const TABLAS_PROTEGIDAS = ['profiles', 'audit_logs', 'trips'];
+const TABLAS_PROTEGIDAS = ['profiles', 'audit_logs', 'trips', 'clinical_staff'];
 
 const archivosFuente = (dir) =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {

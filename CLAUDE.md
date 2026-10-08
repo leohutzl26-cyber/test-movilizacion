@@ -38,7 +38,7 @@ Copy `.env.example` to `.env` at the repo root for the Express server: `SUPABASE
 
 ### The browser does not touch sensitive tables
 
-The anon-key client in `frontend/src/lib/supabase.js` is only allowed to read the public catalogs (`vehicles`, `origins`, `destinations`, `origin_services`, `clinical_staff`). **`profiles`, `trips` and `audit_logs` are never read or written from the browser** — those tables hold password hashes, personal data and patient data (RUT, diagnosis, bed). Everything else goes through the Express app:
+The anon-key client in `frontend/src/lib/supabase.js` is only allowed to read the public catalogs (`vehicles`, `origins`, `destinations`, `origin_services`) and never writes anything. **`profiles`, `trips`, `audit_logs` and `clinical_staff` are never read or written from the browser** — those tables hold password hashes, personal data, patient data (RUT, diagnosis, bed) and staff RUTs. Everything else goes through the Express app:
 
 `callSupabaseFunction(name, body)` in `frontend/src/lib/supabase-api.js` POSTs to `${REACT_APP_API_URL}/api/<name>` with `Authorization: Bearer <custom JWT>`. `server.js` verifies the JWT into `req.context.user`, then calls `exports.handler(event, context)` of the matching module in `supabase/functions/<name>/index.js` (Lambda-style `(event, context) => {statusCode, body}`; originally Supabase Edge Functions, now plain Node modules). The handler runs with the **service-role key**. A new function must be registered in the `functions` map in `server.js`.
 
@@ -49,6 +49,7 @@ The anon-key client in `frontend/src/lib/supabase.js` is only allowed to read th
 | `trips-read` | `list` / `get` / `active`, role-scoped (see Trip visibility) |
 | `trips-create`, `trips-assign`, `trips-update-status` | Trip mutations; `trips-update-status` validates the transition map and also saves notes without a status |
 | `trips-delete` | Admin only, one trip at a time, audited |
+| `clinical-staff` | `list` of the clinical staff catalog for dropdowns (any authenticated role; no RUT column) |
 | `audit-logs` | `list` and `create` (browser may only create 4 trip actions; identity comes from the JWT, never the body) |
 | `admin-users` | Admin: `create`, `update`, `reset_password`, `set_role`, `set_license`, `delete` |
 | `users-approve`, `manage-catalogs`, `stats-dashboard` | Approval, generic catalog CRUD (trips delete is admin-only there too), dashboard stats |
@@ -59,7 +60,7 @@ The anon-key client in `frontend/src/lib/supabase.js` is only allowed to read th
 
 ### Rules that are easy to break
 
-- **Do not add `supabase.from('profiles' | 'trips' | 'audit_logs')` in `frontend/`.** `no-direct-profiles-access.test.js` fails the test suite if you do (it also bans Realtime subscriptions). Add a read action to a function or reuse `profilesApi` / `tripsApi` / `auditLogsApi`.
+- **Do not add `supabase.from('profiles' | 'trips' | 'audit_logs' | 'clinical_staff')` in `frontend/`.** `no-direct-profiles-access.test.js` fails the test suite if you do (it also bans Realtime subscriptions). Add a read action to a function or reuse `profilesApi` / `tripsApi` / `auditLogsApi` / `clinicalStaffApi`.
 - **Never return or log `encrypted_password`.** Pass profile rows through `sinSecretos()` (`supabase/functions/_shared/sanitize.js`) before putting them in a response or in `audit_logs.old_values/new_values`.
 - **Authorization lives in the functions, not in RLS.** The browser never sends the custom JWT to PostgREST, so `get_auth_uid()` is NULL there and any RLS policy that depends on it denies everything: a direct browser write to a protected table affects 0 rows **with no error**, and the UI shows success. Never add a "fallback to a direct update" when a backend call fails; let the error reach the screen.
 - **Trip visibility is defined once** in `supabase/functions/_shared/trip-scope.js` (`alcanceDe`). Reuse it for any endpoint that returns trips or data derived from them (the per-trip history in `audit-logs` does).
@@ -84,9 +85,9 @@ Trips: `pendiente → asignado → en_curso → completado`, with `cancelado` an
 
 `supabase/schema.sql` is the base schema; `add-*.sql` and `fix-*.sql` are incremental migrations run by hand in the Supabase SQL editor (no migration runner; `supabase/migrate.js` is a one-off data migration). Production is the Supabase project `Movilizacion-HCU` and does not exactly match `schema.sql`: there are no CHECK constraints on `trips.status` / `profiles.status`, `trips.scheduled_date` is `timestamptz` (all values at midnight UTC, queried with `.eq('scheduled_date', 'YYYY-MM-DD')`), and `profiles.role` also allows `personal_clinico`.
 
-Security scripts, already applied in production, each documented in its own header (including rollback):
+Security scripts, each documented in its own header (including rollback); check `pg_policies` to see which ones are applied in production:
 - `restrict-profiles-column-select.sql` hides `encrypted_password` from `anon`/`authenticated`; `restrict-profiles-all-access.sql` drops the public read policies on `profiles` (no table-wide REVOKE: 15 policies on other tables subquery `profiles`).
-- `restrict-audit-logs-access.sql` drops the public policies on `audit_logs` and revokes `anon`/`authenticated` access; `restrict-trips-read-access.sql` drops the public read policy on `trips`; `scrub-audit-logs-password-hashes.sql` removed password hashes that older code had logged.
+- `restrict-audit-logs-access.sql` drops the public policies on `audit_logs` and revokes `anon`/`authenticated` access; `restrict-trips-read-access.sql` drops the public read policy on `trips`; `restrict-clinical-staff-read-access.sql` drops the public read policy on `clinical_staff`; `scrub-audit-logs-password-hashes.sql` removed password hashes that older code had logged.
 
 **Order matters:** deploy the code that stops using a table from the browser first, then run its SQL. The reverse breaks the live app.
 

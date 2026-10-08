@@ -462,11 +462,10 @@ export const originServicesApi = {
 
 // Clinical Staff functions
 export const clinicalStaffApi = {
-  // Get all clinical staff
+  // Get all clinical staff (por el backend; el catálogo ya no se lee directo ni trae RUT)
   getClinicalStaff: async () => {
-    const { data, error } = await supabase.from('clinical_staff').select('*').order('name');
-    if (error) throw error;
-    return data || [];
+    const res = await callSupabaseFunction('clinical-staff', { action: 'list' });
+    return res.staff || [];
   },
 
   // Create clinical staff

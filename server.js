@@ -110,7 +110,8 @@ const functions = {
   'audit-logs': require('./supabase/functions/audit-logs'),
   'profiles': require('./supabase/functions/profiles'),
   'trips-read': require('./supabase/functions/trips-read'),
-  'trips-delete': require('./supabase/functions/trips-delete')
+  'trips-delete': require('./supabase/functions/trips-delete'),
+  'clinical-staff': require('./supabase/functions/clinical-staff')
 };
 
 // JWT Middleware to populate context.user
