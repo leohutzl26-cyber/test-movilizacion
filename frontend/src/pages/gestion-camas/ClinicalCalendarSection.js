@@ -18,6 +18,8 @@ export default function ClinicalCalendarSection() {
   const [draggedTrip, setDraggedTrip] = useState(null);
   const [dragOverDate, setDragOverDate] = useState(null);
   const [detailTrip, setDetailTrip] = useState(null);
+  // Qué traslados se muestran: solo los clínicos (por defecto) o todos.
+  const [tripFilter, setTripFilter] = useState("clinico"); // clinico | todos
 
   const navigateTimeoutRef = useRef(null);
 
@@ -127,7 +129,9 @@ export default function ClinicalCalendarSection() {
     return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
   };
 
+  // Todas las vistas (día, semana y mes) leen de aquí, así que el filtro se aplica en un solo lugar.
   const tripsByDate = (dateStr) => trips.filter(t => {
+    if (tripFilter === "clinico" && t.trip_type !== "clinico") return false;
     const d = t.scheduled_date || t.created_at;
     return d && d.split("T")[0] === dateStr;
   });
@@ -191,7 +195,19 @@ export default function ClinicalCalendarSection() {
           <h1 className="text-2xl md:text-3xl font-black text-slate-900">Calendario de Traslados</h1>
           <p className="text-slate-500 font-medium mt-1 capitalize">{getTitle()}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="bg-white border rounded-xl p-1 flex gap-1" role="group" aria-label="Tipo de traslado">
+            {[{ k: "clinico", l: "Solo clínicos" }, { k: "todos", l: "Todos" }].map(f => (
+              <button
+                key={f.k}
+                onClick={() => setTripFilter(f.k)}
+                aria-pressed={tripFilter === f.k}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${tripFilter === f.k ? "bg-teal-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}
+              >
+                {f.l}
+              </button>
+            ))}
+          </div>
           <div className="bg-white border rounded-xl p-1 flex gap-1">
             {[{ k: "daily", l: "Día" }, { k: "weekly", l: "Semana" }, { k: "monthly", l: "Mes" }].map(v => (
               <button key={v.k} onClick={() => setViewMode(v.k)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.k ? "bg-teal-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>{v.l}</button>

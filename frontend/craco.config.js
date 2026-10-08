@@ -42,6 +42,14 @@ const webpackConfig = {
       },
     },
   },
+  // Jest no conoce el alias "@" del compilador; sin esto los tests no pueden importar componentes.
+  jest: {
+    configure: {
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+      },
+    },
+  },
   webpack: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
